@@ -11,3 +11,5 @@ Condor-3.3.2 branched from Apache @ git-svn-id: https://svn.apache.org/repos/asf
 
  BUG FIXES
          BUG-3813 - Oozie build issue, with custom component version.
+         BUG-4188 - Oozie should add hadoop libs to the classpath or the
+                    client should have log4j and slf4j in the lib
