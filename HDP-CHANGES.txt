@@ -1,0 +1,13 @@
+Condor-3.3.2 branched from Apache @ git-svn-id: https://svn.apache.org/repos/asf/oozie/tags/release-3.3.2@1460759   13f79535-47bb-0310-9956-ffa450edef68
+
+ INCOMPATIBLE CHANGES
+
+
+ NEW FEATURES
+
+
+ IMPROVEMENTS
+
+
+ BUG FIXES
+         BUG-3813 - Oozie build issue, with custom component version.
