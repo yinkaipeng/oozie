@@ -15,3 +15,5 @@ Condor-3.3.2 branched from Apache @ git-svn-id: https://svn.apache.org/repos/asf
                     client should have log4j and slf4j in the lib
          OOZIE-863 - JAVA_HOME needs to be explicitly set at client since
                      bin/oozie does not invoke oozie-env.sh
+         BUG-5344 - Removing the hive-builtin dependency as hive-builtin has
+                    been removed from hive.
