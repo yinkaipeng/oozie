@@ -187,13 +187,11 @@ public class CoordCommandUtils {
                                                          // future
                                                          // function
 
+            int startIndex = getInstanceNumber(strStart, restArg);
             String startRestArg = restArg.toString();
             restArg.delete(0, restArg.length());
-            String endRestArg = restArg.toString();
-
-            int startIndex = getInstanceNumber(strStart, restArg);
-            restArg.delete(0, restArg.length());
             int endIndex = getInstanceNumber(strEnd, restArg);
+            String endRestArg = restArg.toString();
             if (startIndex > endIndex) {
                 throw new CommandException(ErrorCode.E1010,
                         " start-instance should be equal or earlier than the end-instance \n"
