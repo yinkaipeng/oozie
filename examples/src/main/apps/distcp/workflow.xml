@@ -29,6 +29,10 @@
                     <name>mapred.job.queue.name</name>
                     <value>${queueName}</value>
                 </property>
+                <property>
+                    <name>oozie.launcher.mapreduce.job.hdfs-servers</name>
+                    <value>${nameNode}</value>
+                </property>
             </configuration>
             <arg>${nameNode}/user/${wf:user()}/${examplesRoot}/input-data/text/data.txt</arg>
             <arg>${nameNode}/user/${wf:user()}/${examplesRoot}/output-data/${outputDir}/data.txt</arg>
