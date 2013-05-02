@@ -364,7 +364,6 @@ public abstract class XTestCase extends TestCase {
     /**
      * Return an alternate test user Id that belongs
        to the test group.
-     *
      * @return the user Id.
      */
     protected static String getTestUser2() {
@@ -400,9 +399,13 @@ public abstract class XTestCase extends TestCase {
      */
     private String getTestCaseDirInternal(TestCase testCase) {
         ParamChecker.notNull(testCase, "testCase");
-        File dir = new File(System.getProperty(OOZIE_TEST_DIR, "target/test-data"));
-        dir = new File(dir, "oozietests").getAbsoluteFile();
-        dir = new File(dir, testCase.getClass().getName());
+//        File dir = new File(System.getProperty(OOZIE_TEST_DIR, "target/test-data"));
+        File dir = new File(System.getProperty(OOZIE_TEST_DIR, "target/td"));
+//        dir = new File(dir, "oozietests").getAbsoluteFile();
+        dir = new File(dir, "ots").getAbsoluteFile();
+        String[] classNameArray = testCase.getClass().getName().split("\\.");
+//        dir = new File(dir, testCase.getClass().getName());
+        dir = new File(dir, classNameArray[classNameArray.length-1]);
         dir = new File(dir, testCase.getName());
         return dir.getAbsolutePath();
     }
