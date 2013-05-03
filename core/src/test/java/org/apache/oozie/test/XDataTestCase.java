@@ -93,6 +93,8 @@ public abstract class XDataTestCase extends XFsTestCase {
 
     protected String bundleName;
     protected String CREATE_TIME = "2012-07-22T00:00Z";
+    protected String CREATE_TIME2 = "2012-07-22T00:10Z";
+    protected String CREATE_TIME3 = "2012-07-22T00:20Z";
 
     /**
      * Inserts the passed coord job
@@ -1252,10 +1254,10 @@ public abstract class XDataTestCase extends XFsTestCase {
         CoordinatorActionBean action2 = new CoordinatorActionBean();
         action2.setId("Coord1@2");
         action2.setStatus(CoordinatorAction.Status.KILLED);
-        action2.setCreatedTime(DateUtils.parseDateUTC(CREATE_TIME));
+        action2.setCreatedTime(DateUtils.parseDateUTC(CREATE_TIME2));
         action2.setJobId("Coord1");
 
-        cal.setTime(DateUtils.parseDateUTC(CREATE_TIME));
+        cal.setTime(DateUtils.parseDateUTC(CREATE_TIME2));
         cal.add(Calendar.DATE, -1);
 
         action2.setNominalTime(cal.getTime());
@@ -1266,10 +1268,10 @@ public abstract class XDataTestCase extends XFsTestCase {
         CoordinatorActionBean action3 = new CoordinatorActionBean();
         action3.setId("Coord2@1");
         action3.setStatus(CoordinatorAction.Status.KILLED);
-        action3.setCreatedTime(DateUtils.parseDateUTC(CREATE_TIME));
+        action3.setCreatedTime(DateUtils.parseDateUTC(CREATE_TIME3));
         action3.setJobId("Coord2");
 
-        cal.setTime(DateUtils.parseDateUTC(CREATE_TIME));
+        cal.setTime(DateUtils.parseDateUTC(CREATE_TIME3));
         cal.add(Calendar.DATE, -1);
 
         action3.setNominalTime(cal.getTime());

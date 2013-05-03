@@ -76,7 +76,7 @@ public class TestBulkMonitorJPAExecutor extends XDataTestCase {
 
         List<BulkResponseImpl> brList = _execQuery(request);
         assertEquals(3, brList.size()); // 3 actions satisfy the conditions
-        List<String> possibleStatus = new ArrayList<String>(Arrays.asList("KILLED", "FAILED"));
+        List<String> possibleStatus = new ArrayList<String>(Arrays.asList("FAILED", "KILLED"));
         List<String> resultStatus = new ArrayList<String>();
         resultStatus.add(brList.get(0).getAction().getStatus().toString());
         resultStatus.add(brList.get(1).getAction().getStatus().toString());
