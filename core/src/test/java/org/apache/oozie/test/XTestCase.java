@@ -400,9 +400,9 @@ public abstract class XTestCase extends TestCase {
     private String getTestCaseDirInternal(TestCase testCase) {
         ParamChecker.notNull(testCase, "testCase");
 //        File dir = new File(System.getProperty(OOZIE_TEST_DIR, "target/test-data"));
-        File dir = new File(System.getProperty(OOZIE_TEST_DIR, "target/td"));
+        File dir = new File(System.getProperty(OOZIE_TEST_DIR, "target/t"));
 //        dir = new File(dir, "oozietests").getAbsoluteFile();
-        dir = new File(dir, "ots").getAbsoluteFile();
+        dir = new File(dir, "o").getAbsoluteFile();
         String[] classNameArray = testCase.getClass().getName().split("\\.");
 //        dir = new File(dir, testCase.getClass().getName());
         dir = new File(dir, classNameArray[classNameArray.length-1]);

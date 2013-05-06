@@ -292,7 +292,7 @@ public abstract class XDataTestCase extends XFsTestCase {
      */
     protected CoordinatorJobBean createCoordJob(CoordinatorJob.Status status, boolean pending, boolean doneMatd)
             throws Exception {
-        Path appPath = new Path(getFsTestCaseDir(), "coord");
+        Path appPath = new Path(getFsTestCaseDir(), "c");
         String appXml = writeCoordXml(appPath);
 
         CoordinatorJobBean coordJob = new CoordinatorJobBean();
@@ -345,7 +345,7 @@ public abstract class XDataTestCase extends XFsTestCase {
      */
     protected CoordinatorJobBean createCoordJob(CoordinatorJob.Status status, Date start, Date end, boolean pending,
             boolean doneMatd, int lastActionNum) throws Exception {
-        Path appPath = new Path(getFsTestCaseDir(), "coord");
+        Path appPath = new Path(getFsTestCaseDir(), "c");
         String appXml = writeCoordXml(appPath, start, end);
 
         CoordinatorJobBean coordJob = new CoordinatorJobBean();
@@ -401,7 +401,7 @@ public abstract class XDataTestCase extends XFsTestCase {
      */
     protected CoordinatorJobBean createCoordJob(String testFileName, CoordinatorJob.Status status, Date start,
             Date end, boolean pending, boolean doneMatd, int lastActionNum) throws Exception {
-        Path appPath = new Path(getFsTestCaseDir(), "coord");
+        Path appPath = new Path(getFsTestCaseDir(), "c");
         String appXml = writeCoordXml(appPath, testFileName);
 
         CoordinatorJobBean coordJob = new CoordinatorJobBean();
