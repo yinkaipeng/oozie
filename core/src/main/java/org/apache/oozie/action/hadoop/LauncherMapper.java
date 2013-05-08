@@ -488,17 +488,6 @@ public class LauncherMapper<K1, V1, K2, V2> implements Mapper<K1, V1, K2, V2>, R
                     try {
                         Class klass = getJobConf().getClass(CONF_OOZIE_ACTION_MAIN_CLASS, Object.class);
                         Method mainMethod = klass.getMethod("main", String[].class);
-                        if (mainClass.equals("org.apache.hadoop.tools.DistCp")){
-                            if (System.getenv("HADOOP_TOKEN_FILE_LOCATION") != null) {
-                             System.out.println("Setting env property for mapreduce.job.credentials.binary to:"
-                             + System.getenv("HADOOP_TOKEN_FILE_LOCATION"));
-                             System.out.println("------------------------");
-                             System.setProperty("mapreduce.job.credentials.binary", System.getenv("HADOOP_TOKEN_FILE_LOCATION"));
-                            }
-                            else {
-                                System.out.println("Non-kerberoes execution");
-                            }
-                    }
                         mainMethod.invoke(null, (Object) args);
                     }
                     catch (InvocationTargetException ex) {
