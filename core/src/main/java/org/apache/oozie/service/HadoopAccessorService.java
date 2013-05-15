@@ -52,7 +52,7 @@ import java.util.concurrent.ConcurrentMap;
 /**
  * The HadoopAccessorService returns HadoopAccessor instances configured to work on behalf of a user-group. <p/> The
  * default accessor used is the base accessor which just injects the UGI into the configuration instance used to
- * create/obtain JobClient and ileSystem instances. <p/> The HadoopAccess class to use can be configured in the
+ * create/obtain JobClient and FileSystem instances. <p/> The HadoopAccess class to use can be configured in the
  * <code>oozie-site.xml</code> using the <code>oozie.service.HadoopAccessorService.accessor.class</code> property.
  */
 public class HadoopAccessorService implements Service {
@@ -86,7 +86,7 @@ public class HadoopAccessorService implements Service {
     private Map<String, Map<String, XConfiguration>> actionConfigs = new HashMap<String, Map<String, XConfiguration>>();
 
     private ConcurrentMap<String, UserGroupInformation> userUgiMap;
-
+    private static String defaultAuthToLocalRules = "DEFAULT";
     /**
      * Supported filesystem schemes for namespace federation
      */
@@ -122,7 +122,12 @@ public class HadoopAccessorService implements Service {
 
         boolean kerberosAuthOn = conf.getBoolean(KERBEROS_AUTH_ENABLED, true);
         XLog.getLog(getClass()).info("Oozie Kerberos Authentication [{0}]", (kerberosAuthOn) ? "enabled" : "disabled");
+        loadHadoopConfigs(conf);
+
         if (kerberosAuthOn) {
+            Configuration c = hadoopConfigs.get("*");
+            UserGroupInformation.setConfiguration(c);
+            defaultAuthToLocalRules = c.get("hadoop.security.auth_to_local", "DEFAULT");
             kerberosInit(conf);
         }
         else {
@@ -133,7 +138,6 @@ public class HadoopAccessorService implements Service {
 
         userUgiMap = new ConcurrentHashMap<String, UserGroupInformation>();
 
-        loadHadoopConfigs(conf);
         preLoadActionConfigs(conf);
 
         supportedSchemes = new HashSet<String>();
@@ -167,6 +171,7 @@ public class HadoopAccessorService implements Service {
                 }
                 Configuration conf = new Configuration();
                 conf.set("hadoop.security.authentication", "kerberos");
+                conf.set("hadoop.security.auth_to_local", defaultAuthToLocalRules);
                 UserGroupInformation.setConfiguration(conf);
                 UserGroupInformation.loginUserFromKeytab(principal, keytabFile);
                 XLog.getLog(getClass()).info("Got Kerberos ticket, keytab [{0}], Oozie principal principal [{1}]",
@@ -189,11 +194,15 @@ public class HadoopAccessorService implements Service {
         for (String file : HADOOP_CONF_FILES) {
             File f = new File(dir, file);
             if (f.exists()) {
+                LOG.info("Loading hadoop config file " + f);
                 InputStream is = new FileInputStream(f);
                 Configuration conf = new XConfiguration(is);
                 is.close();
                 XConfiguration.copy(conf, hadoopConf);
+            } else {
+              LOG.info("Hadoop config file " + f + " does not exist. Ignoring");
             }
+            
         }
         return hadoopConf;
     }
@@ -230,9 +239,11 @@ public class HadoopAccessorService implements Service {
     }
 
     private void loadHadoopConfigs(Configuration serviceConf) throws ServiceException {
+        LOG.info("Loading hadoop configurations");
         try {
             Map<String, File> map = parseConfigDirs(serviceConf.getStrings(HADOOP_CONFS, "*=hadoop-conf"), "hadoop");
             for (Map.Entry<String, File> entry : map.entrySet()) {
+                LOG.info("Loading configuration for key " + entry.getKey());
                 hadoopConfigs.put(entry.getKey(), loadHadoopConf(entry.getValue()));
             }
         }
@@ -470,12 +481,14 @@ public class HadoopAccessorService implements Service {
         }
     }
 
+
     // Package private for unit test purposes
     static Text getMRTokenRenewerInternal(JobConf jobConf) throws IOException {
         // Getting renewer correctly for JT principal also though JT in hadoop 1.x does not have
         // support for renewing/cancelling tokens
         String servicePrincipal = jobConf.get(RM_PRINCIPAL, jobConf.get(JT_PRINCIPAL));
         Text renewer;
+
         if (servicePrincipal != null) { // secure cluster
             renewer = mrTokenRenewers.get(servicePrincipal);
             if (renewer == null) {
@@ -484,8 +497,10 @@ public class HadoopAccessorService implements Service {
                 if (target == null) {
                     target = jobConf.get(HADOOP_JOB_TRACKER);
                 }
+
                 String addr = NetUtils.createSocketAddr(target).getHostName();
                 renewer = new Text(SecurityUtil.getServerPrincipal(servicePrincipal, addr));
+
                 LOG.info("Delegation Token Renewer details: Principal=" + servicePrincipal + ",Target=" + target
                         + ",Renewer=" + renewer);
                 mrTokenRenewers.put(servicePrincipal, renewer);
