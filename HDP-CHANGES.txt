@@ -1,5 +1,6 @@
 Condor-3.3.2 branched from Apache @ git-svn-id: https://svn.apache.org/repos/asf/oozie/tags/release-3.3.2@1460759   13f79535-47bb-0310-9956-ffa450edef68
 
+CONDOR:
  INCOMPATIBLE CHANGES
 
 
@@ -17,3 +18,16 @@ Condor-3.3.2 branched from Apache @ git-svn-id: https://svn.apache.org/repos/asf
                      bin/oozie does not invoke oozie-env.sh
          BUG-5344 - Removing the hive-builtin dependency as hive-builtin has
                     been removed from hive.
+
+
+COMANCHE:
+ INCOMPATIBLE CHANGES
+
+
+ NEW FEATURES
+
+
+ IMPROVEMENTS
+
+
+ BUG FIXES
