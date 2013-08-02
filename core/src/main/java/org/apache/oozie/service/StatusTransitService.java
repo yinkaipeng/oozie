@@ -18,7 +18,6 @@
 package org.apache.oozie.service;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -39,7 +38,6 @@ import org.apache.oozie.command.CommandException;
 import org.apache.oozie.command.bundle.BundleKillXCommand;
 import org.apache.oozie.command.bundle.BundleStatusUpdateXCommand;
 import org.apache.oozie.executor.jpa.BundleActionsGetByLastModifiedTimeJPAExecutor;
-import org.apache.oozie.executor.jpa.BundleActionsGetJPAExecutor;
 import org.apache.oozie.executor.jpa.BundleActionsGetStatusPendingJPAExecutor;
 import org.apache.oozie.executor.jpa.BundleJobGetJPAExecutor;
 import org.apache.oozie.executor.jpa.BundleJobUpdateJPAExecutor;
@@ -50,6 +48,7 @@ import org.apache.oozie.executor.jpa.CoordJobGetJPAExecutor;
 import org.apache.oozie.executor.jpa.CoordJobGetPendingActionsCountJPAExecutor;
 import org.apache.oozie.executor.jpa.CoordJobUpdateJPAExecutor;
 import org.apache.oozie.executor.jpa.CoordJobsGetPendingJPAExecutor;
+import org.apache.oozie.executor.jpa.CoordJobsGetRunningPastEndtimeJPAExecutor;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
 import org.apache.oozie.util.DateUtils;
 import org.apache.oozie.util.MemoryLocks;
@@ -718,9 +717,18 @@ public class StatusTransitService implements Service {
                 List<String> coordJobIdList = jpaService
                         .execute(new CoordActionsGetByLastModifiedTimeJPAExecutor(lastInstanceStartTime));
                 Set<String> coordIds = new HashSet<String>();
-                for (String coordJobId : coordJobIdList) {
-                    coordIds.add(coordJobId);
-                }
+                coordIds.addAll(coordJobIdList);
+//                for (String coordJobId : coordJobIdList) {
+//                    coordIds.add(coordJobId);
+//                }
+
+                List<String> coordJobRunningPastEndtimeIdList = jpaService
+                        .execute(new CoordJobsGetRunningPastEndtimeJPAExecutor());
+                coordIds.addAll(coordJobRunningPastEndtimeIdList);
+//                for (String coordJobId : coordJobRunningPastEndtimeIdList) {
+//                    coordIds.add(coordJobId);
+//                }
+
                 pendingJobCheckList = new ArrayList<CoordinatorJobBean>();
                 for (String coordId : coordIds.toArray(new String[coordIds.size()])) {
                     CoordinatorJobBean coordJob;

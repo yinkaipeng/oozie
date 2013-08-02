@@ -300,7 +300,8 @@ public class CoordMaterializeTransitionXCommand extends MaterializeTransitionXCo
         String jobXml = coordJob.getJobXml();
         Element eJob = XmlUtils.parseXml(jobXml);
         TimeZone appTz = DateUtils.getTimeZone(coordJob.getTimeZone());
-        int frequency = Integer.valueOf(coordJob.getFrequency());
+
+        String frequency = coordJob.getFrequency();
         TimeUnit freqTU = TimeUnit.valueOf(eJob.getAttributeValue("freq_timeunit"));
         TimeUnit endOfFlag = TimeUnit.valueOf(eJob.getAttributeValue("end_of_duration"));
         Calendar start = Calendar.getInstance(appTz);
@@ -317,11 +318,8 @@ public class CoordMaterializeTransitionXCommand extends MaterializeTransitionXCo
         origStart.setTime(coordJob.getStartTimestamp());
         // Move to the End of duration, if needed.
         DateUtils.moveToEnd(origStart, endOfFlag);
-        // Cloning the start time to be used in loop iteration
-        Calendar effStart = (Calendar) origStart.clone();
-        // Move the time when the previous action finished
-        effStart.add(freqTU.getCalendarUnit(), lastActionNumber * frequency);
 
+        Date effStart = (Date) startMatdTime.clone();
         StringBuilder actionStrings = new StringBuilder();
         Date jobPauseTime = coordJob.getPauseTime();
         Calendar pause = null;
@@ -337,35 +335,41 @@ public class CoordMaterializeTransitionXCommand extends MaterializeTransitionXCo
         LOG.debug("Coordinator job :" + coordJob.getId() + ", maxActionToBeCreated :" + maxActionToBeCreated
                 + ", Mat_Throttle :" + coordJob.getMatThrottling() + ", numWaitingActions :" + numWaitingActions);
 
-        while (effStart.compareTo(end) < 0 && maxActionToBeCreated-- > 0) {
-            if (pause != null && effStart.compareTo(pause) >= 0) {
+        while (effStart.compareTo(endMatdTime) < 0 && maxActionToBeCreated-- > 0) {
+            if (pause != null && effStart.compareTo(jobPauseTime) >= 0) {
                 break;
             }
-            CoordinatorActionBean actionBean = new CoordinatorActionBean();
-            lastActionNumber++;
 
-            int timeout = coordJob.getTimeout();
-            LOG.debug("Materializing action for time=" + effStart.getTime() + ", lastactionnumber=" + lastActionNumber
-                    + " timeout=" + timeout + " minutes");
-            Date actualTime = new Date();
-            action = CoordCommandUtils.materializeOneInstance(jobId, dryrun, (Element) eJob.clone(),
-                    effStart.getTime(), actualTime, lastActionNumber, jobConf, actionBean);
-            actionBean.setTimeOut(timeout);
+            Date nextTime = CoordCommandUtils.getNextValidActionTime(effStart, coordJob);
+            if (nextTime.compareTo(endMatdTime) <= 0) {
 
-            if (!dryrun) {
-                storeToDB(actionBean, action); // Storing to table
+                CoordinatorActionBean actionBean = new CoordinatorActionBean();
+                lastActionNumber++;
 
+                int timeout = coordJob.getTimeout();
+                LOG.debug("Materializing action for time=" + effStart.getTime() + ", lastactionnumber=" + lastActionNumber
+                        + " timeout=" + timeout + " minutes");
+                Date actualTime = new Date();
+                action = CoordCommandUtils.materializeOneInstance(jobId, dryrun, (Element) eJob.clone(),
+                        nextTime, actualTime, lastActionNumber, jobConf, actionBean);
+                actionBean.setTimeOut(timeout);
+
+                if (!dryrun) {
+                    storeToDB(actionBean, action); // Storing to table
+
+                }
+                else {
+                    actionStrings.append("action for new instance");
+                    actionStrings.append(action);
+                }
             }
             else {
-                actionStrings.append("action for new instance");
-                actionStrings.append(action);
+                break;
             }
-            // Restore the original start time
-            effStart = (Calendar) origStart.clone();
-            effStart.add(freqTU.getCalendarUnit(), lastActionNumber * frequency);
+
+            effStart = CoordCommandUtils.getNextActionMeasureTime(nextTime, coordJob, freqTU);
         }
 
-        endMatdTime = new Date(effStart.getTimeInMillis());
         if (!dryrun) {
             return action;
         }

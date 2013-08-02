@@ -165,18 +165,29 @@ public class DateUtils {
      * @throws ParseException thrown if the given string was not an ISO8601 value for the Oozie processing timezon.
      */
     public static Date parseDateOozieTZ(String s) throws ParseException {
+        return parseDateWithTZ(s, ACTIVE_TIMEZONE);
+    }
+    /**
+     * Parses a datetime in ISO8601 format in the Oozie processing timezone.
+     *
+     * @param s string with the datetime to parse.
+     * @return the corresponding {@link Date} instance for the parsed date.
+     * @throws ParseException thrown if the given string was not an ISO8601 value for the Oozie processing timezon.
+     */
+    public static Date parseDateWithTZ(String s, TimeZone tz) throws ParseException {
         s = s.trim();
         ParsePosition pos = new ParsePosition(0);
-        Date d = getISO8601DateFormat(ACTIVE_TIMEZONE, ACTIVE_MASK).parse(s, pos);
+        Date d = getISO8601DateFormat(tz, ACTIVE_MASK).parse(s, pos);
         if (d == null) {
             throw new ParseException("Could not parse [" + s + "] using [" + ACTIVE_MASK + "] mask",
-                                     pos.getErrorIndex());
+                    pos.getErrorIndex());
         }
         if (d != null && s.length() > pos.getIndex()) {
             throw new ParseException("Correct datetime string is followed by invalid characters: " + s, pos.getIndex());
         }
         return d;
     }
+
 
     /**
      * Formats a {@link Date} as a string in ISO8601 format using Oozie processing timezone.
