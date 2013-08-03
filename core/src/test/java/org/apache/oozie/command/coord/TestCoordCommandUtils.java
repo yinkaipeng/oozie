@@ -253,7 +253,7 @@ public class TestCoordCommandUtils extends XDataTestCase {
     public void testGetNextValidActionTime() throws Exception {
         Date startTime = DateUtils.parseDateOozieTZ("2013-07-18T00:00Z");
         Date endTime = DateUtils.parseDateOozieTZ("2013-07-18T01:00Z");
-        TimeZone tz = TimeZone.getTimeZone("America/Los_Angeles");
+        TimeZone tz = TimeZone.getTimeZone("UTC");
         CoordinatorJobBean job = addRecordToCoordJobTable(CoordinatorJob.Status.RUNNING, startTime, endTime, "10");
         Date actionTime = new Date();
         Date retDate = CoordCommandUtils.getNextValidActionTime(actionTime, job);
