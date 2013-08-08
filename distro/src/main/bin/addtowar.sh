@@ -106,7 +106,7 @@ function getHadoopJars() {
     hadoopJars="hadoop-core*.jar:jackson-core-asl-*.jar:jackson-mapper-asl-*.jar"
   elif [ "${version}" = "0.20.200" ]; then
     #List is separated by ":"
-    hadoopJars="hadoop-core*.jar:jackson-core-asl-*.jar:jackson-mapper-asl-*.jar:commons-configuration-*.jar:jetty-*.jar:jetty-util-*.jar"
+    hadoopJars="hadoop-core*.jar:jackson-core-asl-*.jar:jackson-mapper-asl-*.jar:commons-configuration-*.jar:jetty-[0-9]*.jar:jetty-util-*.jar"
   elif [[ "${version}" =~ .*23 ]]; then
     suffix="-[0-9.]*"
     #List is separated by ":"
