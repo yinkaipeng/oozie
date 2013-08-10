@@ -32,7 +32,8 @@
     <packaging>pom</packaging>
 
     <modules>
-        <module>hbase-0.94</module>
+        <!--<module>hbase-0.94</module>-->
+        <module>hbase-0.95</module>
     </modules>
 
     <build>

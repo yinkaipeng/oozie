@@ -29,5 +29,9 @@
             <directory>${basedir}/../hbaselibs/hbase-0.94/target/hbaselibs</directory>
             <outputDirectory>/hbaselibs</outputDirectory>
         </fileSet>
+        <fileSet>
+            <directory>${basedir}/../hbaselibs/hbase-0.95/target/hbaselibs</directory>
+            <outputDirectory>/hbaselibs</outputDirectory>
+        </fileSet>
     </fileSets>
 </assembly>
