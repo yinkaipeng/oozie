@@ -44,7 +44,12 @@
 
         <distMgmtSnapshotsName>Apache Development Snapshot Repository</distMgmtSnapshotsName>
         <distMgmtSnapshotsUrl>https://repository.apache.org/content/repositories/snapshots</distMgmtSnapshotsUrl>
-
+        
+        <distMgmtReleaseName>Apache Release Distribution Repository</distMgmtReleaseName>
+        <distMgmtReleaseUrl>https://repository.apache.org/service/local/staging/deploy/maven2</distMgmtReleaseUrl>
+        <mavenStagingId>apache.staging.https</mavenStagingId>
+        <mavenSnapshotId>apache.snapshots.https</mavenSnapshotId>
+        
         <!-- to be able to run a single test case from the main project -->
         <failIfNoTests>false</failIfNoTests>
 
@@ -70,8 +75,13 @@
         <oozie.test.config.file>${oozie.test.default.config.file}</oozie.test.config.file>
 
         <hadoop.version>1.1.1</hadoop.version>
-        <hbase.version>0.94.2</hbase.version>
-        <hcatalog.version>0.5.0</hcatalog.version>
+        <hbase.version>0.95.2</hbase.version>
+
+        <hadoopOne.version>1.1.1</hadoopOne.version>
+        <hadoopTwo.version>2.2.0-SNAPSHOT</hadoopTwo.version>
+        <hadoopThree.version>3.0.0-SNAPSHOT</hadoopThree.version> 
+        
+        <hcatalog.version>0.11.0</hcatalog.version>
 
         <hadooplib.version>${hadoop.version}.oozie-${project.version}</hadooplib.version>
         <hbaselib.version>${hbase.version}.oozie-${project.version}</hbaselib.version>
@@ -82,7 +92,7 @@
         This is required while we support a a pre 0.23 version of Hadoop which does not have
         the hadoop-auth artifact. After we phase-out pre 0.23 we can get rid of this property.
         -->
-        <hadoop.auth.version>2.0.2-alpha</hadoop.auth.version>
+        <hadoop.auth.version>2.2.0-SNAPSHOT</hadoop.auth.version>
 
          <!-- Sharelib component versions -->
          <hive.version>0.10.0</hive.version>
@@ -121,7 +131,7 @@
          <url>${repourl}</url>
        </repository>
         <snapshotRepository>
-          <id>apache.snapshots.https</id>
+          <id>${mavenSnapshotId}</id>
           <name>${distMgmtSnapshotsName}</name>
           <url>${distMgmtSnapshotsUrl}</url>
         </snapshotRepository>
