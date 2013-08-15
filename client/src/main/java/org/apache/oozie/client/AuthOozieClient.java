@@ -104,7 +104,10 @@ public class AuthOozieClient extends XOozieClient {
         boolean useAuthFile = System.getProperty(USE_AUTH_TOKEN_CACHE_SYS_PROP, "false").equalsIgnoreCase("true");
         AuthenticatedURL.Token readToken = new AuthenticatedURL.Token();
         AuthenticatedURL.Token currentToken = new AuthenticatedURL.Token();
-        url = new URL(url.toString().toLowerCase());
+
+        String hostname = url.getHost();
+        String lowercaseUrl = url.toString().replace(hostname, hostname.toLowerCase());
+        url = new URL(lowercaseUrl);
 
         if (useAuthFile) {
             readToken = readAuthToken();
