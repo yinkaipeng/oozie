@@ -48,7 +48,6 @@ import org.apache.oozie.executor.jpa.CoordJobGetJPAExecutor;
 import org.apache.oozie.executor.jpa.CoordJobGetPendingActionsCountJPAExecutor;
 import org.apache.oozie.executor.jpa.CoordJobUpdateJPAExecutor;
 import org.apache.oozie.executor.jpa.CoordJobsGetPendingJPAExecutor;
-import org.apache.oozie.executor.jpa.CoordJobsGetRunningPastEndtimeJPAExecutor;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
 import org.apache.oozie.util.DateUtils;
 import org.apache.oozie.util.MemoryLocks;
@@ -718,16 +717,6 @@ public class StatusTransitService implements Service {
                         .execute(new CoordActionsGetByLastModifiedTimeJPAExecutor(lastInstanceStartTime));
                 Set<String> coordIds = new HashSet<String>();
                 coordIds.addAll(coordJobIdList);
-//                for (String coordJobId : coordJobIdList) {
-//                    coordIds.add(coordJobId);
-//                }
-
-                List<String> coordJobRunningPastEndtimeIdList = jpaService
-                        .execute(new CoordJobsGetRunningPastEndtimeJPAExecutor());
-                coordIds.addAll(coordJobRunningPastEndtimeIdList);
-//                for (String coordJobId : coordJobRunningPastEndtimeIdList) {
-//                    coordIds.add(coordJobId);
-//                }
 
                 pendingJobCheckList = new ArrayList<CoordinatorJobBean>();
                 for (String coordId : coordIds.toArray(new String[coordIds.size()])) {

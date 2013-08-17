@@ -77,9 +77,7 @@ import org.apache.openjpa.persistence.jdbc.Index;
 
         @NamedQuery(name = "GET_COORD_JOB_FOR_USER_APPNAME", query = "select w.user, w.appName from CoordinatorJobBean w where w.id = :id"),
 
-        @NamedQuery(name = "GET_COORD_JOB_FOR_USER", query = "select w.user from CoordinatorJobBean w where w.id = :id"),
-
-        @NamedQuery(name = "GET_COORD_JOBS_RUNNING_PAST_ENDTIME", query = "select w.id from CoordinatorJobBean w where w.status = 'RUNNING' AND w.doneMaterialization = 1 AND w.endTimestamp < :endTime")
+        @NamedQuery(name = "GET_COORD_JOB_FOR_USER", query = "select w.user from CoordinatorJobBean w where w.id = :id")
 
 })
 public class CoordinatorJobBean extends JsonCoordinatorJob implements Writable {

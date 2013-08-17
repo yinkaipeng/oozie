@@ -253,55 +253,50 @@ public class TestCoordCommandUtils extends XDataTestCase {
     public void testGetNextValidActionTime() throws Exception {
         Date startTime = DateUtils.parseDateOozieTZ("2013-07-18T00:00Z");
         Date endTime = DateUtils.parseDateOozieTZ("2013-07-18T01:00Z");
-        TimeZone tz = TimeZone.getTimeZone("UTC");
-        CoordinatorJobBean job = addRecordToCoordJobTable(CoordinatorJob.Status.RUNNING, startTime, endTime, "10");
-        Date actionTime = new Date();
-        Date retDate = CoordCommandUtils.getNextValidActionTime(actionTime, job);
-        assertEquals(actionTime, retDate);
 
-        job = addRecordToCoordJobTable(CoordinatorJob.Status.RUNNING, startTime, endTime, "10,20 * * * *");
-        actionTime = DateUtils.parseDateWithTZ("2013-07-18T00:15Z", tz);
-        Date expectedDate = DateUtils.parseDateWithTZ("2013-07-18T00:20Z", tz);
-        retDate = CoordCommandUtils.getNextValidActionTime(actionTime, job);
+        CoordinatorJobBean job = addRecordToCoordJobTable(CoordinatorJob.Status.RUNNING, startTime, endTime, "10,20 * * * *");
+        Date actionTime = DateUtils.parseDateOozieTZ("2013-07-18T00:15Z");
+        Date expectedDate = DateUtils.parseDateOozieTZ("2013-07-18T00:20Z");
+        Date retDate = CoordCommandUtils.getNextValidActionTimeForCronFrequency(actionTime, job);
         assertEquals(expectedDate, retDate);
 
         job = addRecordToCoordJobTable(CoordinatorJob.Status.RUNNING, startTime, endTime, "10/20 * * 5-7 4,5");
-        actionTime = DateUtils.parseDateWithTZ("2013-07-18T00:15Z", tz);
-        expectedDate = DateUtils.parseDateWithTZ("2013-07-18T00:30Z", tz);
-        retDate = CoordCommandUtils.getNextValidActionTime(actionTime, job);
+        actionTime = DateUtils.parseDateOozieTZ("2013-07-18T00:15Z");
+        expectedDate = DateUtils.parseDateOozieTZ("2013-07-18T00:30Z");
+        retDate = CoordCommandUtils.getNextValidActionTimeForCronFrequency(actionTime, job);
         assertEquals(expectedDate, retDate);
 
         job = addRecordToCoordJobTable(CoordinatorJob.Status.RUNNING, startTime, endTime, "20-30 * 20 5-7 4,5");
-        actionTime = DateUtils.parseDateWithTZ("2013-07-18T00:20Z", tz);
-        expectedDate = DateUtils.parseDateWithTZ("2013-07-18T00:21Z", tz);
-        retDate = CoordCommandUtils.getNextValidActionTime(actionTime, job);
+        actionTime = DateUtils.parseDateOozieTZ("2013-07-18T00:20Z");
+        expectedDate = DateUtils.parseDateOozieTZ("2013-07-18T00:21Z");
+        retDate = CoordCommandUtils.getNextValidActionTimeForCronFrequency(actionTime, job);
         assertEquals(expectedDate, retDate);
 
         job = addRecordToCoordJobTable(CoordinatorJob.Status.RUNNING, startTime, endTime, "30 * 20 5-7 ?");
-        actionTime = DateUtils.parseDateWithTZ("2013-07-18T00:20Z", tz);
-        expectedDate = DateUtils.parseDateWithTZ("2013-07-20T00:30Z", tz);
-        retDate = CoordCommandUtils.getNextValidActionTime(actionTime, job);
+        actionTime = DateUtils.parseDateOozieTZ("2013-07-18T00:20Z");
+        expectedDate = DateUtils.parseDateOozieTZ("2013-07-20T00:30Z");
+        retDate = CoordCommandUtils.getNextValidActionTimeForCronFrequency(actionTime, job);
         assertEquals(expectedDate, retDate);
 
         job = addRecordToCoordJobTable(CoordinatorJob.Status.RUNNING, startTime, endTime, "0 9-16 * * 2-6");
-        actionTime = DateUtils.parseDateWithTZ("2013-07-20T00:20Z", tz);
-        expectedDate = DateUtils.parseDateWithTZ("2013-07-22T09:00Z", tz);
-        retDate = CoordCommandUtils.getNextValidActionTime(actionTime, job);
+        actionTime = DateUtils.parseDateOozieTZ("2013-07-20T00:20Z");
+        expectedDate = DateUtils.parseDateOozieTZ("2013-07-22T09:00Z");
+        retDate = CoordCommandUtils.getNextValidActionTimeForCronFrequency(actionTime, job);
         assertEquals(expectedDate, retDate);
-        retDate = CoordCommandUtils.getNextValidActionTime(retDate, job);
-        expectedDate = DateUtils.parseDateWithTZ("2013-07-22T10:00Z", tz);
+        retDate = CoordCommandUtils.getNextValidActionTimeForCronFrequency(retDate, job);
+        expectedDate = DateUtils.parseDateOozieTZ("2013-07-22T10:00Z");
         assertEquals(expectedDate, retDate);
 
         job = addRecordToCoordJobTable(CoordinatorJob.Status.RUNNING, startTime, endTime, "20-30 * * 1 *");
-        actionTime = DateUtils.parseDateWithTZ("2013-07-18T00:20Z", tz);
-        expectedDate = DateUtils.parseDateWithTZ("2014-01-01T00:20Z", tz);
-        retDate = CoordCommandUtils.getNextValidActionTime(actionTime, job);
+        actionTime = DateUtils.parseDateOozieTZ("2013-07-18T00:20Z");
+        expectedDate = DateUtils.parseDateOozieTZ("2014-01-01T00:20Z");
+        retDate = CoordCommandUtils.getNextValidActionTimeForCronFrequency(actionTime, job);
         assertEquals(expectedDate, retDate);
 
         job = addRecordToCoordJobTable(CoordinatorJob.Status.RUNNING, startTime, endTime, "20-30 10 * * MON,WED");
-        actionTime = DateUtils.parseDateWithTZ("2013-07-18T00:20Z", tz);
-        expectedDate = DateUtils.parseDateWithTZ("2013-07-22T10:20Z", tz);
-        retDate = CoordCommandUtils.getNextValidActionTime(actionTime, job);
+        actionTime = DateUtils.parseDateOozieTZ("2013-07-18T00:20Z");
+        expectedDate = DateUtils.parseDateOozieTZ("2013-07-22T10:20Z");
+        retDate = CoordCommandUtils.getNextValidActionTimeForCronFrequency(actionTime, job);
         assertEquals(expectedDate, retDate);
     }
 

@@ -335,19 +335,42 @@ public class CoordMaterializeTransitionXCommand extends MaterializeTransitionXCo
         LOG.debug("Coordinator job :" + coordJob.getId() + ", maxActionToBeCreated :" + maxActionToBeCreated
                 + ", Mat_Throttle :" + coordJob.getMatThrottling() + ", numWaitingActions :" + numWaitingActions);
 
-        while (effStart.compareTo(endMatdTime) < 0 && maxActionToBeCreated-- > 0) {
-            if (pause != null && effStart.compareTo(jobPauseTime) >= 0) {
+        boolean isCronFrequency = false;
+
+        try {
+            Integer.parseInt(coordJob.getFrequency());
+        } catch (NumberFormatException e) {
+            isCronFrequency = true;
+        }
+
+        boolean firstMater = true;
+        while (start.compareTo(end) < 0 && maxActionToBeCreated-- > 0) {
+            if (pause != null && start.compareTo(pause) >= 0) {
                 break;
             }
 
-            Date nextTime = CoordCommandUtils.getNextValidActionTime(effStart, coordJob);
-            if (nextTime.compareTo(endMatdTime) <= 0) {
+            Date nextTime = start.getTime();
 
+            if (isCronFrequency) {
+                if (start.getTime().compareTo(startMatdTime) == 0 && firstMater) {
+                    start.add(Calendar.MINUTE, -1);
+                    firstMater = false;
+                }
+
+                nextTime = CoordCommandUtils.getNextValidActionTimeForCronFrequency(start.getTime(), coordJob);
+                start.setTime(nextTime);
+            }
+
+            if (start.compareTo(end) < 0) {
+
+                if (pause != null && start.compareTo(pause) >= 0) {
+                    break;
+                }
                 CoordinatorActionBean actionBean = new CoordinatorActionBean();
                 lastActionNumber++;
 
                 int timeout = coordJob.getTimeout();
-                LOG.debug("Materializing action for time=" + effStart.getTime() + ", lastactionnumber=" + lastActionNumber
+                LOG.debug("Materializing action for time=" + start.getTime() + ", lastactionnumber=" + lastActionNumber
                         + " timeout=" + timeout + " minutes");
                 Date actualTime = new Date();
                 action = CoordCommandUtils.materializeOneInstance(jobId, dryrun, (Element) eJob.clone(),
@@ -364,10 +387,17 @@ public class CoordMaterializeTransitionXCommand extends MaterializeTransitionXCo
                 }
             }
             else {
+                if (nextTime.compareTo(coordJob.getEndTimestamp()) >= 0) {
+                    coordJob.setDoneMaterialization();
+                }
                 break;
             }
 
-            effStart = CoordCommandUtils.getNextActionMeasureTime(nextTime, coordJob, freqTU);
+            start.setTime(nextTime);
+            if (!isCronFrequency) {
+                start.setTime(effStart);
+                start.add(freqTU.getCalendarUnit(), lastActionNumber * Integer.parseInt(coordJob.getFrequency()));
+            }
         }
 
         if (!dryrun) {

@@ -639,98 +639,71 @@ public class CoordCommandUtils {
      * @param coordJob
      * @return the next valid action time
      */
-    public static Date getNextValidActionTime(Date targetDate, CoordinatorJobBean coordJob) throws ParseException {
-        Date nextDate = targetDate;
-        try {
-            Integer.parseInt(coordJob.getFrequency());
-        } catch (NumberFormatException e) {
-            String freq = coordJob.getFrequency();
-            TimeZone tz = DateUtils.getOozieProcessingTimeZone();
-            String[] cronArray = freq.split(" ");
-            Date nextTime = null;
+    public static Date getNextValidActionTimeForCronFrequency(Date targetDate, CoordinatorJobBean coordJob) throws ParseException {
 
-            // Current CronExpression doesn't support operations
-            // where both date of months and day of weeks are specified.
-            // As a result, we need to split this scenario into two cases
-            // and return the earlier time
-            if (!cronArray[2].trim().equals("?") && !cronArray[4].trim().equals("?")) {
-                String freq1 = " ";
-                String freq2 = " ";
-                // When any one of day of month or day of week fields is a wildcard
-                // we need to replace the wildcard with "?"
-                if (cronArray[2].trim().equals("*") || cronArray[4].trim().equals("*")) {
-                    if (cronArray[2].trim().equals("*")) {
-                        cronArray[2] = "?";
-                    }
-                    else {
-                        cronArray[4] = "?";
-                    }
-                    freq= StringUtils.join(cronArray, " ");
+        String freq = coordJob.getFrequency();
+        TimeZone tz = DateUtils.getOozieProcessingTimeZone();
+        String[] cronArray = freq.split(" ");
+        Date nextTime = null;
 
-                    // The cronExpression class takes second
-                    // as the first field where oozie is operating on
-                    // minute basis
-                    CronExpression expr = new CronExpression("0 " + freq);
-                    expr.setTimeZone(tz);
-                    nextTime = expr.getNextValidTimeAfter(targetDate);
+        // Current CronExpression doesn't support operations
+        // where both date of months and day of weeks are specified.
+        // As a result, we need to split this scenario into two cases
+        // and return the earlier time
+        if (!cronArray[2].trim().equals("?") && !cronArray[4].trim().equals("?")) {
+
+            // When any one of day of month or day of week fields is a wildcard
+            // we need to replace the wildcard with "?"
+            if (cronArray[2].trim().equals("*") || cronArray[4].trim().equals("*")) {
+                if (cronArray[2].trim().equals("*")) {
+                    cronArray[2] = "?";
                 }
-                // If both fields are specified by non-wildcards,
-                // we need to split it into two expressions
                 else {
-                    String[] cronArray1 = freq.split(" ");
-                    String[] cronArray2 = freq.split(" ");
-
-                    cronArray1[2] = "?";
-                    cronArray2[4] = "?";
-
-                    freq1 = StringUtils.join(cronArray1, " ");
-                    freq2 = StringUtils.join(cronArray2, " ");
-
-                    // The cronExpression class takes second
-                    // as the first field where oozie is operating on
-                    // minute basis
-                    CronExpression expr1 = new CronExpression("0 " + freq1);
-                    expr1.setTimeZone(tz);
-                    CronExpression expr2 = new CronExpression("0 " + freq2);
-                    expr2.setTimeZone(tz);
-                    nextTime = expr1.getNextValidTimeAfter(targetDate);
-                    Date nextTime2 = expr2.getNextValidTimeAfter(targetDate);
-                    nextTime = nextTime.compareTo(nextTime2) < 0 ? nextTime: nextTime2;
+                    cronArray[4] = "?";
                 }
-            }
-            else {
+                freq= StringUtils.join(cronArray, " ");
+
                 // The cronExpression class takes second
                 // as the first field where oozie is operating on
                 // minute basis
-                CronExpression expr  = new CronExpression("0 " + freq);
+                CronExpression expr = new CronExpression("0 " + freq);
                 expr.setTimeZone(tz);
                 nextTime = expr.getNextValidTimeAfter(targetDate);
             }
-            nextDate = nextTime;
+            // If both fields are specified by non-wildcards,
+            // we need to split it into two expressions
+            else {
+                String[] cronArray1 = freq.split(" ");
+                String[] cronArray2 = freq.split(" ");
+
+                cronArray1[2] = "?";
+                cronArray2[4] = "?";
+
+                String freq1 = StringUtils.join(cronArray1, " ");
+                String freq2 = StringUtils.join(cronArray2, " ");
+
+                // The cronExpression class takes second
+                // as the first field where oozie is operating on
+                // minute basis
+                CronExpression expr1 = new CronExpression("0 " + freq1);
+                expr1.setTimeZone(tz);
+                CronExpression expr2 = new CronExpression("0 " + freq2);
+                expr2.setTimeZone(tz);
+                nextTime = expr1.getNextValidTimeAfter(targetDate);
+                Date nextTime2 = expr2.getNextValidTimeAfter(targetDate);
+                nextTime = nextTime.compareTo(nextTime2) < 0 ? nextTime: nextTime2;
+            }
         }
-        return nextDate;
+        else {
+            // The cronExpression class takes second
+            // as the first field where oozie is operating on
+            // minute basis
+            CronExpression expr  = new CronExpression("0 " + freq);
+            expr.setTimeZone(tz);
+            nextTime = expr.getNextValidTimeAfter(targetDate);
+        }
+
+        return nextTime;
     }
 
-    /**
-     * Get the next target measure time to which an action is produced
-     *
-     * @param targetDate
-     * @param coordJob
-     * @param freqTU
-     * @return the next target measure time
-     */
-    public static Date getNextActionMeasureTime(Date targetDate, CoordinatorJobBean coordJob, TimeUnit freqTU) {
-        try {
-            int freq = Integer.parseInt(coordJob.getFrequency());
-            TimeZone appTz = DateUtils.getTimeZone(coordJob.getTimeZone());
-            Calendar cal = Calendar.getInstance(appTz);
-            cal.setTime(targetDate);
-            cal.add(freqTU.getCalendarUnit(), freq);
-            Date nextDate = cal.getTime();
-            return nextDate;
-        }
-        catch (NumberFormatException e) {
-            return targetDate;
-        }
-    }
 }
