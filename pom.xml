@@ -661,12 +661,6 @@
             </dependency>
 
             <dependency>
-                <groupId>postgresql</groupId>
-                <artifactId>postgresql</artifactId>
-                <version>9.0-801.jdbc4</version>
-            </dependency>
-
-            <dependency>
                 <groupId>org.python</groupId>
                 <artifactId>jython</artifactId>
                 <version>2.5.3</version>
