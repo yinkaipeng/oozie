@@ -400,6 +400,8 @@ public class CoordMaterializeTransitionXCommand extends MaterializeTransitionXCo
             }
         }
 
+        endMatdTime = new Date(start.getTimeInMillis());
+
         if (!dryrun) {
             return action;
         }
