@@ -395,7 +395,7 @@ public class CoordMaterializeTransitionXCommand extends MaterializeTransitionXCo
 
             start.setTime(nextTime);
             if (!isCronFrequency) {
-                start.setTime(effStart);
+                start = (Calendar) origStart.clone();
                 start.add(freqTU.getCalendarUnit(), lastActionNumber * Integer.parseInt(coordJob.getFrequency()));
             }
         }
