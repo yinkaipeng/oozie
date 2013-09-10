@@ -23,7 +23,8 @@ import org.apache.hadoop.mapred.Counters;
 import org.apache.hadoop.mapred.Counters.Counter;
 import org.apache.pig.tools.pigstats.JobStats;
 import org.apache.pig.tools.pigstats.PigStats;
-import org.apache.pig.tools.pigstats.MRPigStatsUtil;
+import org.apache.pig.tools.pigstats.mapreduce.MRJobStats;
+import org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil;
 import org.json.simple.JSONObject;
 
 /**
@@ -70,6 +71,9 @@ public class OoziePigStats extends ActionStats {
         String separator = ",";
 
         for (JobStats jobStats : jobGraph) {
+            if (!(jobStats instanceof MRJobStats)) {
+                throw new IllegalArgumentException("Unexpect JobStats type");
+            }
             // Get all the HadoopIds and put them as comma separated string for JOB_GRAPH
             String hadoopId = jobStats.getJobId();
             if (sb.length() > 0) {
@@ -77,7 +81,7 @@ public class OoziePigStats extends ActionStats {
             }
             sb.append(hadoopId);
             // Hadoop Counters for pig created MR job
-            pigStatsGroup.put(hadoopId, toJSONFromJobStats(jobStats));
+            pigStatsGroup.put(hadoopId, toJSONFromJobStats((MRJobStats)jobStats));
         }
         pigStatsGroup.put("JOB_GRAPH", sb.toString());
         return pigStatsGroup.toJSONString();
@@ -85,7 +89,7 @@ public class OoziePigStats extends ActionStats {
 
     // MR job related counters
     @SuppressWarnings("unchecked")
-    private static JSONObject toJSONFromJobStats(JobStats jobStats) {
+    private static JSONObject toJSONFromJobStats(MRJobStats jobStats) {
         JSONObject jobStatsGroup = new JSONObject();
 
         // hadoop counters
