@@ -40,8 +40,8 @@ import org.apache.oozie.service.URIHandlerService;
  */
 
 public class CoordELFunctions {
-    final private static String DATASET = "oozie.coord.el.dataset.bean";
-    final private static String COORD_ACTION = "oozie.coord.el.app.bean";
+    final public static String DATASET = "oozie.coord.el.dataset.bean";
+    final public static String COORD_ACTION = "oozie.coord.el.app.bean";
     final public static String CONFIGURATION = "oozie.coord.el.conf";
     final public static String LATEST_EL_USE_CURRENT_TIME = "oozie.service.ELService.latest-el.use-current-time";
     // INSTANCE_SEPARATOR is used to separate multiple directories into one tag.
@@ -524,8 +524,6 @@ public class CoordELFunctions {
      * @throws Exception
      */
     public static String ph2_coord_currentRange(int start, int end) throws Exception {
-        ParamChecker.checkLEZero(start, "current:n");
-        ParamChecker.checkLEZero(end, "current:n");
         if (isSyncDataSet()) { // For Sync Dataset
             return coord_currentRange_sync(start, end);
         }

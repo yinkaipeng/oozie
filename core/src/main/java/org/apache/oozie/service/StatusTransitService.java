@@ -29,7 +29,6 @@ import java.util.Comparator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.oozie.BundleActionBean;
 import org.apache.oozie.BundleJobBean;
-import org.apache.oozie.CoordinatorActionBean;
 import org.apache.oozie.CoordinatorJobBean;
 import org.apache.oozie.ErrorCode;
 import org.apache.oozie.client.CoordinatorAction;
@@ -77,7 +76,7 @@ public class StatusTransitService implements Service {
      * (job done), we reset the job's pending flag to 0. If all child actions are succeeded, we set the job's status to
      * SUCCEEDED.
      */
-    static class StatusTransitRunnable implements Runnable {
+    public static class StatusTransitRunnable implements Runnable {
         private JPAService jpaService = null;
         private MemoryLocks.LockToken lock;
 

@@ -164,6 +164,11 @@ public class ResumeXCommand extends WorkflowXCommand<Void> {
     }
 
     @Override
+    public String getKey() {
+        return getName() + "_" + id;
+    }
+
+    @Override
     protected boolean isLockRequired() {
         return true;
     }
