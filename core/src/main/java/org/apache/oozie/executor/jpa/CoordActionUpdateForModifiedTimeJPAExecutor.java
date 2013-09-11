@@ -51,7 +51,6 @@ public class CoordActionUpdateForModifiedTimeJPAExecutor implements JPAExecutor<
             Query q = em.createNamedQuery("UPDATE_COORD_ACTION_FOR_MODIFIED_DATE");
             q.setParameter("id", coordAction.getId());
             q.setParameter("lastModifiedTime", new Date());
-            q.setParameter("status", coordAction.getStatus().toString());
             q.executeUpdate();
             // Since the return type is Void, we have to return null
             return null;
