@@ -176,7 +176,6 @@
             <groupId>org.apache.thrift</groupId>
             <artifactId>libfb303</artifactId>
             <version>0.7.0</version>
-            <scope>compile</scope>
         </dependency>
 
         <dependency>
