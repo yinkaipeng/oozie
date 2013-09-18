@@ -119,6 +119,10 @@ public class Services {
             XLog.getLog(getClass()).warn("System ID [{0}] exceeds maximum length [{1}], trimming", systemId,
                                          MAX_SYSTEM_ID_LEN);
         }
+
+        if (systemId.contains("${")) {
+            throw new IllegalArgumentException("invalid oozie system id " + conf.get(CONF_SYSTEM_ID, ("oozie-" + System.getProperty("user.name"))));
+        }
         setSystemMode(SYSTEM_MODE.valueOf(conf.get(CONF_SYSTEM_MODE, SYSTEM_MODE.NORMAL.toString())));
         runtimeDir = createRuntimeDir();
     }
