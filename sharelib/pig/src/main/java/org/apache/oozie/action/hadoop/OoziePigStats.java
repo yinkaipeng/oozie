@@ -23,8 +23,7 @@ import org.apache.hadoop.mapred.Counters;
 import org.apache.hadoop.mapred.Counters.Counter;
 import org.apache.pig.tools.pigstats.JobStats;
 import org.apache.pig.tools.pigstats.PigStats;
-import org.apache.pig.tools.pigstats.mapreduce.MRJobStats;
-import org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil;
+import org.apache.pig.tools.pigstats.PigStatsUtil;
 import org.json.simple.JSONObject;
 
 /**
@@ -71,9 +70,6 @@ public class OoziePigStats extends ActionStats {
         String separator = ",";
 
         for (JobStats jobStats : jobGraph) {
-            if (!(jobStats instanceof MRJobStats)) {
-                throw new IllegalArgumentException("Unexpect JobStats type");
-            }
             // Get all the HadoopIds and put them as comma separated string for JOB_GRAPH
             String hadoopId = jobStats.getJobId();
             if (sb.length() > 0) {
@@ -81,7 +77,7 @@ public class OoziePigStats extends ActionStats {
             }
             sb.append(hadoopId);
             // Hadoop Counters for pig created MR job
-            pigStatsGroup.put(hadoopId, toJSONFromJobStats((MRJobStats)jobStats));
+            pigStatsGroup.put(hadoopId, toJSONFromJobStats(jobStats));
         }
         pigStatsGroup.put("JOB_GRAPH", sb.toString());
         return pigStatsGroup.toJSONString();
@@ -89,15 +85,15 @@ public class OoziePigStats extends ActionStats {
 
     // MR job related counters
     @SuppressWarnings("unchecked")
-    private static JSONObject toJSONFromJobStats(MRJobStats jobStats) {
+    private static JSONObject toJSONFromJobStats(JobStats jobStats) {
         JSONObject jobStatsGroup = new JSONObject();
 
         // hadoop counters
-        jobStatsGroup.put(MRPigStatsUtil.HDFS_BYTES_WRITTEN, Long.toString(jobStats.getHdfsBytesWritten()));
-        jobStatsGroup.put(MRPigStatsUtil.MAP_INPUT_RECORDS, Long.toString(jobStats.getMapInputRecords()));
-        jobStatsGroup.put(MRPigStatsUtil.MAP_OUTPUT_RECORDS, Long.toString(jobStats.getMapOutputRecords()));
-        jobStatsGroup.put(MRPigStatsUtil.REDUCE_INPUT_RECORDS, Long.toString(jobStats.getReduceInputRecords()));
-        jobStatsGroup.put(MRPigStatsUtil.REDUCE_OUTPUT_RECORDS, Long.toString(jobStats.getReduceOutputRecords()));
+        jobStatsGroup.put(PigStatsUtil.HDFS_BYTES_WRITTEN, Long.toString(jobStats.getHdfsBytesWritten()));
+        jobStatsGroup.put(PigStatsUtil.MAP_INPUT_RECORDS, Long.toString(jobStats.getMapInputRecords()));
+        jobStatsGroup.put(PigStatsUtil.MAP_OUTPUT_RECORDS, Long.toString(jobStats.getMapOutputRecords()));
+        jobStatsGroup.put(PigStatsUtil.REDUCE_INPUT_RECORDS, Long.toString(jobStats.getReduceInputRecords()));
+        jobStatsGroup.put(PigStatsUtil.REDUCE_OUTPUT_RECORDS, Long.toString(jobStats.getReduceOutputRecords()));
         // currently returns null; pig bug
         jobStatsGroup.put("HADOOP_COUNTERS", toJSONFromCounters(jobStats.getHadoopCounters()));
 
