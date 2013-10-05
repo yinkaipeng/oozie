@@ -15,8 +15,35 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<workflow-app xmlns="uri:oozie:workflow:0.2" name="pig-wf">
+<workflow-app xmlns="uri:oozie:workflow:0.5" name="pig-wf">
+    <!--
+      -- uncomment the credentials element when running under a 
+      -- secure cluster.  Make sure the metastore uri is 
+      -- correct and hive metastore principal is correctly
+      -- specified (replace host and realm).  Typically the metastore
+      -- uri port is 9083
+    -->
+    <!--
+    <credentials>
+      <credential name='hcatauth' type='hcat'>
+         <property>
+            <name>hcat.metastore.uri</name>
+            <value>thrift://<host>:<port></value>
+         </property>
+         <property>
+             <name>hcat.metastore.principal</name>
+             <value>hive/<host>@<realm></value>
+         </property>
+      </credential>
+    </credentials>
+    -->
     <start to="pig-node"/>
+    <!-- 
+      -- replace the action element firstline with the following
+      -- when running under a secure cluster to refer to the credentials
+      -- defined above
+      <action name="pig-node" cred="hcatauth">
+    -->
     <action name="pig-node">
         <pig>
             <job-tracker>${jobTracker}</job-tracker>
