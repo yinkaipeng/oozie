@@ -5,6 +5,7 @@ target
 test-patch
 
 # IntelliJ
+.idea
 *.iml
 *.ipr
 *.iws
