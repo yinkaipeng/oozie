@@ -1,2 +1,1 @@
-git@github.com:hortonworks/oozie.git  @ bighweel-beta2-4.0.0 is branched from apache 
-git://git.apache.org/oozie.git  @ branch-4.0 (5e694838ad25bdf9604adb6c406f85557cab69f1)
+bighweel-m16-4.0.0 is branched from bigwheel-GA-4.0.0 (SHA1 f6ae1c93fb75694e7425ffbfcb0ad36b1d49776d ) @ git@github.com:hortonworks/oozie.git
