@@ -116,6 +116,11 @@
     </modules>
 
     <distributionManagement>
+	<repository>
+         <id>${repoid}</id>
+         <name>${reponame}</name>
+         <url>${repourl}</url>
+       </repository>
         <repository>
           <id>apache.staging.https</id>
           <name>Apache Release Distribution Repository</name>
