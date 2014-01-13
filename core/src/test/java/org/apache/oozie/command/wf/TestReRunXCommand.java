@@ -199,6 +199,7 @@ public class TestReRunXCommand extends XFsTestCase {
 
         conf.setProperty("inPath", getFsTestCaseDir().toString());
         conf.setProperty("checkDir", getFsTestCaseDir().toString() + "/check");
+        conf.setProperty("wrongDir", getFsTestCaseDir().toString() + "/wrong");
 
         final String jobId1 = wfClient.submit(conf);
         wfClient.start(jobId1);
@@ -207,7 +208,7 @@ public class TestReRunXCommand extends XFsTestCase {
                 return wfClient.getJobInfo(jobId1).getStatus() == WorkflowJob.Status.FAILED;
             }
         });
-        assertEquals(WorkflowJob.Status.FAILED, wfClient.getJobInfo(jobId1).getStatus());
+        assertEquals(WorkflowJob.Status.KILLED, wfClient.getJobInfo(jobId1).getStatus());
 
         reader = IOUtils.getResourceAsReader("rerun-el-wf.xml", -1);
         writer = new FileWriter(getTestCaseDir() + "/workflow.xml");

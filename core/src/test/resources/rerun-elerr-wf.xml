@@ -26,7 +26,7 @@
     </action>
     <decision name="dec1">
         <switch>
-            <case to="end">${fs:exsts(checkDir)}</case>
+            <case to="end">${fs:exists(wrongDir)}</case>
             <default to="k"/>
         </switch>
     </decision>
