@@ -223,9 +223,10 @@ public class SubmitXCommand extends WorkflowXCommand<String> {
             Element workflowXml = XmlUtils.parseXml(app.getDefinition());
             removeSlaElements(workflowXml);
             String workflowXmlString = XmlUtils.removeComments(XmlUtils.prettyPrint(workflowXml).toString());
-            context.getELEvaluator().evaluate(workflowXmlString, String.class);
+            workflowXmlString = context.getELEvaluator().evaluate(workflowXmlString, String.class);
+            workflowXml = XmlUtils.parseXml(workflowXmlString);
 
-            Iterator<Element> it = wfElem.getDescendants(new ElementFilter("job-xml"));
+            Iterator<Element> it = workflowXml.getDescendants(new ElementFilter("job-xml"));
 
             while (it.hasNext()) {
                 Element e = it.next();
