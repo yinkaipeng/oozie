@@ -18,6 +18,7 @@
 package org.apache.oozie.client;
 
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileWriter;
 import java.util.Properties;
 import java.util.concurrent.Callable;
@@ -65,12 +66,12 @@ public class TestWorkflowXClient extends DagServletTestCase {
 
 
 
-                String pigScriptFile = getTestCaseDir() + "/test";
+                File pigScriptFile = new File(getTestCaseDir(), "test");
                 BufferedWriter writer = new BufferedWriter(new FileWriter(pigScriptFile));
                 writer.write("a = load '${INPUT}';\n dump a;");
                 writer.close();
                 assertEquals(MockDagEngineService.JOB_ID + wfCount + MockDagEngineService.JOB_ID_END,
-                             wc.submitScriptLanguage(conf, pigScriptFile, null, params, "pig"));
+                             wc.submitScriptLanguage(conf, pigScriptFile.toString(), null, params, "pig"));
 
                 assertTrue(MockDagEngineService.started.get(wfCount));
                 return null;

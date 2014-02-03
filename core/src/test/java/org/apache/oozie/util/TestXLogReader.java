@@ -17,6 +17,7 @@
  */
 package org.apache.oozie.util;
 
+import java.io.File;
 import org.apache.oozie.util.XLogStreamer;
 
 import java.io.FileInputStream;
@@ -39,7 +40,7 @@ public class TestXLogReader extends XTestCase {
         xf.setParameter("JOB", "14-200904160239--example-forkjoinwf");
         xf.setLogLevel("DEBUG|WARN");
 
-        FileWriter fw = new FileWriter(getTestCaseDir() + "/test.log");
+        FileWriter fw = new FileWriter(new File(getTestCaseDir(), "test.log"));
         StringBuilder sb = new StringBuilder();
         sb.append("2009-06-24 02:43:13,958 DEBUG _L1_:323 - USER[oozie] GROUP[-] TOKEN[-] APP[example-forkjoinwf] "
                 + "JOB[14-200904160239--example-forkjoinwf] ACTION[-] End workflow state change");
@@ -61,7 +62,7 @@ public class TestXLogReader extends XTestCase {
         fw.write(sb.toString());
         fw.close();
         StringWriter sw = new StringWriter();
-        XLogReader lr = new XLogReader(new FileInputStream(getTestCaseDir() + "/test.log"), xf, sw);
+        XLogReader lr = new XLogReader(new FileInputStream(new File(getTestCaseDir(), "test.log")), xf, sw);
         lr.processLog();
         String[] out = sw.toString().split("\n");
         assertEquals(4, out.length);
@@ -82,7 +83,7 @@ public class TestXLogReader extends XTestCase {
         XLogStreamer.Filter xf = new XLogStreamer.Filter();
         xf.setParameter("JOB", "14-200904160239--example-C");
         xf.setParameter("ACTION", "14-200904160239--example-C@1");
-        FileWriter fw = new FileWriter(getTestCaseDir() + "/test.log");
+        FileWriter fw = new FileWriter(new File(getTestCaseDir(), "test.log"));
         StringBuilder sb = new StringBuilder();
         sb.append("2009-06-24 02:43:13,958 DEBUG _L1_:323 - USER[oozie] GROUP[-] TOKEN[-] APP[example-forkjoinwf] "
                 + "JOB[14-200904160239--example-C] ACTION[14-200904160239--example-C@1] End workflow state change");
@@ -104,7 +105,7 @@ public class TestXLogReader extends XTestCase {
         fw.write(sb.toString());
         fw.close();
         StringWriter sw = new StringWriter();
-        XLogReader lr = new XLogReader(new FileInputStream(getTestCaseDir() + "/test.log"), xf, sw);
+        XLogReader lr = new XLogReader(new FileInputStream(new File(getTestCaseDir(), "test.log")), xf, sw);
         lr.processLog();
         String[] matches = sw.toString().split("\n");
         assertEquals(2, matches.length);

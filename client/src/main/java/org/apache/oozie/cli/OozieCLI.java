@@ -132,6 +132,8 @@ public class OozieCLI {
     public static final String RERUN_NOCLEANUP_OPTION = "nocleanup";
 
     public static final String AUTH_OPTION = "auth";
+    public static final String USERNAME_OPTION = "username";
+    public static final String PASSWORD_OPTION = "password";
 
     public static final String VERBOSE_OPTION = "verbose";
     public static final String VERBOSE_DELIMITER = "\t";
@@ -208,8 +210,12 @@ public class OozieCLI {
      * @param options the collection of options to add auth options
      */
     protected void addAuthOptions(Options options) {
-        Option auth = new Option(AUTH_OPTION, true, "select authentication type [SIMPLE|KERBEROS]");
+        Option auth = new Option(AUTH_OPTION, true, "select authentication type [BASIC|SIMPLE|KERBEROS]. BASIC requires -username");
+        Option username = new Option(USERNAME_OPTION, true, "username (for auth type BASIC)");
+        Option password = new Option(PASSWORD_OPTION, true, "password (for auth type BASIC. optional. can also use env var OOZIEPASSWORD or be prompted by cli)");
         options.addOption(auth);
+        options.addOption(username);
+        options.addOption(password);
     }
 
     /**
@@ -725,6 +731,35 @@ public class OozieCLI {
         return authOpt;
     }
 
+     /**
+     * Get username from command line
+     *
+     * @param commandLine the command line object
+     * @return username
+     */
+    protected String getUsername(CommandLine commandLine) {
+        String username = commandLine.getOptionValue(USERNAME_OPTION);
+        return username;
+    }
+
+     /**
+     * Get password from command line, environment, or command-line
+     *
+     * @param commandLine the command line object
+     * @return password
+     */
+    protected String getPassword(CommandLine commandLine, String username) {
+        String password = commandLine.getOptionValue(PASSWORD_OPTION);
+        if(password == null) {
+            password = System.getenv("OOZIEPASSWORD");
+        }
+        // only prompt the user if they pass in a user name and don't provide a password
+        if(password == null && username != null) {
+            password = new String(System.console().readPassword("Enter password for username %s: ", username));
+        }
+        return password;
+    }
+
     /**
      * Create a OozieClient.
      * <p/>
@@ -748,7 +783,9 @@ public class OozieCLI {
      * @throws OozieCLIException thrown if the XOozieClient could not be configured.
      */
     protected XOozieClient createXOozieClient(CommandLine commandLine) throws OozieCLIException {
-        XOozieClient wc = new AuthOozieClient(getOozieUrl(commandLine), getAuthOption(commandLine));
+        String username = getUsername(commandLine);
+        XOozieClient wc = new AuthOozieClient(
+                getOozieUrl(commandLine), getAuthOption(commandLine), username, getPassword(commandLine, username));
         addHeader(wc);
         setDebugMode(wc,commandLine.hasOption(DEBUG_OPTION));
         return wc;

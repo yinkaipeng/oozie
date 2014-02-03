@@ -89,7 +89,7 @@ public class HadoopAccessorService implements Service {
      * Supported filesystem schemes for namespace federation
      */
     public static final String SUPPORTED_FILESYSTEMS = CONF_PREFIX + "supported.filesystems";
-    public static final String[] DEFAULT_SUPPORTED_SCHEMES = new String[]{"hdfs","hftp","webhdfs"};
+    public static final String[] DEFAULT_SUPPORTED_SCHEMES = new String[]{"hdfs","hftp","webhdfs","asv","asvs","wasb","wasbs"};
     private Set<String> supportedSchemes;
     private boolean allSchemesSupported;
 
@@ -494,7 +494,7 @@ public class HadoopAccessorService implements Service {
         return renewer;
     }
 
-    public void addFileToClassPath(String user, final Path file, final Configuration conf)
+    public void addFileToClassPath(String user, final Path file, final Configuration conf, final FileSystem fs)
             throws IOException {
         ParamChecker.notEmpty(user, "user");
         try {
@@ -503,10 +503,15 @@ public class HadoopAccessorService implements Service {
                 public Void run() throws Exception {
                     Configuration defaultConf = new Configuration();
                     XConfiguration.copy(conf, defaultConf);
-                    //Doing this NOP add first to have the FS created and cached
-                    DistributedCache.addFileToClassPath(file, defaultConf);
-
-                    DistributedCache.addFileToClassPath(file, conf);
+                    if (null == fs) {
+                        // Doing this NOP add first to have the FS created and cached
+                        DistributedCache.addFileToClassPath(file, defaultConf);
+                        DistributedCache.addFileToClassPath(file, conf);
+                    } else {
+                        // Doing this NOP add first to have the FS created and cached
+                        DistributedCache.addFileToClassPath(file, defaultConf, fs);
+                        DistributedCache.addFileToClassPath(file, conf, fs);
+                    }
                     return null;
                 }
             });
@@ -539,6 +544,11 @@ public class HadoopAccessorService implements Service {
 
     public Set<String> getSupportedSchemes() {
         return supportedSchemes;
+    }
+
+    public void addFileToClassPath(String user, final Path file, final Configuration conf)
+            throws IOException {
+        addFileToClassPath(user, file, conf, null);
     }
 
 }

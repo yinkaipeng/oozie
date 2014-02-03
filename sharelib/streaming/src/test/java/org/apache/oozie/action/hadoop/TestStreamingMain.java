@@ -29,6 +29,7 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.util.Properties;
+import org.apache.hadoop.util.Shell;
 
 public class TestStreamingMain extends MainTestCase {
 
@@ -55,7 +56,13 @@ public class TestStreamingMain extends MainTestCase {
 
         SharelibUtils.addToDistributedCache("streaming", fs, getFsTestCaseDir(), jobConf);
 
-        MapReduceActionExecutor.setStreaming(jobConf, "cat", "wc", null, null, null);
+        String map = Shell.WINDOWS
+                ? "powershell -command {$input | Write-Host}"
+                : "cat";
+        String reduce = Shell.WINDOWS
+                ? "powershell -command {$input | Measure-Object -Word -Line -Character}"
+                : "wc";
+        MapReduceActionExecutor.setStreaming(jobConf, map, reduce, null, null, null);
 
         jobConf.set("mapred.input.dir", inputDir.toString());
         jobConf.set("mapred.output.dir", outputDir.toString());

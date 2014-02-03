@@ -85,7 +85,7 @@ public class TestConfigurationService extends XTestCase {
     }
 
     public void testAlternateConfDir() throws Exception {
-        String customConfDir = createTestCaseSubDir("xconf");
+        String customConfDir = super.createTestCaseSubDir("xconf");
         setSystemProperty(ConfigurationService.OOZIE_CONFIG_DIR, customConfDir);
 
         IOUtils.copyStream(IOUtils.getResourceAsStream("oozie-site1.xml", -1),

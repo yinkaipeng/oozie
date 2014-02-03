@@ -20,6 +20,7 @@ package org.apache.oozie.service;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.util.ReflectionUtils;
+import org.apache.hadoop.util.Shell;
 import org.apache.hadoop.util.VersionInfo;
 import org.apache.oozie.client.OozieClient.SYSTEM_MODE;
 import org.apache.oozie.util.DateUtils;
@@ -79,7 +80,7 @@ public class Services {
         if (oozieHome == null) {
             throw new ServiceException(ErrorCode.E0000);
         }
-        if (!oozieHome.startsWith("/")) {
+        if (!new File(oozieHome).isAbsolute()) {
             throw new ServiceException(ErrorCode.E0003, oozieHome);
         }
         File file = new File(oozieHome);

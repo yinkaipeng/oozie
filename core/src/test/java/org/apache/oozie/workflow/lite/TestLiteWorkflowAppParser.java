@@ -83,15 +83,18 @@ public class TestLiteWorkflowAppParser extends XTestCase {
              "  <name-node>bar</name-node>\r\n" +
              "  <configuration>\r\n" +
              "    <property>\r\n" +
-             "      <name>a</name>\r\n" +
-             "      <value>A</value>\r\n" +
-             "    </property>\r\n" +
-             "    <property>\r\n" +
              "      <name>b</name>\r\n" +
              "      <value>B</value>\r\n" +
+             "      <source>programatically</source>\r\n" +
+             "    </property>\r\n" +
+             "    <property>\r\n" +
+             "      <name>a</name>\r\n" +
+             "      <value>A</value>\r\n" +
+             "      <source>programatically</source>\r\n" +
              "    </property>\r\n" +
              "  </configuration>\r\n" +
              "</map-reduce>";
+        d = d.replaceAll(" xmlns=?(\"|\')(\"|\')", "");
         assertEquals(expectedD.replaceAll(" ",""), d.replaceAll(" ", ""));
 
     }
@@ -125,15 +128,18 @@ public class TestLiteWorkflowAppParser extends XTestCase {
              "  <job-xml>/spam2</job-xml>\r\n" +
              "  <configuration>\r\n" +
              "    <property>\r\n" +
-             "      <name>a</name>\r\n" +
-             "      <value>A</value>\r\n" +
-             "    </property>\r\n" +
-             "    <property>\r\n" +
              "      <name>b</name>\r\n" +
              "      <value>B</value>\r\n" +
+             "      <source>programatically</source>\r\n" +
+             "    </property>\r\n" +
+             "    <property>\r\n" +
+             "      <name>a</name>\r\n" +
+             "      <value>A</value>\r\n" +
+             "      <source>programatically</source>\r\n" +
              "    </property>\r\n" +
              "  </configuration>\r\n" +
              "</map-reduce>";
+        d = d.replaceAll(" xmlns=?(\"|\')(\"|\')", "");
         assertEquals(expectedD.replaceAll(" ",""), d.replaceAll(" ", ""));
 
     }
@@ -156,12 +162,14 @@ public class TestLiteWorkflowAppParser extends XTestCase {
                 "  </prepare>\r\n" +
                 "  <configuration>\r\n" +
                 "    <property>\r\n" +
-                "      <name>a</name>\r\n" +
-                "      <value>A2</value>\r\n" +
-                "    </property>\r\n" +
-                "    <property>\r\n" +
                 "      <name>b</name>\r\n" +
                 "      <value>B</value>\r\n" +
+                "      <source>programatically</source>\r\n" +
+                "    </property>\r\n" +
+                "    <property>\r\n" +
+                "      <name>a</name>\r\n" +
+                "      <value>A2</value>\r\n" +
+                "      <source>programatically</source>\r\n" +
                 "    </property>\r\n" +
                 "  </configuration>\r\n" +
                 "  <script>/tmp</script>\r\n" +
@@ -171,6 +179,7 @@ public class TestLiteWorkflowAppParser extends XTestCase {
                 "  <job-tracker>${foo}</job-tracker>\r\n" +
                 "  <name-node>bar</name-node>\r\n" +
                 "</pig>";
+        e = e.replaceAll(" xmlns=?(\"|\')(\"|\')", "");
         assertEquals(expectedE.replaceAll(" ", ""), e.replaceAll(" ", ""));
 
     }
@@ -193,16 +202,19 @@ public class TestLiteWorkflowAppParser extends XTestCase {
              "  </prepare>\r\n" +
              "  <configuration>\r\n" +
              "    <property>\r\n" +
-             "      <name>c</name>\r\n" +
-             "      <value>C</value>\r\n" +
+             "      <name>b</name>\r\n" +
+             "      <value>B</value>\r\n" +
+             "      <source>programatically</source>\r\n" +
              "    </property>\r\n" +
              "    <property>\r\n" +
              "      <name>a</name>\r\n" +
              "      <value>A</value>\r\n" +
+             "      <source>programatically</source>\r\n" +
              "    </property>\r\n" +
              "    <property>\r\n" +
-             "      <name>b</name>\r\n" +
-             "      <value>B</value>\r\n" +
+             "      <name>c</name>\r\n" +
+             "      <value>C</value>\r\n" +
+             "      <source>programatically</source>\r\n" +
              "    </property>\r\n" +
              "  </configuration>\r\n" +
              "  <script>script.q</script>\r\n" +
@@ -211,7 +223,7 @@ public class TestLiteWorkflowAppParser extends XTestCase {
              "  <job-tracker>foo</job-tracker>\r\n" +
              "  <name-node>bar</name-node>\r\n" +
              "</hive>";
-        System.out.println("AAA " + expectedA.replaceAll(" ", ""));
+        a = a.replaceAll(" xmlns=?(\"|\')(\"|\')", "");
         assertEquals(expectedA.replaceAll(" ",""), a.replaceAll(" ", ""));
     }
 
@@ -235,17 +247,20 @@ public class TestLiteWorkflowAppParser extends XTestCase {
              "  </prepare>\r\n" +
              "  <configuration>\r\n" +
              "    <property>\r\n" +
-             "      <name>a</name>\r\n" +
-             "      <value>A2</value>\r\n" +
-             "    </property>\r\n" +
-             "    <property>\r\n" +
              "      <name>b</name>\r\n" +
              "      <value>B</value>\r\n" +
+             "      <source>programatically</source>\r\n" +
+             "    </property>\r\n" +
+             "    <property>\r\n" +
+             "      <name>a</name>\r\n" +
+             "      <value>A2</value>\r\n" +
+             "      <source>programatically</source>\r\n" +
              "    </property>\r\n" +
              "  </configuration>\r\n" +
              "  <arg>/tmp/data.txt</arg>\r\n" +
              "  <arg>/tmp2/data.txt</arg>\r\n" +
              "</distcp>";
+        b = b.replaceAll(" xmlns=?(\"|\')(\"|\')", "");
         assertEquals(expectedB.replaceAll(" ",""), b.replaceAll(" ", ""));
     }
 
@@ -791,7 +806,7 @@ public class TestLiteWorkflowAppParser extends XTestCase {
             assertTrue(we.getMessage().contains("three"));
         }
     }
-    
+
     /*
      *f->(2,3)
      *2->decision node->{4,end}

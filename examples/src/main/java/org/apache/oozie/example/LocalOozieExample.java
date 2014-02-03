@@ -17,6 +17,7 @@
  */
 package org.apache.oozie.example;
 
+import org.apache.hadoop.fs.Path;
 import org.apache.oozie.client.WorkflowJob;
 import org.apache.oozie.client.OozieClient;
 import org.apache.oozie.client.WorkflowAction;
@@ -64,7 +65,7 @@ public class LocalOozieExample {
 
             // create a workflow job configuration and set the workflow application path
             Properties conf = wc.createConfiguration();
-            conf.setProperty(OozieClient.APP_PATH, appUri + File.separator + "workflow.xml");
+            conf.setProperty(OozieClient.APP_PATH, new Path(appUri, "workflow.xml").toString());
             // load additional workflow job parameters from properties file
             if (propertiesFile != null) {
                 conf.load(new FileInputStream(propertiesFile));

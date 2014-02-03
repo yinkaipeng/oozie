@@ -32,7 +32,6 @@ import java.io.FileWriter;
 import java.io.PrintWriter;
 import java.sql.Clob;
 import java.sql.Connection;
-import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -57,7 +56,7 @@ public class OozieDBCLI {
 
     public static final String[] HELP_INFO = {
         "",
-        "IMPORTANT: If using an Oracle or MySQL Database, before running this",
+        "IMPORTANT: If using an Oracle, MS SQL or MySQL Database, before running this",
         "tool copy the corresponding JDBC driver to the tools libext/ directory"
     };
 
@@ -307,6 +306,9 @@ public class OozieDBCLI {
     private final static String UPDATE_DELIMITER_VER_TWO =
             "UPDATE COORD_ACTIONS SET MISSING_DEPENDENCIES = REPLACE(MISSING_DEPENDENCIES,';','!!')";
 
+    private final static String UPDATE_DELIMITER_VER_TWO_MSSQL=
+            "UPDATE COORD_ACTIONS SET MISSING_DEPENDENCIES = REPLACE(CAST(MISSING_DEPENDENCIES AS varchar(MAX)),';','!!')";
+
     private void postUpgradeTasks(String sqlFile, boolean run, boolean force) throws Exception {
         PrintWriter writer = new PrintWriter(new FileWriter(sqlFile, true));
         writer.println();
@@ -354,11 +356,18 @@ public class OozieDBCLI {
                 System.out.println("         although those jobs may show different status names in their actions");
             }
             if (!getDBVendor().equals("derby")) {
-                writer.println(UPDATE_DELIMITER_VER_TWO + ";");
+                String  updateMissingDependenciesQuery;
+                if (getDBVendor().equals("sqlserver")){
+                    updateMissingDependenciesQuery = UPDATE_DELIMITER_VER_TWO_MSSQL;
+                } else {
+                    updateMissingDependenciesQuery = UPDATE_DELIMITER_VER_TWO;
+                }
+
+                writer.println(updateMissingDependenciesQuery + ";");
                 System.out.println("Post-upgrade MISSING_DEPENDENCIES column");
                 if (run) {
                     Statement st = conn.createStatement();
-                    st.executeUpdate(UPDATE_DELIMITER_VER_TWO);
+                    st.executeUpdate(updateMissingDependenciesQuery);
                     st.close();
                 }
             }
@@ -461,6 +470,15 @@ public class OozieDBCLI {
             ddlQueries.add("ALTER TABLE WF_ACTIONS DROP COLUMN error_message");
             ddlQueries.add("ALTER TABLE WF_ACTIONS RENAME error_message_temp TO error_message");
             ddlQueries.add("ALTER TABLE COORD_JOBS ALTER COLUMN frequency TYPE VARCHAR(255)");
+        }
+        else
+        if  (dbVendor.equals("sqlserver")) {
+            ddlQueries.add("ALTER TABLE WF_ACTIONS ALTER COLUMN execution_path VARCHAR(1024)");
+            ddlQueries.add("ALTER TABLE WF_ACTIONS ADD error_message_temp VARCHAR(500)");
+            ddlQueries.add("UPDATE WF_ACTIONS SET error_message_temp = SUBSTRING(error_message,1,500)");
+            ddlQueries.add("ALTER TABLE WF_ACTIONS DROP COLUMN error_message");
+            ddlQueries.add("EXEC sp_rename 'WF_ACTIONS.error_message_temp', 'error_message', 'COLUMN'");
+            ddlQueries.add("ALTER TABLE COORD_JOBS ALTER COLUMN frequency VARCHAR(255)");
         }
         Connection conn = (run) ? createConnection() : null;
 
@@ -740,10 +758,19 @@ public class OozieDBCLI {
         "insert into OOZIE_SYS (name, data) values ('oozie.version', '" +
         BuildInfo.getBuildInfo().getProperty(BuildInfo.BUILD_VERSION) + "')";
 
+    private final static String CREATE_OOZIE_SYS_INDEX =
+        "create clustered index OOZIE_SYS_PK on OOZIE_SYS (name);";
+
     private void createOozieSysTable(String sqlFile, boolean run) throws Exception {
+        // Some databases do not support tables without a clustered index
+        // so we need to explicitly create a clustered index for OOZIE_SYS table
+        boolean createIndex = getDBVendor().equals("sqlserver");
         PrintWriter writer = new PrintWriter(new FileWriter(sqlFile, true));
         writer.println();
         writer.println(CREATE_OOZIE_SYS);
+        if (createIndex){
+            writer.println(CREATE_OOZIE_SYS_INDEX);
+        }
         writer.println(SET_DB_VERSION);
         writer.println(SET_OOZIE_VERSION);
         writer.close();
@@ -754,6 +781,9 @@ public class OozieDBCLI {
                 conn.setAutoCommit(true);
                 Statement st = conn.createStatement();
                 st.executeUpdate(CREATE_OOZIE_SYS);
+                if (createIndex){
+                    st.executeUpdate(CREATE_OOZIE_SYS_INDEX);
+                }
                 st.executeUpdate(SET_DB_VERSION);
                 st.executeUpdate(SET_OOZIE_VERSION);
                 st.close();

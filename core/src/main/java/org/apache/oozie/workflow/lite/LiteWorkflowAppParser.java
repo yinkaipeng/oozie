@@ -19,6 +19,7 @@ package org.apache.oozie.workflow.lite;
 
 import org.apache.oozie.workflow.WorkflowException;
 import org.apache.oozie.util.IOUtils;
+import org.apache.oozie.util.XConfiguration;
 import org.apache.oozie.util.XmlUtils;
 import org.apache.oozie.util.ParamChecker;
 import org.apache.oozie.util.ParameterVerifier;
@@ -36,6 +37,7 @@ import org.xml.sax.SAXException;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 import javax.xml.validation.Validator;
+
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
@@ -112,6 +114,10 @@ public class LiteWorkflowAppParser {
         this.actionHandlerClass = actionHandlerClass;
     }
 
+    public LiteWorkflowApp validateAndParse(Reader reader, Configuration jobConf) throws WorkflowException {
+        return validateAndParse(reader, jobConf, null);
+    }
+
     /**
      * Parse and validate xml to {@link LiteWorkflowApp}
      *
@@ -119,7 +125,8 @@ public class LiteWorkflowAppParser {
      * @return LiteWorkflowApp
      * @throws WorkflowException
      */
-    public LiteWorkflowApp validateAndParse(Reader reader, Configuration jobConf) throws WorkflowException {
+    public LiteWorkflowApp validateAndParse(Reader reader, Configuration jobConf, Configuration configDefault)
+            throws WorkflowException {
         try {
             StringWriter writer = new StringWriter();
             IOUtils.copyCharStream(reader, writer);
@@ -132,7 +139,7 @@ public class LiteWorkflowAppParser {
 
             Element wfDefElement = XmlUtils.parseXml(strDef);
             ParameterVerifier.verifyParameters(jobConf, wfDefElement);
-            LiteWorkflowApp app = parse(strDef, wfDefElement);
+            LiteWorkflowApp app = parse(strDef, wfDefElement, configDefault);
             Map<String, VisitStatus> traversed = new HashMap<String, VisitStatus>();
             traversed.put(app.getNode(StartNodeDef.START).getName(), VisitStatus.VISITING);
             validate(app, app.getNode(StartNodeDef.START), traversed);
@@ -293,8 +300,8 @@ public class LiteWorkflowAppParser {
      * @return LiteWorkflowApp
      * @throws WorkflowException
      */
-    @SuppressWarnings({"unchecked", "ConstantConditions"})
-    private LiteWorkflowApp parse(String strDef, Element root) throws WorkflowException {
+    @SuppressWarnings({"unchecked"})
+    private LiteWorkflowApp parse(String strDef, Element root, Configuration configDefault) throws WorkflowException {
         Namespace ns = root.getNamespace();
         LiteWorkflowApp def = null;
         Element global = null;
@@ -356,7 +363,7 @@ public class LiteWorkflowAppParser {
                                                     }
                                                     else {
                                                         eActionConf = elem;
-                                                        handleGlobal(ns, global, elem);
+                                                        handleGlobal(ns, global, configDefault, elem);
                                                         }
                                                 }
                                             }
@@ -478,9 +485,12 @@ public class LiteWorkflowAppParser {
      * @throws WorkflowException
      */
 
-    private void handleGlobal(Namespace ns, Element global, Element eActionConf) throws WorkflowException {
+@SuppressWarnings("unchecked")
+    private void handleGlobal(Namespace ns, Element global, Configuration configDefault, Element eActionConf)
+            throws WorkflowException {
 
-        // Use the action's namespace when getting children of the action (will be different than ns for extension actions)
+        // Use the action's namespace when getting children of the action (will
+        // be different than ns for extension actions)
         Namespace actionNs = eActionConf.getNamespace();
 
         if (global != null) {
@@ -508,6 +518,7 @@ public class LiteWorkflowAppParser {
                     for(Element actionXml: actionJobXml){
                         if(jobXml.getText().equals(actionXml.getText())){
                             alreadyExists = true;
+                            break;
                         }
                     }
 
@@ -519,35 +530,39 @@ public class LiteWorkflowAppParser {
 
                 }
             }
-
-            if (globalConfiguration != null) {
+            try {
+                XConfiguration actionConf;
                 Element actionConfiguration = eActionConf.getChild("configuration", actionNs);
                 if (actionConfiguration == null) {
-                    actionConfiguration = new Element("configuration", actionNs);
-                    eActionConf.addContent(actionConfiguration);
+                    actionConf = new XConfiguration();
                 }
-                for (Element globalConfig : (List<Element>) globalConfiguration.getChildren()) {
-                    boolean isSet = false;
-                    String globalVarName = globalConfig.getChildText("name", ns);
-                    for (Element local : (List<Element>) actionConfiguration.getChildren()) {
-                        if (local.getChildText("name", actionNs).equals(globalVarName)) {
-                            isSet = true;
-                        }
-                    }
-                    if (!isSet) {
-                        Element varToCopy = new Element("property", actionNs);
-                        Element varName = new Element("name", actionNs);
-                        Element varValue = new Element("value", actionNs);
-
-                        varName.setText(globalConfig.getChildText("name", ns));
-                        varValue.setText(globalConfig.getChildText("value", ns));
-
-                        varToCopy.addContent(varName);
-                        varToCopy.addContent(varValue);
-
-                        actionConfiguration.addContent(varToCopy);
-                    }
+                else {
+                    actionConf = new XConfiguration(new StringReader(XmlUtils.prettyPrint(actionConfiguration)
+                            .toString()));
                 }
+                if (globalConfiguration != null) {
+                    Configuration globalConf = new XConfiguration(new StringReader(XmlUtils.prettyPrint(
+                            globalConfiguration).toString()));
+                    XConfiguration.injectDefaults(globalConf, actionConf);
+                }
+                XConfiguration.injectDefaults(configDefault, actionConf);
+                int position = eActionConf.indexOf(actionConfiguration);
+                eActionConf.removeContent(actionConfiguration); //replace with enhanced one
+                Element eConfXml = XmlUtils.parseXml(actionConf.toXmlString(false));
+                eConfXml.detach();
+                eConfXml.setNamespace(actionNs);
+                if (position > 0) {
+                    eActionConf.addContent(position, eConfXml);
+                }
+                else {
+                    eActionConf.addContent(eConfXml);
+                }
+            }
+            catch (IOException e) {
+                throw new WorkflowException(ErrorCode.E0700, "Error while processing action conf");
+            }
+            catch (JDOMException e) {
+                throw new WorkflowException(ErrorCode.E0700, "Error while processing action conf");
             }
         }
         else {

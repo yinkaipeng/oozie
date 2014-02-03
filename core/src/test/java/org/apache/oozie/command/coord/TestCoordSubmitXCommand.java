@@ -69,14 +69,18 @@ public class TestCoordSubmitXCommand extends XDataTestCase {
      */
     public void testBasicSubmit() throws Exception {
         Configuration conf = new XConfiguration();
-        String appPath = "file://" + getTestCaseDir() + File.separator + "coordinator.xml";
+        File appPathFile = new File(getTestCaseDir(), "coordinator.xml");
         String appXml = "<coordinator-app name=\"${appName}-foo\" frequency=\"${coord:days(1)}\" start=\"2009-02-01T01:00Z\" end=\"2009-02-03T23:59Z\" timezone=\"UTC\" "
                 + "xmlns=\"uri:oozie:coordinator:0.2\"> <controls> "
                 + "<execution>LIFO</execution> </controls> <datasets> "
                 + "<dataset name=\"a\" frequency=\"${coord:days(7)}\" initial-instance=\"2009-02-01T01:00Z\" "
-                + "timezone=\"UTC\"> <uri-template>file:///tmp/coord/workflows/${YEAR}/${DAY}</uri-template> </dataset> "
+                + "timezone=\"UTC\"> <uri-template>"
+                + getTestCaseFileUri("coord/workflows/${YEAR}/${DAY}")
+                + "</uri-template>  </dataset> "
                 + "<dataset name=\"local_a\" frequency=\"${coord:days(7)}\" initial-instance=\"2009-02-01T01:00Z\" "
-                + "timezone=\"UTC\"> <uri-template>file:///tmp/coord/workflows/${YEAR}/${DAY}</uri-template> </dataset> "
+                + "timezone=\"UTC\"> <uri-template>"
+                + getTestCaseFileUri("coord/workflows/${YEAR}/${DAY}")
+                + "</uri-template>  </dataset> "
                 + "</datasets> <input-events> "
                 + "<data-in name=\"A\" dataset=\"a\"> <instance>${coord:latest(0)}</instance> </data-in>  "
                 + "</input-events> "
@@ -85,8 +89,8 @@ public class TestCoordSubmitXCommand extends XDataTestCase {
                 + "<configuration> <property> <name>inputA</name> <value>${coord:dataIn('A')}</value> </property> "
                 + "<property> <name>inputB</name> <value>${coord:dataOut('LOCAL_A')}</value> "
                 + "</property></configuration> </workflow> </action> </coordinator-app>";
-        writeToFile(appXml, appPath);
-        conf.set(OozieClient.COORDINATOR_APP_PATH, appPath);
+        writeToFile(appXml, appPathFile);
+        conf.set(OozieClient.COORDINATOR_APP_PATH, appPathFile.toURI().toString());
         conf.set(OozieClient.USER_NAME, getTestUser());
         conf.set("appName", "var-app-name");
         CoordSubmitXCommand sc = new CoordSubmitXCommand(conf);
@@ -96,22 +100,32 @@ public class TestCoordSubmitXCommand extends XDataTestCase {
         CoordinatorJobBean job = checkCoordJobs(jobId);
         assertNotNull(job);
         assertEquals("var-app-name-foo", job.getAppName());
-        assertEquals(job.getTimeout(), Services.get().getConf().getInt(
-                "oozie.service.coord.normal.default.timeout", -2));
-        assertEquals(job.getConcurrency(), Services.get().getConf().getInt(
-                "oozie.service.coord.default.concurrency", 1));
+        assertEquals(
+                job.getTimeout(),
+                Services.get()
+                        .getConf()
+                        .getInt("oozie.service.coord.normal.default.timeout",
+                                -2));
+        assertEquals(
+                job.getConcurrency(),
+                Services.get().getConf()
+                        .getInt("oozie.service.coord.default.concurrency", 1));
     }
 
     public void testBasicSubmitWithStartTimeAfterEndTime() throws Exception {
         Configuration conf = new XConfiguration();
-        String appPath = "file://" + getTestCaseDir() + File.separator + "coordinator.xml";
+        File appPathFile = new File(getTestCaseDir(), "coordinator.xml");
         String appXml = "<coordinator-app name=\"NAME\" frequency=\"${coord:days(1)}\" start=\"2010-02-01T01:00Z\" end=\"2009-02-03T23:59Z\" timezone=\"UTC\" "
                 + "xmlns=\"uri:oozie:coordinator:0.2\"> <controls> "
                 + "<execution>LIFO</execution> </controls> <datasets> "
                 + "<dataset name=\"a\" frequency=\"${coord:days(7)}\" initial-instance=\"2009-02-01T01:00Z\" "
-                + "timezone=\"UTC\"> <uri-template>file:///tmp/coord/workflows/${YEAR}/${DAY}</uri-template> </dataset> "
+                + "timezone=\"UTC\"> <uri-template>"
+                + getTestCaseFileUri("coord/workflows/${YEAR}/${DAY}")
+                + "</uri-template>  </dataset> "
                 + "<dataset name=\"local_a\" frequency=\"${coord:days(7)}\" initial-instance=\"2009-02-01T01:00Z\" "
-                + "timezone=\"UTC\"> <uri-template>file:///tmp/coord/workflows/${YEAR}/${DAY}</uri-template> </dataset> "
+                + "timezone=\"UTC\"> <uri-template>"
+                + getTestCaseFileUri("coord/workflows/${YEAR}/${DAY}")
+                + "</uri-template>  </dataset> "
                 + "</datasets> <input-events> "
                 + "<data-in name=\"A\" dataset=\"a\"> <instance>${coord:latest(0)}</instance> </data-in>  "
                 + "</input-events> "
@@ -120,250 +134,277 @@ public class TestCoordSubmitXCommand extends XDataTestCase {
                 + "<configuration> <property> <name>inputA</name> <value>${coord:dataIn('A')}</value> </property> "
                 + "<property> <name>inputB</name> <value>${coord:dataOut('LOCAL_A')}</value> "
                 + "</property></configuration> </workflow> </action> </coordinator-app>";
-        writeToFile(appXml, appPath);
-        conf.set(OozieClient.COORDINATOR_APP_PATH, appPath);
+        writeToFile(appXml, appPathFile);
+        conf.set(OozieClient.COORDINATOR_APP_PATH, appPathFile.toURI().toString());
         conf.set(OozieClient.USER_NAME, getTestUser());
         CoordSubmitXCommand sc = new CoordSubmitXCommand(conf);
 
         try {
             sc.call();
             fail("Expected to catch errors due to incorrectly specified Start and End Time");
-        }
-        catch (CommandException e) {
+        } catch (CommandException e) {
             assertEquals(sc.getJob().getStatus(), Job.Status.FAILED);
             assertEquals(e.getErrorCode(), ErrorCode.E1003);
-            assertTrue(e.getMessage().contains("Coordinator Start Time cannot be greater than End Time."));
+            assertTrue(e.getMessage().contains(
+                    "Coordinator Start Time cannot be greater than End Time."));
         }
     }
 
     /**
-     * Testing for when user tries to submit a coordinator application having data-in events
-     * that erroneously specify multiple input data instances inside a single <instance> tag.
-     * Job gives submission error and indicates appropriate correction
-     * Testing both negative(error) and well as positive(success) cases
+     * Testing for when user tries to submit a coordinator application having
+     * data-in events that erroneously specify multiple input data instances
+     * inside a single <instance> tag. Job gives submission error and indicates
+     * appropriate correction Testing both negative(error) and well as
+     * positive(success) cases
      */
-    public void testBasicSubmitWithMultipleInstancesInputEvent() throws Exception {
+    public void testBasicSubmitWithMultipleInstancesInputEvent()
+            throws Exception {
         Configuration conf = new XConfiguration();
-        String appPath = "file://" + getTestCaseDir() + File.separator + "coordinator.xml";
+        File appPathFile = new File(getTestCaseDir(), "coordinator.xml");
 
         // CASE 1: Failure case i.e. multiple data-in instances
-        Reader reader = IOUtils.getResourceAsReader("coord-multiple-input-instance1.xml", -1);
-        Writer writer = new FileWriter(new URI(appPath).getPath());
+        Reader reader = IOUtils.getResourceAsReader(
+                "coord-multiple-input-instance1.xml", -1);
+        Writer writer = new FileWriter(new File(getTestCaseDir(), "coordinator.xml"));
         IOUtils.copyCharStream(reader, writer);
-        conf.set(OozieClient.COORDINATOR_APP_PATH, appPath);
+        conf.set(OozieClient.COORDINATOR_APP_PATH, appPathFile.toURI().toString());
         conf.set(OozieClient.USER_NAME, getTestUser());
         CoordSubmitXCommand sc = new CoordSubmitXCommand(conf);
 
         try {
             sc.call();
             fail("Expected to catch errors due to incorrectly specified input data set instances");
-        }
-        catch (CommandException e) {
+        } catch (CommandException e) {
             assertEquals(sc.getJob().getStatus(), Job.Status.FAILED);
             assertEquals(e.getErrorCode(), ErrorCode.E1021);
-            assertTrue(e.getMessage().contains(sc.COORD_INPUT_EVENTS) && e.getMessage().contains("per data-in instance"));
+            assertTrue(e.getMessage().contains(sc.COORD_INPUT_EVENTS)
+                    && e.getMessage().contains("per data-in instance"));
         }
 
-        // CASE 2: Multiple data-in instances specified as separate <instance> tags, but one or more tags are empty. Check works for whitespace in the tags too
-        reader = IOUtils.getResourceAsReader("coord-multiple-input-instance2.xml", -1);
-        writer = new FileWriter(new URI(appPath).getPath());
+        // CASE 2: Multiple data-in instances specified as separate <instance>
+        // tags, but one or more tags are empty. Check works for whitespace in
+        // the tags too
+        reader = IOUtils.getResourceAsReader(
+                "coord-multiple-input-instance2.xml", -1);
+        writer = new FileWriter(appPathFile);
         IOUtils.copyCharStream(reader, writer);
         sc = new CoordSubmitXCommand(conf);
 
         try {
             sc.call();
             fail("Expected to catch errors due to incorrectly specified input data set instances");
-        }
-        catch (CommandException e) {
+        } catch (CommandException e) {
             assertEquals(sc.getJob().getStatus(), Job.Status.FAILED);
             assertEquals(e.getErrorCode(), ErrorCode.E1021);
-            assertTrue(e.getMessage().contains(sc.COORD_INPUT_EVENTS) && e.getMessage().contains("is empty"));
+            assertTrue(e.getMessage().contains(sc.COORD_INPUT_EVENTS)
+                    && e.getMessage().contains("is empty"));
         }
 
-        // CASE 3: Success case i.e. Multiple data-in instances specified correctly as separate <instance> tags
-        reader = IOUtils.getResourceAsReader("coord-multiple-input-instance3.xml", -1);
-        writer = new FileWriter(new URI(appPath).getPath());
+        // CASE 3: Success case i.e. Multiple data-in instances specified
+        // correctly as separate <instance> tags
+        reader = IOUtils.getResourceAsReader(
+                "coord-multiple-input-instance3.xml", -1);
+        writer = new FileWriter(appPathFile);
         IOUtils.copyCharStream(reader, writer);
         sc = new CoordSubmitXCommand(conf);
 
         try {
             sc.call();
-        }
-        catch (CommandException e) {
+        } catch (CommandException e) {
             fail("Unexpected failure: " + e);
         }
 
-        // CASE 4: Success case i.e. Single instances for input and single instance for output, but both with ","
-        reader = IOUtils.getResourceAsReader("coord-multiple-input-instance4.xml", -1);
-        writer = new FileWriter(new URI(appPath).getPath());
+        // CASE 4: Success case i.e. Single instances for input and single
+        // instance for output, but both with ","
+        reader = IOUtils.getResourceAsReader(
+                "coord-multiple-input-instance4.xml", -1);
+        writer = new FileWriter(appPathFile);
         IOUtils.copyCharStream(reader, writer);
         sc = new CoordSubmitXCommand(conf);
 
         try {
             sc.call();
-        }
-        catch (CommandException e) {
+        } catch (CommandException e) {
             fail("Unexpected failure: " + e);
         }
     }
 
     /**
-     * Testing for when user tries to submit a coordinator application having data-in events
-     * that erroneously specify multiple input data instances inside a single <start-instance> tag.
-     * Job gives submission error and indicates appropriate correction
-     * Testing both negative(error) and well as positive(success) cases
+     * Testing for when user tries to submit a coordinator application having
+     * data-in events that erroneously specify multiple input data instances
+     * inside a single <start-instance> tag. Job gives submission error and
+     * indicates appropriate correction Testing both negative(error) and well as
+     * positive(success) cases
      */
-    public void testBasicSubmitWithMultipleStartInstancesInputEvent() throws Exception {
+    public void testBasicSubmitWithMultipleStartInstancesInputEvent()
+            throws Exception {
         Configuration conf = new XConfiguration();
-        String appPath = "file://" + getTestCaseDir() + File.separator + "coordinator.xml";
+        File appPathFile = new File(getTestCaseDir(), "coordinator.xml");
 
         // CASE 1: Failure case i.e. multiple data-in start-instances
-        Reader reader = IOUtils.getResourceAsReader("coord-multiple-input-start-instance1.xml", -1);
-        Writer writer = new FileWriter(new URI(appPath).getPath());
+        Reader reader = IOUtils.getResourceAsReader(
+                "coord-multiple-input-start-instance1.xml", -1);
+        Writer writer = new FileWriter(new File(getTestCaseDir(), "coordinator.xml"));
         IOUtils.copyCharStream(reader, writer);
-        conf.set(OozieClient.COORDINATOR_APP_PATH, appPath);
+        conf.set(OozieClient.COORDINATOR_APP_PATH, appPathFile.toURI().toString());
         conf.set(OozieClient.USER_NAME, getTestUser());
         CoordSubmitXCommand sc = new CoordSubmitXCommand(conf);
 
         try {
             sc.call();
             fail("Expected to catch errors due to incorrectly specified input data set start-instances");
-        }
-        catch (CommandException e) {
+        } catch (CommandException e) {
             assertEquals(sc.getJob().getStatus(), Job.Status.FAILED);
             assertEquals(e.getErrorCode(), ErrorCode.E1021);
             assertTrue(e.getMessage().contains(sc.COORD_INPUT_EVENTS)
-                    && e.getMessage().contains("Coordinator app definition should not have multiple start-instances"));
+                    && e.getMessage()
+                            .contains(
+                                    "Coordinator app definition should not have multiple start-instances"));
         }
 
-        // CASE 2: Success case i.e. Single start instances for input and single start instance for output, but both with ","
-        reader = IOUtils.getResourceAsReader("coord-multiple-input-start-instance2.xml", -1);
-        writer = new FileWriter(new URI(appPath).getPath());
+        // CASE 2: Success case i.e. Single start instances for input and single
+        // start instance for output, but both with ","
+        reader = IOUtils.getResourceAsReader(
+                "coord-multiple-input-start-instance2.xml", -1);
+        writer = new FileWriter(appPathFile);
         IOUtils.copyCharStream(reader, writer);
         sc = new CoordSubmitXCommand(conf);
 
         try {
             sc.call();
-        }
-        catch (CommandException e) {
+        } catch (CommandException e) {
             fail("Unexpected failure: " + e);
         }
     }
 
     /**
-     * Testing for when user tries to submit a coordinator application having data-in events
-     * that erroneously specify multiple input data instances inside a single <start-instance> tag.
-     * Job gives submission error and indicates appropriate correction
-     * Testing both negative(error) and well as positive(success) cases
+     * Testing for when user tries to submit a coordinator application having
+     * data-in events that erroneously specify multiple input data instances
+     * inside a single <start-instance> tag. Job gives submission error and
+     * indicates appropriate correction Testing both negative(error) and well as
+     * positive(success) cases
      */
-    public void testBasicSubmitWithMultipleEndInstancesInputEvent() throws Exception {
+    public void testBasicSubmitWithMultipleEndInstancesInputEvent()
+            throws Exception {
         Configuration conf = new XConfiguration();
-        String appPath = "file://" + getTestCaseDir() + File.separator + "coordinator.xml";
+        File appPathFile = new File(getTestCaseDir(), "coordinator.xml");
 
         // CASE 1: Failure case i.e. multiple data-in start-instances
-        Reader reader = IOUtils.getResourceAsReader("coord-multiple-input-end-instance1.xml", -1);
-        Writer writer = new FileWriter(new URI(appPath).getPath());
+        Reader reader = IOUtils.getResourceAsReader(
+                "coord-multiple-input-end-instance1.xml", -1);
+        Writer writer = new FileWriter(new File(getTestCaseDir(), "coordinator.xml"));
         IOUtils.copyCharStream(reader, writer);
-        conf.set(OozieClient.COORDINATOR_APP_PATH, appPath);
+        conf.set(OozieClient.COORDINATOR_APP_PATH, appPathFile.toURI().toString());
         conf.set(OozieClient.USER_NAME, getTestUser());
         CoordSubmitXCommand sc = new CoordSubmitXCommand(conf);
 
         try {
             sc.call();
             fail("Expected to catch errors due to incorrectly specified input data set end-instances");
-        }
-        catch (CommandException e) {
+        } catch (CommandException e) {
             assertEquals(sc.getJob().getStatus(), Job.Status.FAILED);
             assertEquals(e.getErrorCode(), ErrorCode.E1021);
             assertTrue(e.getMessage().contains(sc.COORD_INPUT_EVENTS)
-                    && e.getMessage().contains("Coordinator app definition should not have multiple end-instances"));
+                    && e.getMessage()
+                            .contains(
+                                    "Coordinator app definition should not have multiple end-instances"));
         }
 
-        // CASE 2: Success case i.e. Single end instances for input and single end instance for output, but both with ","
-        reader = IOUtils.getResourceAsReader("coord-multiple-input-end-instance2.xml", -1);
-        writer = new FileWriter(new URI(appPath).getPath());
+        // CASE 2: Success case i.e. Single end instances for input and single
+        // end instance for output, but both with ","
+        reader = IOUtils.getResourceAsReader(
+                "coord-multiple-input-end-instance2.xml", -1);
+        writer = new FileWriter(appPathFile);
         IOUtils.copyCharStream(reader, writer);
         sc = new CoordSubmitXCommand(conf);
 
         try {
             sc.call();
-        }
-        catch (CommandException e) {
+        } catch (CommandException e) {
             fail("Unexpected failure: " + e);
         }
     }
 
     /**
-     * Testing for when user tries to submit a coordinator application having data-out events
-     * that erroneously specify multiple output data instances inside a single <instance> tag.
-     * Job gives submission error and indicates appropriate correction
-     * Testing negative(error) cases as well as Positive(success) cases.
+     * Testing for when user tries to submit a coordinator application having
+     * data-out events that erroneously specify multiple output data instances
+     * inside a single <instance> tag. Job gives submission error and indicates
+     * appropriate correction Testing negative(error) cases as well as
+     * Positive(success) cases.
      */
-    public void testBasicSubmitWithMultipleInstancesOutputEvent() throws Exception {
+    public void testBasicSubmitWithMultipleInstancesOutputEvent()
+            throws Exception {
         Configuration conf = new XConfiguration();
-        String appPath = "file://" + getTestCaseDir() + File.separator + "coordinator.xml";
+        File appPathFile = new File(getTestCaseDir(), "coordinator.xml");
 
         // CASE 1: Failure case i.e. multiple data-out instances
-        Reader reader = IOUtils.getResourceAsReader("coord-multiple-output-instance1.xml", -1);
-        Writer writer = new FileWriter(new URI(appPath).getPath());
+        Reader reader = IOUtils.getResourceAsReader(
+                "coord-multiple-output-instance1.xml", -1);
+        Writer writer = new FileWriter(new File(getTestCaseDir(), "coordinator.xml"));
         IOUtils.copyCharStream(reader, writer);
 
-        conf.set(OozieClient.COORDINATOR_APP_PATH, appPath);
+        conf.set(OozieClient.COORDINATOR_APP_PATH, appPathFile.toURI().toString());
         conf.set(OozieClient.USER_NAME, getTestUser());
         CoordSubmitXCommand sc = new CoordSubmitXCommand(conf);
 
         try {
             sc.call();
             fail("Expected to catch errors due to incorrectly specified output data set instances");
-        }
-        catch (CommandException e) {
+        } catch (CommandException e) {
             assertEquals(sc.getJob().getStatus(), Job.Status.FAILED);
             assertEquals(e.getErrorCode(), ErrorCode.E1021);
-            assertTrue(e.getMessage().contains(sc.COORD_OUTPUT_EVENTS) && e.getMessage().contains("per data-out instance"));
+            assertTrue(e.getMessage().contains(sc.COORD_OUTPUT_EVENTS)
+                    && e.getMessage().contains("per data-out instance"));
         }
 
-        // CASE 2: Data-out instance tag is empty. Check works for whitespace in the tag too
-        reader = IOUtils.getResourceAsReader("coord-multiple-output-instance2.xml", -1);
-        writer = new FileWriter(new URI(appPath).getPath());
+        // CASE 2: Data-out instance tag is empty. Check works for whitespace in
+        // the tag too
+        reader = IOUtils.getResourceAsReader(
+                "coord-multiple-output-instance2.xml", -1);
+        writer = new FileWriter(appPathFile);
         IOUtils.copyCharStream(reader, writer);
         sc = new CoordSubmitXCommand(conf);
 
         try {
             sc.call();
             fail("Expected to catch errors due to incorrectly specified output data set instances");
-        }
-        catch (CommandException e) {
+        } catch (CommandException e) {
             assertEquals(sc.getJob().getStatus(), Job.Status.FAILED);
             assertEquals(e.getErrorCode(), ErrorCode.E1021);
-            assertTrue(e.getMessage().contains(sc.COORD_OUTPUT_EVENTS) && e.getMessage().contains("is empty"));
+            assertTrue(e.getMessage().contains(sc.COORD_OUTPUT_EVENTS)
+                    && e.getMessage().contains("is empty"));
         }
 
-        // CASE 3: Multiple <instance> tags within data-out should fail coordinator schema validation - different error than above is expected
-        reader = IOUtils.getResourceAsReader("coord-multiple-output-instance3.xml", -1);
-        writer = new FileWriter(new URI(appPath).getPath());
+        // CASE 3: Multiple <instance> tags within data-out should fail
+        // coordinator schema validation - different error than above is
+        // expected
+        reader = IOUtils.getResourceAsReader(
+                "coord-multiple-output-instance3.xml", -1);
+        writer = new FileWriter(appPathFile);
         IOUtils.copyCharStream(reader, writer);
         sc = new CoordSubmitXCommand(conf);
 
         try {
             sc.call();
             fail("Expected to catch errors due to incorrectly specified output data set instances");
-        }
-        catch (CommandException e) {
+        } catch (CommandException e) {
             assertEquals(sc.getJob().getStatus(), Job.Status.FAILED);
             assertEquals(e.getErrorCode(), ErrorCode.E0701);
-            assertTrue(e.getMessage().contains("No child element is expected at this point"));
+            assertTrue(e.getMessage().contains(
+                    "No child element is expected at this point"));
         }
 
-        // CASE 4: Success case, where only one instance is configured, but expression has a ","
-        reader = IOUtils.getResourceAsReader("coord-multiple-output-instance4.xml", -1);
-        writer = new FileWriter(new URI(appPath).getPath());
+        // CASE 4: Success case, where only one instance is configured, but
+        // expression has a ","
+        reader = IOUtils.getResourceAsReader(
+                "coord-multiple-output-instance4.xml", -1);
+        writer = new FileWriter(appPathFile);
         IOUtils.copyCharStream(reader, writer);
         sc = new CoordSubmitXCommand(conf);
 
         try {
             sc.call();
-        }
-        catch (CommandException e) {
+        } catch (CommandException e) {
             fail("Not expected to fail here");
         }
     }
@@ -374,16 +415,21 @@ public class TestCoordSubmitXCommand extends XDataTestCase {
      * @throws Exception
      */
     public void testBasicSubmitWithBundleId() throws Exception {
-        BundleJobBean coordJob = addRecordToBundleJobTable(Job.Status.PREP, false);
+        BundleJobBean coordJob = addRecordToBundleJobTable(Job.Status.PREP,
+                false);
         Configuration conf = new XConfiguration();
-        String appPath = "file://" + getTestCaseDir() + File.separator + "coordinator.xml";
+        File appPathFile = new File(getTestCaseDir(), "coordinator.xml");
         String appXml = "<coordinator-app name=\"NAME\" frequency=\"${coord:days(1)}\" start=\"2009-02-01T01:00Z\" end=\"2009-02-03T23:59Z\" timezone=\"UTC\" "
                 + "xmlns=\"uri:oozie:coordinator:0.2\"> <controls> <concurrency>2</concurrency> "
                 + "<execution>LIFO</execution> </controls> <datasets> "
                 + "<dataset name=\"a\" frequency=\"${coord:days(7)}\" initial-instance=\"2009-02-01T01:00Z\" "
-                + "timezone=\"UTC\"> <uri-template>file:///tmp/coord/workflows/${YEAR}/${DAY}</uri-template> </dataset> "
+                + "timezone=\"UTC\"> <uri-template>"
+                + getTestCaseFileUri("coord/workflows/${YEAR}/${DAY}")
+                + "</uri-template>  </dataset> "
                 + "<dataset name=\"local_a\" frequency=\"${coord:days(7)}\" initial-instance=\"2009-02-01T01:00Z\" "
-                + "timezone=\"UTC\"> <uri-template>file:///tmp/coord/workflows/${YEAR}/${DAY}</uri-template> </dataset> "
+                + "timezone=\"UTC\"> <uri-template>"
+                + getTestCaseFileUri("coord/workflows/${YEAR}/${DAY}")
+                + "</uri-template>  </dataset> "
                 + "</datasets> <input-events> "
                 + "<data-in name=\"A\" dataset=\"a\"> <instance>${coord:latest(0)}</instance> </data-in>  "
                 + "</input-events> "
@@ -392,11 +438,12 @@ public class TestCoordSubmitXCommand extends XDataTestCase {
                 + "<configuration> <property> <name>inputA</name> <value>${coord:dataIn('A')}</value> </property> "
                 + "<property> <name>inputB</name> <value>${coord:dataOut('LOCAL_A')}</value> "
                 + "</property></configuration> </workflow> </action> </coordinator-app>";
-        writeToFile(appXml, appPath);
-        conf.set(OozieClient.COORDINATOR_APP_PATH, appPath);
+        writeToFile(appXml, appPathFile);
+        conf.set(OozieClient.COORDINATOR_APP_PATH, appPathFile.toURI().toString());
         conf.set(OozieClient.USER_NAME, getTestUser());
 
-        this.addRecordToBundleActionTable(coordJob.getId(), "COORD-NAME", 0, Job.Status.PREP);
+        this.addRecordToBundleActionTable(coordJob.getId(), "COORD-NAME", 0,
+                Job.Status.PREP);
 
         CoordSubmitXCommand sc = new CoordSubmitXCommand(conf, coordJob.getId(), "COORD-NAME");
         String jobId = sc.call();
@@ -419,14 +466,18 @@ public class TestCoordSubmitXCommand extends XDataTestCase {
      */
     public void testBasicSubmitWithWrongNamespace() throws Exception {
         Configuration conf = new XConfiguration();
-        String appPath = "file://" + getTestCaseDir() + File.separator + "coordinator.xml";
+        File appPathFile = new File(getTestCaseDir(), "coordinator.xml");
         String appXml = "<coordinator-app name=\"NAME\" frequency=\"${coord:days(1)}\" start=\"2009-02-01T01:00Z\" end=\"2009-02-03T23:59Z\" timezone=\"UTC\" "
                 + "xmlns=\"uri:oozie:coordinator:0.1\"> <controls> <concurrency>2</concurrency> "
                 + "<execution>LIFO</execution> </controls> <datasets> "
                 + "<dataset name=\"a\" frequency=\"${coord:days(7)}\" initial-instance=\"2009-02-01T01:00Z\" "
-                + "timezone=\"UTC\"> <uri-template>file:///tmp/coord/workflows/${YEAR}/${DAY}</uri-template> </dataset> "
+                + "timezone=\"UTC\"> <uri-template>"
+                + getTestCaseFileUri("coord/workflows/${YEAR}/${DAY}")
+                + "</uri-template>  </dataset> "
                 + "<dataset name=\"local_a\" frequency=\"${coord:days(7)}\" initial-instance=\"2009-02-01T01:00Z\" "
-                + "timezone=\"UTC\"> <uri-template>file:///tmp/coord/workflows/${YEAR}/${DAY}</uri-template> </dataset> "
+                + "timezone=\"UTC\"> <uri-template>"
+                + getTestCaseFileUri("coord/workflows/${YEAR}/${DAY}")
+                + "</uri-template>  </dataset> "
                 + "</datasets> <input-events> "
                 + "<data-in name=\"A\" dataset=\"a\"> <instance>${coord:latest(0)}</instance> </data-in>  "
                 + "</input-events> "
@@ -435,18 +486,18 @@ public class TestCoordSubmitXCommand extends XDataTestCase {
                 + "<configuration> <property> <name>inputA</name> <value>${coord:dataIn('A')}</value> </property> "
                 + "<property> <name>inputB</name> <value>${coord:dataOut('LOCAL_A')}</value> "
                 + "</property></configuration> </workflow> </action> </coordinator-app>";
-        writeToFile(appXml, appPath);
-        conf.set(OozieClient.COORDINATOR_APP_PATH, appPath);
+        writeToFile(appXml, appPathFile);
+        conf.set(OozieClient.COORDINATOR_APP_PATH, appPathFile.toURI().toString());
         conf.set(OozieClient.USER_NAME, getTestUser());
 
-        this.addRecordToBundleActionTable("OOZIE-B", "COORD-NAME", 0, Job.Status.PREP);
+        this.addRecordToBundleActionTable("OOZIE-B", "COORD-NAME", 0,
+                Job.Status.PREP);
 
         CoordSubmitXCommand sc = new CoordSubmitXCommand(conf, "OOZIE-B", "COORD-NAME");
         try {
             sc.call();
             fail("Exception expected because namespace is too old when submit coordinator through bundle!");
-        }
-        catch (CommandException e) {
+        } catch (CommandException e) {
             // should come here for namespace errors
         }
 
@@ -459,16 +510,20 @@ public class TestCoordSubmitXCommand extends XDataTestCase {
      */
     public void testBasicSubmitWithSLA() throws Exception {
         Configuration conf = new XConfiguration();
-        String appPath = "file://" + getTestCaseDir() + File.separator + "coordinator.xml";
+        File appPathFile = new File(getTestCaseDir(), "coordinator.xml");
         String appXml = "<coordinator-app name=\"NAME\" frequency=\"${coord:days(1)}\" start=\"2009-02-01T01:00Z\" end=\"2009-02-03T23:59Z\" timezone=\"UTC\" "
                 + "xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' xmlns='uri:oozie:coordinator:0.2' "
-                +       "xmlns:sla='uri:oozie:sla:0.1'> <controls> <timeout>${coord:minutes(10)}</timeout> "
-                +       "<concurrency>2</concurrency> "
+                + "xmlns:sla='uri:oozie:sla:0.1'> <controls> <timeout>${coord:minutes(10)}</timeout> "
+                + "<concurrency>2</concurrency> "
                 + "<execution>LIFO</execution> </controls> <datasets> "
                 + "<dataset name=\"a\" frequency=\"${coord:days(7)}\" initial-instance=\"2009-02-01T01:00Z\" "
-                + "timezone=\"UTC\"> <uri-template>file:///tmp/coord/workflows/${YEAR}/${DAY}</uri-template> </dataset> "
+                + "timezone=\"UTC\"> <uri-template>"
+                + getTestCaseFileUri("coord/workflows/${YEAR}/${DAY}")
+                + "</uri-template>  </dataset> "
                 + "<dataset name=\"local_a\" frequency=\"${coord:days(7)}\" initial-instance=\"2009-02-01T01:00Z\" "
-                + "timezone=\"UTC\"> <uri-template>file:///tmp/coord/workflows/${YEAR}/${DAY}</uri-template> </dataset> "
+                + "timezone=\"UTC\"> <uri-template>"
+                + getTestCaseFileUri("coord/workflows/${YEAR}/${DAY}")
+                + "</uri-template>  </dataset> "
                 + "</datasets> <input-events> "
                 + "<data-in name=\"A\" dataset=\"a\"> <instance>${coord:latest(0)}</instance> </data-in>  "
                 + "</input-events> "
@@ -488,9 +543,10 @@ public class TestCoordSubmitXCommand extends XDataTestCase {
                 + " <sla:qa-contact>abc@example.com</sla:qa-contact>"
                 + " <sla:se-contact>abc@example.com</sla:se-contact>"
                 + " <sla:alert-frequency>LAST_HOUR</sla:alert-frequency>"
-                + " <sla:alert-percentage>10</sla:alert-percentage>" + "</sla:info>" + "</action> </coordinator-app>";
-        writeToFile(appXml, appPath);
-        conf.set(OozieClient.COORDINATOR_APP_PATH, appPath);
+                + " <sla:alert-percentage>10</sla:alert-percentage>"
+                + "</sla:info>" + "</action> </coordinator-app>";
+        writeToFile(appXml, appPathFile);
+        conf.set(OozieClient.COORDINATOR_APP_PATH, appPathFile.toURI().toString());
         conf.set(OozieClient.USER_NAME, getTestUser());
         conf.set("SLA_OFFSET", "10");
         CoordSubmitXCommand sc = new CoordSubmitXCommand(conf);
@@ -508,14 +564,18 @@ public class TestCoordSubmitXCommand extends XDataTestCase {
      */
     public void testSubmitFixedValues() throws Exception {
         Configuration conf = new XConfiguration();
-        String appPath = "file://" + getTestCaseDir() + File.separator + "coordinator.xml";
+        File appPathFile = new File(getTestCaseDir(), "coordinator.xml");
         String appXml = "<coordinator-app name=\"NAME\" frequency=\"10\" start=\"2009-02-01T01:00Z\" end=\"2009-02-03T23:59Z\" timezone=\"UTC\" "
                 + "xmlns=\"uri:oozie:coordinator:0.2\"> <controls> <timeout>10</timeout> <concurrency>2</concurrency> "
                 + "<execution>LIFO</execution> </controls> <datasets> "
                 + "<dataset name=\"a\" frequency=\"60\" initial-instance=\"2009-02-01T01:00Z\" "
-                + "timezone=\"UTC\"> <uri-template>file:///tmp/coord/workflows/${YEAR}/${DAY}</uri-template> </dataset> "
+                + "timezone=\"UTC\"> <uri-template>"
+                + getTestCaseFileUri("coord/workflows/${YEAR}/${DAY}")
+                + "</uri-template>  </dataset> "
                 + "<dataset name=\"local_a\" frequency=\"120\" initial-instance=\"2009-02-01T01:00Z\" "
-                + "timezone=\"UTC\"> <uri-template>file:///tmp/coord/workflows/${YEAR}/${DAY}</uri-template> </dataset> "
+                + "timezone=\"UTC\"> <uri-template>"
+                + getTestCaseFileUri("coord/workflows/${YEAR}/${DAY}")
+                + "</uri-template>  </dataset> "
                 + "</datasets> <input-events> "
                 + "<data-in name=\"A\" dataset=\"a\"> <instance>${coord:latest(0)}</instance> </data-in>  "
                 + "</input-events> "
@@ -524,8 +584,8 @@ public class TestCoordSubmitXCommand extends XDataTestCase {
                 + "<configuration> <property> <name>inputA</name> <value>${coord:dataIn('A')}</value> </property> "
                 + "<property> <name>inputB</name> <value>${coord:dataOut('LOCAL_A')}</value> "
                 + "</property></configuration> </workflow> </action> </coordinator-app>";
-        writeToFile(appXml, appPath);
-        conf.set(OozieClient.COORDINATOR_APP_PATH, appPath);
+        writeToFile(appXml, appPathFile);
+        conf.set(OozieClient.COORDINATOR_APP_PATH, appPathFile.toURI().toString());
         conf.set(OozieClient.USER_NAME, getTestUser());
         CoordSubmitXCommand sc = new CoordSubmitXCommand(conf);
         String jobId = sc.call();
@@ -541,14 +601,18 @@ public class TestCoordSubmitXCommand extends XDataTestCase {
      */
     public void testSchemaError() throws Exception {
         Configuration conf = new XConfiguration();
-        String appPath = "file://" + getTestCaseDir() + File.separator + "coordinator.xml";
+        File appPathFile = new File(getTestCaseDir(), "coordinator.xml");
         String appXml = "<coordinator-app name=\"NAME\" frequencyERROR=\"10\" start=\"2009-02-01T01:00Z\" end=\"2009-02-03T23:59Z\" timezone=\"UTC\" "
                 + "xmlns=\"uri:oozie:coordinator:0.2\"> <controls> <timeout>10</timeout> <concurrency>2</concurrency> "
                 + "<execution>LIFO</execution> </controls> <datasets> "
                 + "<dataset name=\"a\" frequency=\"60\" initial-instance=\"2009-02-01T01:00Z\" "
-                + "timezone=\"UTC\"> <uri-template>file:///tmp/coord/workflows/${YEAR}/${DAY}</uri-template> </dataset> "
+                + "timezone=\"UTC\"> <uri-template>"
+                + getTestCaseFileUri("coord/workflows/${YEAR}/${DAY}")
+                + "</uri-template>  </dataset> "
                 + "<dataset name=\"local_a\" frequency=\"120\" initial-instance=\"2009-02-01T01:00Z\" "
-                + "timezone=\"UTC\"> <uri-template>file:///tmp/coord/workflows/${YEAR}/${DAY}</uri-template> </dataset> "
+                + "timezone=\"UTC\"> <uri-template>"
+                + getTestCaseFileUri("coord/workflows/${YEAR}/${DAY}")
+                + "</uri-template>  </dataset> "
                 + "</datasets> <input-events> "
                 + "<data-in name=\"A\" dataset=\"a\"> <instance>${coord:latest(0)}</instance> </data-in>  "
                 + "</input-events> "
@@ -557,15 +621,14 @@ public class TestCoordSubmitXCommand extends XDataTestCase {
                 + "<configuration> <property> <name>inputA</name> <value>${coord:dataIn('A')}</value> </property> "
                 + "<property> <name>inputB</name> <value>${coord:dataOut('LOCAL_A')}</value> "
                 + "</property></configuration> </workflow> </action> </coordinator-app>";
-        writeToFile(appXml, appPath);
-        conf.set(OozieClient.COORDINATOR_APP_PATH, appPath);
+        writeToFile(appXml, appPathFile);
+        conf.set(OozieClient.COORDINATOR_APP_PATH, appPathFile.toURI().toString());
         conf.set(OozieClient.USER_NAME, getTestUser());
         CoordSubmitXCommand sc = new CoordSubmitXCommand(conf);
         try {
             sc.call();
             fail("Exception expected if schema has errors!");
-        }
-        catch (CommandException e) {
+        } catch (CommandException e) {
             // should come here for schema errors
         }
     }
@@ -577,7 +640,7 @@ public class TestCoordSubmitXCommand extends XDataTestCase {
      */
     public void testSubmitNoDatasets() throws Exception {
         Configuration conf = new XConfiguration();
-        String appPath = "file://" + getTestCaseDir() + File.separator + "coordinator.xml";
+        File appPathFile = new File(getTestCaseDir(), "coordinator.xml");
         String appXml = "<coordinator-app name=\"NAME\" frequency=\"10\" start=\"2009-02-01T01:00Z\" end=\"2009-02-03T23:59Z\" timezone=\"UTC\" "
                 + "xmlns=\"uri:oozie:coordinator:0.2\"> "
                 + "<controls> <timeout>10</timeout> <concurrency>2</concurrency> "
@@ -585,8 +648,8 @@ public class TestCoordSubmitXCommand extends XDataTestCase {
                 + "<action> <workflow> <app-path>hdfs:///tmp/workflows/</app-path> "
                 + "<configuration> <property> <name>inputA</name> <value>blah</value> </property> "
                 + "</configuration> </workflow> </action> </coordinator-app>";
-        writeToFile(appXml, appPath);
-        conf.set(OozieClient.COORDINATOR_APP_PATH, appPath);
+        writeToFile(appXml, appPathFile);
+        conf.set(OozieClient.COORDINATOR_APP_PATH, appPathFile.toURI().toString());
         conf.set(OozieClient.USER_NAME, getTestUser());
         CoordSubmitXCommand sc = new CoordSubmitXCommand(conf);
         String jobId = sc.call();
@@ -602,7 +665,7 @@ public class TestCoordSubmitXCommand extends XDataTestCase {
      */
     public void testSubmitNoUsername() throws Exception {
         Configuration conf = new XConfiguration();
-        String appPath = "file://" + getTestCaseDir() + File.separator + "coordinator.xml";
+        File appPathFile = new File(getTestCaseDir(), "coordinator.xml");
         String appXml = "<coordinator-app name=\"NAME\" frequency=\"10\" start=\"2009-02-01T01:00Z\" end=\"2009-02-03T23:59Z\" timezone=\"UTC\" "
                 + "xmlns=\"uri:oozie:coordinator:0.2\"> "
                 + "<controls> <timeout>10</timeout> <concurrency>2</concurrency> "
@@ -610,15 +673,14 @@ public class TestCoordSubmitXCommand extends XDataTestCase {
                 + "<action> <workflow> <app-path>hdfs:///tmp/workflows/</app-path> "
                 + "<configuration> <property> <name>inputA</name> <value>blah</value> </property> "
                 + "</configuration> </workflow> </action> </coordinator-app>";
-        writeToFile(appXml, appPath);
-        conf.set(OozieClient.COORDINATOR_APP_PATH, appPath);
+        writeToFile(appXml, appPathFile);
+        conf.set(OozieClient.COORDINATOR_APP_PATH, appPathFile.toURI().toString());
         // conf.set(OozieClient.USER_NAME, getTestUser());
         CoordSubmitXCommand sc = new CoordSubmitXCommand(conf);
         try {
             sc.call();
             fail("Exception expected if user.name is not set!");
-        }
-        catch (CommandException e) {
+        } catch (CommandException e) {
             // should come here
         }
     }
@@ -630,14 +692,14 @@ public class TestCoordSubmitXCommand extends XDataTestCase {
      */
     public void testSubmitNoControls() throws Exception {
         Configuration conf = new XConfiguration();
-        String appPath = "file://" + getTestCaseDir() + File.separator + "coordinator.xml";
+        File appPathFile = new File(getTestCaseDir(), "coordinator.xml");
         String appXml = "<coordinator-app name=\"NAME\" frequency=\"10\" start=\"2009-02-01T01:00Z\" end=\"2009-02-03T23:59Z\" timezone=\"UTC\" "
                 + "xmlns=\"uri:oozie:coordinator:0.2\"> "
                 + "<action> <workflow> <app-path>hdfs:///tmp/workflows/</app-path> "
                 + "<configuration> <property> <name>inputA</name> <value>blah</value> </property> "
                 + "</configuration> </workflow> </action> </coordinator-app>";
-        writeToFile(appXml, appPath);
-        conf.set(OozieClient.COORDINATOR_APP_PATH, appPath);
+        writeToFile(appXml, appPathFile);
+        conf.set(OozieClient.COORDINATOR_APP_PATH, appPathFile.toURI().toString());
         conf.set(OozieClient.USER_NAME, getTestUser());
         CoordSubmitXCommand sc = new CoordSubmitXCommand(conf);
         String jobId = sc.call();
@@ -654,14 +716,18 @@ public class TestCoordSubmitXCommand extends XDataTestCase {
      */
     public void testSubmitWithDoneFlag() throws Exception {
         Configuration conf = new XConfiguration();
-        String appPath = "file://" + getTestCaseDir() + File.separator + "coordinator.xml";
+        File appPathFile = new File(getTestCaseDir(), "coordinator.xml");
         String appXml = "<coordinator-app name=\"NAME\" frequency=\"${coord:days(1)}\" start=\"2009-02-01T01:00Z\" end=\"2009-02-03T23:59Z\" timezone=\"UTC\" "
                 + "xmlns=\"uri:oozie:coordinator:0.2\"> <controls> <timeout>10</timeout> <concurrency>2</concurrency> "
                 + "<execution>LIFO</execution> </controls> <datasets> "
                 + "<dataset name=\"a\" frequency=\"${coord:days(7)}\" initial-instance=\"2009-02-01T01:00Z\" "
-                + "timezone=\"UTC\"> <uri-template>file:///tmp/coord/workflows/${YEAR}/${DAY}</uri-template> </dataset> "
+                + "timezone=\"UTC\"> <uri-template>"
+                + getTestCaseFileUri("coord/workflows/${YEAR}/${DAY}")
+                + "</uri-template>  </dataset> "
                 + "<dataset name=\"local_a\" frequency=\"${coord:days(7)}\" initial-instance=\"2009-02-01T01:00Z\" "
-                + "timezone=\"UTC\"> <uri-template>file:///tmp/coord/workflows/${YEAR}/${DAY}</uri-template> "
+                + "timezone=\"UTC\"> <uri-template>"
+                + getTestCaseFileUri("coord/workflows/${YEAR}/${DAY}")
+                + "</uri-template>  "
                 + "<done-flag>consume_me</done-flag> </dataset>"
                 + "<dataset name=\"local_b\" frequency=\"${coord:days(7)}\" initial-instance=\"2009-02-01T01:00Z\" "
                 + "timezone=\"UTC\"> <uri-template>file:///tmp/coord/workflowsb/${YEAR}/${DAY}</uri-template> "
@@ -675,8 +741,8 @@ public class TestCoordSubmitXCommand extends XDataTestCase {
                 + "<configuration> <property> <name>inputA</name> <value>${coord:dataIn('A')}</value> </property> "
                 + "<property> <name>inputB</name> <value>${coord:dataOut('LOCAL_A')}</value> "
                 + "</property></configuration> </workflow> </action> </coordinator-app>";
-        writeToFile(appXml, appPath);
-        conf.set(OozieClient.COORDINATOR_APP_PATH, appPath);
+        writeToFile(appXml, appPathFile);
+        conf.set(OozieClient.COORDINATOR_APP_PATH, appPathFile.toURI().toString());
         conf.set(OozieClient.USER_NAME, getTestUser());
         conf.set("MY_DONE_FLAG", "complete");
         CoordSubmitXCommand sc = new CoordSubmitXCommand(conf);
@@ -693,14 +759,18 @@ public class TestCoordSubmitXCommand extends XDataTestCase {
      */
     public void testSubmitWithVarAppName() throws Exception {
         Configuration conf = new XConfiguration();
-        String appPath = "file://" + getTestCaseDir() + File.separator + "coordinator.xml";
+        File appPathFile = new File(getTestCaseDir(), "coordinator.xml");
         String appXml = "<coordinator-app name=\"${NAME}\" frequency=\"${coord:days(1)}\" start=\"2009-02-01T01:00Z\" end=\"2009-02-03T23:59Z\" timezone=\"UTC\" "
                 + "xmlns=\"uri:oozie:coordinator:0.3\"> <controls> <timeout>10</timeout> <concurrency>2</concurrency> "
                 + "<execution>LIFO</execution> </controls> <datasets> "
                 + "<dataset name=\"a\" frequency=\"${coord:days(7)}\" initial-instance=\"2009-02-01T01:00Z\" "
-                + "timezone=\"UTC\"> <uri-template>file:///tmp/coord/workflows/${YEAR}/${DAY}</uri-template> </dataset> "
+                + "timezone=\"UTC\"> <uri-template>"
+                + getTestCaseFileUri("coord/workflows/${YEAR}/${DAY}")
+                + "</uri-template>  </dataset> "
                 + "<dataset name=\"local_a\" frequency=\"${coord:days(7)}\" initial-instance=\"2009-02-01T01:00Z\" "
-                + "timezone=\"UTC\"> <uri-template>file:///tmp/coord/workflows/${YEAR}/${DAY}</uri-template> "
+                + "timezone=\"UTC\"> <uri-template>"
+                + getTestCaseFileUri("coord/workflows/${YEAR}/${DAY}")
+                + "</uri-template>  "
                 + "<done-flag>consume_me</done-flag> </dataset>"
                 + "<dataset name=\"local_b\" frequency=\"${coord:days(7)}\" initial-instance=\"2009-02-01T01:00Z\" "
                 + "timezone=\"UTC\"> <uri-template>file:///tmp/coord/workflowsb/${YEAR}/${DAY}</uri-template> "
@@ -714,8 +784,8 @@ public class TestCoordSubmitXCommand extends XDataTestCase {
                 + "<configuration> <property> <name>inputA</name> <value>${coord:dataIn('A')}</value> </property> "
                 + "<property> <name>inputB</name> <value>${coord:dataOut('LOCAL_A')}</value> "
                 + "</property></configuration> </workflow> </action> </coordinator-app>";
-        writeToFile(appXml, appPath);
-        conf.set(OozieClient.COORDINATOR_APP_PATH, appPath);
+        writeToFile(appXml, appPathFile);
+        conf.set(OozieClient.COORDINATOR_APP_PATH, appPathFile.toURI().toString());
         conf.set(OozieClient.USER_NAME, getTestUser());
         conf.set("MY_DONE_FLAG", "complete");
         conf.set("NAME", "test_app_name");
@@ -736,14 +806,14 @@ public class TestCoordSubmitXCommand extends XDataTestCase {
      */
     public void testSubmitReservedVars() throws Exception {
         Configuration conf = new XConfiguration();
-        String appPath = "file://" + getTestCaseDir() + File.separator + "coordinator.xml";
+        File appPathFile = new File(getTestCaseDir(), "coordinator.xml");
         String appXml = "<coordinator-app name=\"NAME\" frequency=\"10\" start=\"2009-02-01T01:00Z\" end=\"2009-02-03T23:59Z\" timezone=\"UTC\" "
                 + "xmlns=\"uri:oozie:coordinator:0.2\"> "
                 + "<action> <workflow> <app-path>hdfs:///tmp/workflows/</app-path> "
                 + "<configuration> <property> <name>inputA</name> <value>blah</value> </property> "
                 + "</configuration> </workflow> </action> </coordinator-app>";
-        writeToFile(appXml, appPath);
-        conf.set(OozieClient.COORDINATOR_APP_PATH, appPath);
+        writeToFile(appXml, appPathFile);
+        conf.set(OozieClient.COORDINATOR_APP_PATH, appPathFile.toURI().toString());
         conf.set(OozieClient.USER_NAME, getTestUser());
         conf.set("MINUTES", "1");
         CoordSubmitXCommand sc = new CoordSubmitXCommand(conf);
@@ -751,34 +821,36 @@ public class TestCoordSubmitXCommand extends XDataTestCase {
         try {
             sc.call();
             fail("Coord job submission should fail with reserved variable definitions.");
-        }
-        catch (CommandException ce) {
+        } catch (CommandException ce) {
 
         }
     }
 
     /**
-     * Checking that any dataset initial-instance is not set to a date earlier than the server default Jan 01, 1970 00:00Z UTC
+     * Checking that any dataset initial-instance is not set to a date earlier
+     * than the server default Jan 01, 1970 00:00Z UTC
+     *
      * @throws Exception
      */
     public void testSubmitDatasetInitialInstance() throws Exception {
         Configuration conf = new XConfiguration();
-        String appPath = "file://" + getTestCaseDir() + File.separator + "coordinator.xml";
-        Reader reader = IOUtils.getResourceAsReader("coord-dataset-initial-instance.xml", -1);
-        Writer writer = new FileWriter(new URI(appPath).getPath());
+        File appPathFile = new File(getTestCaseDir(), "coordinator.xml");
+        Reader reader = IOUtils.getResourceAsReader(
+                "coord-dataset-initial-instance.xml", -1);
+        Writer writer = new FileWriter(new File(getTestCaseDir(), "coordinator.xml"));
         IOUtils.copyCharStream(reader, writer);
 
-        conf.set(OozieClient.COORDINATOR_APP_PATH, appPath);
+        conf.set(OozieClient.COORDINATOR_APP_PATH, appPathFile.toURI().toString());
         conf.set(OozieClient.USER_NAME, getTestUser());
         CoordSubmitXCommand sc = new CoordSubmitXCommand(conf);
         try {
             sc.call();
             fail("Expected to catch errors due to invalid dataset initial instance");
-        }
-        catch(CommandException cx) {
+        } catch (CommandException cx) {
             assertEquals(sc.getJob().getStatus(), Job.Status.FAILED);
             assertEquals(cx.getErrorCode(), ErrorCode.E1021);
-            if(!(cx.getMessage().contains("earlier than the default initial instance"))) {
+            if (!(cx.getMessage()
+                    .contains("earlier than the default initial instance"))) {
                 fail("Unexpected failure - " + cx.getMessage());
             }
         }
@@ -786,49 +858,51 @@ public class TestCoordSubmitXCommand extends XDataTestCase {
 
     /**
      * Basic submit with include file
+     *
      * @throws Exception
      */
     public void testBasicSubmitWithIncludeFile() throws Exception {
         Configuration conf = new XConfiguration();
-        final String includePath = "file://" + getTestCaseDir() + File.separator + "include1.xml";
+        final File includePathFile = new File(getTestCaseDir(), "include1.xml");
         final String URI_TEMPLATE_INCLUDE_XML = "file:///tmp/include_xml/workflows/${YEAR}/${DAY}";
         final String URI_TEMPLATE_COORD_XML = "file:///tmp/coord_xml/workflows/${YEAR}/${DAY}";
-        String includeXml =
-            "<datasets> "
+        String includeXml = "<datasets> "
                 + "<dataset name=\"A\" frequency=\"${coord:days(7)}\" initial-instance=\"2009-02-01T01:00Z\" timezone=\"UTC\">"
-                    + "<uri-template>" + URI_TEMPLATE_INCLUDE_XML + "</uri-template>"
-                + "</dataset> "
-            + "</datasets>";
-        writeToFile(includeXml, includePath);
+                + "<uri-template>" + URI_TEMPLATE_INCLUDE_XML
+                + "</uri-template>" + "</dataset> " + "</datasets>";
+        writeToFile(includeXml, includePathFile);
 
-        String appPath = "file://" + getTestCaseDir() + File.separator + "coordinator.xml";
-        String appXml =
-            "<coordinator-app name=\"${appName}-foo\" frequency=\"${coord:days(1)}\" start=\"2009-02-01T01:00Z\" "
+        File appPathFile = new File(getTestCaseDir(), "coordinator.xml");
+        String appXml = "<coordinator-app name=\"${appName}-foo\" frequency=\"${coord:days(1)}\" start=\"2009-02-01T01:00Z\" "
                 + "end=\"2009-02-03T23:59Z\" timezone=\"UTC\" xmlns=\"uri:oozie:coordinator:0.2\">"
-            + "<controls> "
+                + "<controls> "
                 + "<execution>LIFO</execution>"
-            + "</controls>"
-            + "<datasets> "
-                + "<include>" + includePath + "</include>"
+                + "</controls>"
+                + "<datasets> "
+                + "<include>"
+                + includePathFile.toURI()
+                + "</include>"
                 + "<dataset name=\"B\" frequency=\"${coord:days(7)}\" initial-instance=\"2009-02-01T01:00Z\" timezone=\"UTC\">"
-                    + "<uri-template>" + URI_TEMPLATE_COORD_XML + "</uri-template>"
+                + "<uri-template>"
+                + URI_TEMPLATE_COORD_XML
+                + "</uri-template>"
                 + "</dataset> "
-            + "</datasets>"
-            + " <input-events> "
+                + "</datasets>"
+                + " <input-events> "
                 + "<data-in name=\"inputA\" dataset=\"A\"> <instance>${coord:latest(0)}</instance> </data-in>  "
                 + "<data-in name=\"inputB\" dataset=\"B\"> <instance>${coord:latest(0)}</instance> </data-in>  "
-            + "</input-events> "
-            + "<action>"
+                + "</input-events> "
+                + "<action>"
                 + "<workflow>"
-                    + "<app-path>hdfs:///tmp/workflows/</app-path> "
-                    + "<configuration>"
-                        + "<property> <name>inputA</name> <value>${coord:dataIn('inputB')}</value> </property> "
-                    + "</configuration>"
+                + "<app-path>hdfs:///tmp/workflows/</app-path> "
+                + "<configuration>"
+                + "<property> <name>inputA</name> <value>${coord:dataIn('inputB')}</value> </property> "
+                + "</configuration>"
                 + "</workflow>"
-            + "</action>"
-            + " </coordinator-app>";
-        writeToFile(appXml, appPath);
-        conf.set(OozieClient.COORDINATOR_APP_PATH, appPath);
+                + "</action>"
+                + " </coordinator-app>";
+        writeToFile(appXml, appPathFile);
+        conf.set(OozieClient.COORDINATOR_APP_PATH, appPathFile.toURI().toString());
         conf.set(OozieClient.USER_NAME, getTestUser());
         conf.set("appName", "var-app-name");
         CoordSubmitXCommand sc = new CoordSubmitXCommand(conf);
@@ -841,64 +915,70 @@ public class TestCoordSubmitXCommand extends XDataTestCase {
 
         Namespace namespace = processedJobXml.getNamespace();
         @SuppressWarnings("unchecked")
-        List<Element> datainElements = processedJobXml.getChild("input-events", namespace).getChildren("data-in", namespace);
-        assertTrue("<data-in> should be 2. One from coordinator.xml and the other from the include file"
-                , datainElements.size() == 2);
+        List<Element> datainElements = processedJobXml.getChild("input-events",
+                namespace).getChildren("data-in", namespace);
+        assertTrue(
+                "<data-in> should be 2. One from coordinator.xml and the other from the include file",
+                datainElements.size() == 2);
 
-        assertEquals(URI_TEMPLATE_INCLUDE_XML
-                , datainElements.get(0).getChild("dataset", namespace).getChildText("uri-template", namespace));
-        assertEquals(URI_TEMPLATE_COORD_XML
-                , datainElements.get(1).getChild("dataset", namespace).getChildText("uri-template", namespace));
+        assertEquals(URI_TEMPLATE_INCLUDE_XML,
+                datainElements.get(0).getChild("dataset", namespace)
+                        .getChildText("uri-template", namespace));
+        assertEquals(URI_TEMPLATE_COORD_XML,
+                datainElements.get(1).getChild("dataset", namespace)
+                        .getChildText("uri-template", namespace));
     }
 
     /**
-     * https://issues.apache.org/jira/browse/OOZIE-1211
-     * If a datasets include file has a dataset name as in one defined in coordinator.xml,
-     * the one in coordinator.xml should be honored.
-     * http://oozie.apache.org/docs/3.3.1/CoordinatorFunctionalSpec.html#a10.1.1._Dataset_Names_Collision_Resolution
+     * https://issues.apache.org/jira/browse/OOZIE-1211 If a datasets include
+     * file has a dataset name as in one defined in coordinator.xml, the one in
+     * coordinator.xml should be honored.
+     * http://oozie.apache.org/docs/3.3.1/CoordinatorFunctionalSpec
+     * .html#a10.1.1._Dataset_Names_Collision_Resolution
      *
      * @throws Exception
      */
     public void testDuplicateDatasetNameInIncludeFile() throws Exception {
         Configuration conf = new XConfiguration();
-        final String includePath = "file://" + getTestCaseDir() + File.separator + "include1.xml";
+        final File includePathFile = new File(getTestCaseDir(), "include1.xml");
         final String URI_TEMPLATE_INCLUDE_XML = "file:///tmp/include_xml/workflows/${YEAR}/${DAY}";
         final String URI_TEMPLATE_COORD_XML = "file:///tmp/coord_xml/workflows/${YEAR}/${DAY}";
-        String includeXml =
-            "<datasets> "
+        String includeXml = "<datasets> "
                 + "<dataset name=\"B\" frequency=\"${coord:days(7)}\" initial-instance=\"2009-02-01T01:00Z\" timezone=\"UTC\">"
-                    + "<uri-template>" + URI_TEMPLATE_INCLUDE_XML + "</uri-template>"
-                + "</dataset> "
-            + "</datasets>";
-        writeToFile(includeXml, includePath);
+                + "<uri-template>" + URI_TEMPLATE_INCLUDE_XML
+                + "</uri-template>" + "</dataset> " + "</datasets>";
+        writeToFile(includeXml, includePathFile);
 
-        String appPath = "file://" + getTestCaseDir() + File.separator + "coordinator.xml";
-        String appXml =
-            "<coordinator-app name=\"${appName}-foo\" frequency=\"${coord:days(1)}\" start=\"2009-02-01T01:00Z\" "
+        File appPathFile = new File(getTestCaseDir(), "coordinator.xml");
+        String appXml = "<coordinator-app name=\"${appName}-foo\" frequency=\"${coord:days(1)}\" start=\"2009-02-01T01:00Z\" "
                 + "end=\"2009-02-03T23:59Z\" timezone=\"UTC\" xmlns=\"uri:oozie:coordinator:0.2\">"
-            + "<controls> "
+                + "<controls> "
                 + "<execution>LIFO</execution>"
-            + "</controls>"
-            + "<datasets> "
-                + "<include>" + includePath + "</include>"
+                + "</controls>"
+                + "<datasets> "
+                + "<include>"
+                + includePathFile.toURI()
+                + "</include>"
                 + "<dataset name=\"B\" frequency=\"${coord:days(7)}\" initial-instance=\"2009-02-01T01:00Z\" timezone=\"UTC\">"
-                    + "<uri-template>" + URI_TEMPLATE_COORD_XML + "</uri-template>"
+                + "<uri-template>"
+                + URI_TEMPLATE_COORD_XML
+                + "</uri-template>"
                 + "</dataset> "
-            + "</datasets>"
-            + " <input-events> "
+                + "</datasets>"
+                + " <input-events> "
                 + "<data-in name=\"inputB\" dataset=\"B\"> <instance>${coord:latest(0)}</instance> </data-in>  "
-            + "</input-events> "
-            + "<action>"
+                + "</input-events> "
+                + "<action>"
                 + "<workflow>"
-                    + "<app-path>hdfs:///tmp/workflows/</app-path> "
-                    + "<configuration>"
-                        + "<property> <name>inputB</name> <value>${coord:dataIn('inputB')}</value> </property> "
-                    + "</configuration>"
+                + "<app-path>hdfs:///tmp/workflows/</app-path> "
+                + "<configuration>"
+                + "<property> <name>inputB</name> <value>${coord:dataIn('inputB')}</value> </property> "
+                + "</configuration>"
                 + "</workflow>"
-            + "</action>"
-            + " </coordinator-app>";
-        writeToFile(appXml, appPath);
-        conf.set(OozieClient.COORDINATOR_APP_PATH, appPath);
+                + "</action>"
+                + " </coordinator-app>";
+        writeToFile(appXml, appPathFile);
+        conf.set(OozieClient.COORDINATOR_APP_PATH, appPathFile.toURI().toString());
         conf.set(OozieClient.USER_NAME, getTestUser());
         conf.set("appName", "var-app-name");
         CoordSubmitXCommand sc = new CoordSubmitXCommand(conf);
@@ -911,25 +991,34 @@ public class TestCoordSubmitXCommand extends XDataTestCase {
 
         Namespace namespace = processedJobXml.getNamespace();
         @SuppressWarnings("unchecked")
-        List<Element> datasetElements = processedJobXml.getChild("input-events", namespace).getChild("data-in", namespace)
+        List<Element> datasetElements = processedJobXml
+                .getChild("input-events", namespace)
+                .getChild("data-in", namespace)
                 .getChildren("dataset", namespace);
-        assertTrue("<dataset> should not be duplicate", datasetElements.size() == 1);
+        assertTrue("<dataset> should not be duplicate",
+                datasetElements.size() == 1);
 
-        assertEquals(URI_TEMPLATE_COORD_XML, datasetElements.get(0).getChildText("uri-template", namespace));
-        assertFalse("<uri-template> should not contain one from the include file"
-                , job.getJobXml().contains(URI_TEMPLATE_INCLUDE_XML));
+        assertEquals(URI_TEMPLATE_COORD_XML, datasetElements.get(0)
+                .getChildText("uri-template", namespace));
+        assertFalse(
+                "<uri-template> should not contain one from the include file",
+                job.getJobXml().contains(URI_TEMPLATE_INCLUDE_XML));
     }
 
     private void _testConfigDefaults(boolean withDefaults) throws Exception {
         Configuration conf = new XConfiguration();
-        String appPath = "file://" + getTestCaseDir() + File.separator + "coordinator.xml";
+        File appPathFile = new File(getTestCaseDir(), "coordinator.xml");
         String appXml = "<coordinator-app name=\"NAME\" frequency=\"${coord:days(1)}\" start=\"${startTime}\" end=\"2009-02-03T23:59Z\" timezone=\"UTC\" "
                 + "xmlns=\"uri:oozie:coordinator:0.2\"> <controls> <concurrency>2</concurrency> "
                 + "<execution>LIFO</execution> </controls> <datasets> "
                 + "<dataset name=\"a\" frequency=\"${coord:days(7)}\" initial-instance=\"2009-02-01T01:00Z\" "
-                + "timezone=\"UTC\"> <uri-template>file:///tmp/coord/workflows/${YEAR}/${DAY}</uri-template> </dataset> "
+                + "timezone=\"UTC\"> <uri-template>"
+                + getTestCaseFileUri("coord/workflows/${YEAR}/${DAY}")
+                + "</uri-template>  </dataset> "
                 + "<dataset name=\"local_a\" frequency=\"${coord:days(7)}\" initial-instance=\"2009-02-01T01:00Z\" "
-                + "timezone=\"UTC\"> <uri-template>file:///tmp/coord/workflows/${YEAR}/${DAY}</uri-template> </dataset> "
+                + "timezone=\"UTC\"> <uri-template>"
+                + getTestCaseFileUri("coord/workflows/${YEAR}/${DAY}")
+                + "</uri-template>  </dataset> "
                 + "</datasets> <input-events> "
                 + "<data-in name=\"A\" dataset=\"a\"> <instance>${coord:latest(0)}</instance> </data-in>  "
                 + "</input-events> "
@@ -938,28 +1027,25 @@ public class TestCoordSubmitXCommand extends XDataTestCase {
                 + "<configuration> <property> <name>inputA</name> <value>${coord:dataIn('A')}</value> </property> "
                 + "<property> <name>inputB</name> <value>${coord:dataOut('LOCAL_A')}</value> "
                 + "</property></configuration> </workflow> </action> </coordinator-app>";
-        writeToFile(appXml, appPath);
-        conf.set(OozieClient.COORDINATOR_APP_PATH, appPath);
+        writeToFile(appXml, appPathFile);
+        conf.set(OozieClient.COORDINATOR_APP_PATH, appPathFile.toURI().toString());
         conf.set(OozieClient.USER_NAME, getTestUser());
 
         CoordSubmitXCommand sc = new CoordSubmitXCommand(conf);
 
         if (withDefaults) {
-            String defaults = "<configuration><property><name>startTime</name>" +
-                              "<value>2009-02-01T01:00Z</value></property></configuration>";
-            writeToFile(defaults, getTestCaseDir() + File.separator + CoordSubmitXCommand.CONFIG_DEFAULT);
+            String defaults = "<configuration><property><name>startTime</name>"
+                    + "<value>2009-02-01T01:00Z</value></property></configuration>";
+            writeToFile(defaults, new File(getTestCaseDir(), CoordSubmitXCommand.CONFIG_DEFAULT));
             String jobId = sc.call();
             assertEquals(jobId.substring(jobId.length() - 2), "-C");
-        }
-        else {
+        } else {
             try {
                 sc.call();
                 fail();
-            }
-            catch (CommandException ex) {
+            } catch (CommandException ex) {
                 assertEquals(ErrorCode.E1004, ex.getErrorCode());
-            }
-            catch (Exception ex) {
+            } catch (Exception ex) {
                 fail();
             }
         }
@@ -981,26 +1067,23 @@ public class TestCoordSubmitXCommand extends XDataTestCase {
     private CoordinatorJobBean checkCoordJobs(String jobId) {
         try {
             JPAService jpaService = Services.get().get(JPAService.class);
-            CoordinatorJobBean job = jpaService.execute(new CoordJobGetJPAExecutor(jobId));
+            CoordinatorJobBean job = jpaService
+                    .execute(new CoordJobGetJPAExecutor(jobId));
             return job;
-        }
-        catch (JPAExecutorException e) {
+        } catch (JPAExecutorException e) {
             fail("Job ID " + jobId + " was not stored properly in db");
         }
         return null;
     }
 
-    private void writeToFile(String appXml, String appPath) throws Exception {
-        File wf = new File(new URI(appPath).getPath());
+    private void writeToFile(String appXml, File appPathFile) throws Exception {
         PrintWriter out = null;
         try {
-            out = new PrintWriter(new FileWriter(wf));
+            out = new PrintWriter(new FileWriter(appPathFile));
             out.println(appXml);
-        }
-        catch (IOException iex) {
+        } catch (IOException iex) {
             throw iex;
-        }
-        finally {
+        } finally {
             if (out != null) {
                 out.close();
             }

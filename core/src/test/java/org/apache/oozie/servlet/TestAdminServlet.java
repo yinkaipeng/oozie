@@ -17,6 +17,7 @@
  */
 package org.apache.oozie.servlet;
 
+import org.apache.hadoop.util.Shell;
 import org.apache.oozie.client.rest.JsonTags;
 import org.apache.oozie.client.rest.RestConstants;
 import org.apache.oozie.service.Services;
@@ -71,7 +72,8 @@ public class TestAdminServlet extends DagServletTestCase {
                 assertEquals(HttpServletResponse.SC_OK, conn.getResponseCode());
                 assertTrue(conn.getHeaderField("content-type").startsWith(RestConstants.JSON_CONTENT_TYPE));
                 JSONObject json = (JSONObject) JSONValue.parse(new InputStreamReader(conn.getInputStream()));
-                assertTrue(json.containsKey("USER"));
+                // Checks that Json object sees the USER environment variable
+                assertTrue(json.containsKey(Shell.WINDOWS ? "USERNAME" : "USER"));
                 return null;
             }
         });

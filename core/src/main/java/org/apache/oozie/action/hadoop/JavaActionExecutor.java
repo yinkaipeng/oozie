@@ -353,8 +353,10 @@ public class JavaActionExecutor extends ActionExecutor {
                 }
                 else if (fileName.endsWith(".jar")) { // .jar files
                     if (!fileName.contains("#")) {
+                        Path path = new Path(uri.toString());
+                        FileSystem fs = path.getFileSystem(conf);
                         String user = conf.get("user.name");
-                        Services.get().get(HadoopAccessorService.class).addFileToClassPath(user, new Path(uri.normalize()), conf);
+                        Services.get().get(HadoopAccessorService.class).addFileToClassPath(user, new Path(uri.normalize()), conf, fs);
                     }
                     else {
                         DistributedCache.addCacheFile(uri, conf);

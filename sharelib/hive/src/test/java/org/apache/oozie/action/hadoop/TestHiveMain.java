@@ -89,7 +89,7 @@ public class TestHiveMain extends MainTestCase {
             jobConf.setInt("mapred.map.tasks", 1);
             jobConf.setInt("mapred.map.max.attempts", 1);
             jobConf.setInt("mapred.reduce.max.attempts", 1);
-            jobConf.set("javax.jdo.option.ConnectionURL", "jdbc:derby:" + getTestCaseDir() + "/db;create=true");
+            jobConf.set("javax.jdo.option.ConnectionURL", "jdbc:derby:" + new Path(getTestCaseDir(), "db") + ";create=true");
             jobConf.set("javax.jdo.option.ConnectionDriverName", "org.apache.derby.jdbc.EmbeddedDriver");
             jobConf.set("javax.jdo.option.ConnectionUserName", "sa");
             jobConf.set("javax.jdo.option.ConnectionPassword", " ");

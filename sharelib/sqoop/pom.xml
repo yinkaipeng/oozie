@@ -173,6 +173,7 @@
         <dependency>
             <artifactId>hsqldb</artifactId>
             <groupId>hsqldb</groupId>
+            <version>1.8.0.10</version>
             <scope>compile</scope>
         </dependency>
         <dependency>

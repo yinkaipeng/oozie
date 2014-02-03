@@ -468,7 +468,7 @@ public abstract class XDataTestCase extends XHCatTestCase {
 
         FileSystem fs = getFileSystem();
 
-        Writer writer = new OutputStreamWriter(fs.create(new Path(appPath + "/coordinator.xml")));
+        Writer writer = new OutputStreamWriter(fs.create(new Path(appPath, "coordinator.xml")));
         byte[] bytes = appXml.getBytes("UTF-8");
         ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
         Reader reader2 = new InputStreamReader(bais);
@@ -1166,9 +1166,9 @@ public abstract class XDataTestCase extends XHCatTestCase {
         assertTrue(bundleAppXml.length() > 0);
 
         bundleAppXml = bundleAppXml
-                .replaceAll("#app_path1", Matcher.quoteReplacement(coordPath1.toString() + File.separator + "coordinator.xml"));
+                .replaceAll("#app_path1", Matcher.quoteReplacement(new Path(coordPath1.toString(), "coordinator.xml").toString()));
         bundleAppXml = bundleAppXml
-                .replaceAll("#app_path2", Matcher.quoteReplacement(coordPath2.toString() + File.separator + "coordinator.xml"));
+                .replaceAll("#app_path2", Matcher.quoteReplacement(new Path(coordPath2.toString(), "coordinator.xml").toString()));
 
         writeToFile(bundleAppXml, bundleAppPath, "bundle.xml");
 
@@ -1222,9 +1222,9 @@ public abstract class XDataTestCase extends XHCatTestCase {
         String bundleAppXml = getBundleXml("bundle-submit-job.xml");
 
         bundleAppXml = bundleAppXml
-                .replaceAll("#app_path1", coordPath1.toString() + File.separator + "coordinator.xml");
+                .replaceAll("#app_path1", new Path(coordPath1.toString(), "coordinator.xml").toString());
         bundleAppXml = bundleAppXml
-                .replaceAll("#app_path2", coordPath2.toString() + File.separator + "coordinator.xml");
+                .replaceAll("#app_path2", new Path(coordPath2.toString(), "coordinator.xml").toString());
         writeToFile(bundleAppXml, bundleAppPath, "bundle.xml");
 
         Configuration conf = new XConfiguration();

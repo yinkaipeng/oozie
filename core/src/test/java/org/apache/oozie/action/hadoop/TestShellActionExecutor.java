@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -30,6 +30,7 @@ import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.JobID;
 import org.apache.hadoop.mapred.RunningJob;
+import org.apache.hadoop.util.Shell;
 import org.apache.oozie.WorkflowActionBean;
 import org.apache.oozie.WorkflowJobBean;
 import org.apache.oozie.client.WorkflowAction;
@@ -44,8 +45,18 @@ import org.jdom.Element;
 
 public class TestShellActionExecutor extends ActionExecutorTestCase {
 
-    private static final String SHELL_SCRIPT_CONTENT = "ls -ltr\necho $1 $2\necho $PATH\npwd\ntype sh";
-    private static final String SHELL_SCRIPT_CONTENT_ERROR = "ls -ltr\necho $1 $2\nexit 1";
+    private static final String SHELL_EXEC = Shell.WINDOWS ? "cmd.exe" : "sh";
+    private static final String SHELL_PARAM = Shell.WINDOWS ? "/c" : "-c";
+    private static final String SHELL_SCRIPTNAME = Shell.WINDOWS ? "script.cmd" : "script.sh";
+    private static final String SHELL_SCRIPT_CONTENT = Shell.WINDOWS
+            ? "dir /s /b\necho %1 %2\necho %PATH%\ntype %0"
+            : "ls -ltr\necho $1 $2\necho $PATH\npwd\ntype sh";
+    private static final String SHELL_SCRIPT_CONTENT_ENVVAR = Shell.WINDOWS
+            ? "dir /s /b\necho var1=%var1%\necho var2=%var2%"
+            : "ls -ltr\necho var1=$var1\necho var2=$var2";
+    private static final String SHELL_SCRIPT_CONTENT_ERROR = Shell.WINDOWS
+            ? "dir /s /b\necho %1 %2\nexit 1"
+            : "ls -ltr\necho $1 $2\nexit 1";
     private static final String PERL_SCRIPT_CONTENT = "print \"MY_VAR=TESTING\";";
 
     @Override
@@ -148,15 +159,15 @@ public class TestShellActionExecutor extends ActionExecutorTestCase {
     public void testShellScript() throws Exception {
         FileSystem fs = getFileSystem();
         // Create the script file with canned shell command
-        Path script = new Path(getAppPath(), "script.sh");
+        Path script = new Path(getAppPath(), SHELL_SCRIPTNAME);
         Writer w = new OutputStreamWriter(fs.create(script));
         w.write(SHELL_SCRIPT_CONTENT);
         w.close();
 
         // Create sample Shell action xml
         String actionXml = "<shell>" + "<job-tracker>" + getJobTrackerUri() + "</job-tracker>" + "<name-node>"
-                + getNameNodeUri() + "</name-node>" + "<exec>sh</exec>" + "<argument>-c</argument>"
-                + "<argument>script.sh</argument>" + "<argument>A</argument>" + "<argument>B</argument>"
+                + getNameNodeUri() + "</name-node>" + "<exec>" + SHELL_EXEC + "</exec>" + "<argument>" + SHELL_PARAM + "</argument>"
+                + "<argument>" + SHELL_SCRIPTNAME + "</argument>" + "<argument>A</argument>" + "<argument>B</argument>"
                 + "<env-var>var1=val1</env-var>" + "<env-var>var2=val2</env-var>" + "<file>" + script.toString()
                 + "#" + script.getName() + "</file>" + "</shell>";
         // Submit and verify the job's status
@@ -172,15 +183,15 @@ public class TestShellActionExecutor extends ActionExecutorTestCase {
     public void testShellScriptError() throws Exception {
         FileSystem fs = getFileSystem();
         // Create the script file with canned shell command
-        Path script = new Path(getAppPath(), "script.sh");
+        Path script = new Path(getAppPath(), SHELL_SCRIPTNAME);
         Writer w = new OutputStreamWriter(fs.create(script));
         w.write(SHELL_SCRIPT_CONTENT_ERROR);
         w.close();
 
         // Create sample shell action xml
         String actionXml = "<shell>" + "<job-tracker>" + getJobTrackerUri() + "</job-tracker>" + "<name-node>"
-                + getNameNodeUri() + "</name-node>" + "<exec>sh</exec>" + "<argument>-c</argument>"
-                + "<argument>script.sh</argument>" + "<argument>A</argument>" + "<argument>B</argument>" + "<file>"
+                + getNameNodeUri() + "</name-node>" + "<exec>" + SHELL_EXEC + "</exec>" + "<argument>" + SHELL_PARAM + "</argument>"
+                + "<argument>" + SHELL_SCRIPTNAME + "</argument>" + "<argument>A</argument>" + "<argument>B</argument>" + "<file>"
                 + script.toString() + "#" + script.getName() + "</file>" + "</shell>";
         // Submit and verify the job's status
         _testSubmit(actionXml, false, "");
@@ -192,6 +203,11 @@ public class TestShellActionExecutor extends ActionExecutorTestCase {
      * @throws Exception
      */
     public void testPerlScript() throws Exception {
+        if (Shell.WINDOWS) {
+            System.out.println("Windows cannot natively execute perl. Skipping test");
+            return;
+        }
+
         FileSystem fs = getFileSystem();
         // Create a sample perl script
         Path script = new Path(getAppPath(), "script.pl");
@@ -213,19 +229,18 @@ public class TestShellActionExecutor extends ActionExecutorTestCase {
      */
     public void testEnvVar() throws Exception {
 
-        String shellScript = "ls -ltr\necho var1=$var1\necho var2=$var2";
         FileSystem fs = getFileSystem();
         // Create the script file with canned shell command
-        Path script = new Path(getAppPath(), "script.sh");
+        Path script = new Path(getAppPath(), SHELL_SCRIPTNAME);
         Writer w = new OutputStreamWriter(fs.create(script));
-        w.write(shellScript);
+        w.write(SHELL_SCRIPT_CONTENT_ENVVAR);
         w.close();
 
         String envValueHavingEqualSign = "a=b;c=d";
         // Create sample shell action xml
         String actionXml = "<shell>" + "<job-tracker>" + getJobTrackerUri() + "</job-tracker>" + "<name-node>"
-                + getNameNodeUri() + "</name-node>" + "<exec>sh</exec>" + "<argument>-c</argument>"
-                + "<argument>script.sh</argument>" + "<argument>A</argument>" + "<argument>B</argument>"
+                + getNameNodeUri() + "</name-node>" + "<exec>" + SHELL_EXEC + "</exec>" + "<argument>" + SHELL_PARAM + "</argument>"
+                + "<argument>" + SHELL_SCRIPTNAME + "</argument>" + "<argument>A</argument>" + "<argument>B</argument>"
                 + "<env-var>var1=val1</env-var>" + "<env-var>var2=" + envValueHavingEqualSign + "</env-var>" + "<file>" + script.toString()
                 + "#" + script.getName() + "</file>" + "<capture-output />" + "</shell>";
 
@@ -233,11 +248,11 @@ public class TestShellActionExecutor extends ActionExecutorTestCase {
         // Submit the action
         final RunningJob launcherJob = submitAction(context);
         waitFor(30 * 1000, new Predicate() { // Wait for the external job to
-                    // finish
-                    public boolean evaluate() throws Exception {
-                        return launcherJob.isComplete();
-                    }
-                });
+            // finish
+            public boolean evaluate() throws Exception {
+                return launcherJob.isComplete();
+            }
+        });
 
         ShellActionExecutor ae = new ShellActionExecutor();
         WorkflowAction action = context.getAction();
@@ -246,7 +261,7 @@ public class TestShellActionExecutor extends ActionExecutorTestCase {
 
         // Checking action data from shell script output
         assertEquals(envValueHavingEqualSign, PropertiesUtils.stringToProperties(action.getData())
-                    .getProperty("var2"));
+                .getProperty("var2"));
 
     }
 
@@ -264,11 +279,11 @@ public class TestShellActionExecutor extends ActionExecutorTestCase {
         // action
         String launcherId = context.getAction().getExternalId(); // Get LM id
         waitFor(180 * 1000, new Predicate() { // Wait for the external job to
-                    // finish
-                    public boolean evaluate() throws Exception {
-                        return launcherJob.isComplete();
-                    }
-                });
+            // finish
+            public boolean evaluate() throws Exception {
+                return launcherJob.isComplete();
+            }
+        });
         // Thread.sleep(2000);
         assertTrue(launcherJob.isSuccessful());
 
@@ -287,15 +302,13 @@ public class TestShellActionExecutor extends ActionExecutorTestCase {
                 assertEquals(capture_output, PropertiesUtils.stringToProperties(context.getAction().getData())
                         .getProperty("MY_VAR"));
             }
-        }
-        else { // Negative test cases
+        } else { // Negative test cases
             assertEquals("FAILED/KILLED", context.getAction().getExternalStatus());
             assertNotNull(context.getAction().getErrorMessage());
         }
         if (checkForSuccess) { // Positive test cases
             assertEquals(WorkflowAction.Status.OK, context.getAction().getStatus());
-        }
-        else {// Negative test cases
+        } else {// Negative test cases
             assertEquals(WorkflowAction.Status.ERROR, context.getAction().getStatus());
         }
     }
@@ -364,5 +377,4 @@ public class TestShellActionExecutor extends ActionExecutorTestCase {
         assertNotNull(runningJob);
         return runningJob;
     }
-
 }

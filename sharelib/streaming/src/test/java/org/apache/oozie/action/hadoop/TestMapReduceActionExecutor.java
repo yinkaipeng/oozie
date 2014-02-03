@@ -28,8 +28,13 @@ import org.apache.hadoop.mapred.JobID;
 import org.apache.hadoop.streaming.StreamJob;
 import org.apache.oozie.WorkflowActionBean;
 import org.apache.oozie.WorkflowJobBean;
+import org.apache.oozie.client.OozieClient;
 import org.apache.oozie.client.WorkflowAction;
+import org.apache.oozie.executor.jpa.WorkflowActionGetJPAExecutor;
+import org.apache.oozie.command.wf.StartXCommand;
+import org.apache.oozie.command.wf.SubmitXCommand;
 import org.apache.oozie.service.URIHandlerService;
+import org.apache.oozie.service.JPAService;
 import org.apache.oozie.service.WorkflowAppService;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.service.HadoopAccessorService;
@@ -40,6 +45,7 @@ import org.apache.oozie.util.ClassUtils;
 import org.jdom.Element;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.OutputStream;
 import java.io.InputStream;
 import java.io.FileInputStream;
@@ -102,6 +108,82 @@ public class TestMapReduceActionExecutor extends ActionExecutorTestCase {
         }
     }
 
+    public void testConfigDefaultPropsToAction() throws Exception {
+        String wfXml = "<workflow-app xmlns=\"uri:oozie:workflow:0.5\" name=\"map-reduce-wf\">"
+        + "<global>"
+        + "<job-tracker>${jobTracker}</job-tracker>"
+        + "<name-node>${nameNode}</name-node>"
+        + "<configuration><property><name>aa</name><value>AA</value></property></configuration>"
+        + "</global>"
+        + "    <start to=\"mr-node\"/>"
+        + "    <action name=\"mr-node\">"
+        + "      <map-reduce>"
+        + "        <prepare>"
+        + "          <delete path=\"${nameNode}/user/${wf:user()}/mr/${outputDir}\"/>"
+        + "        </prepare>"
+        + "        <configuration>"
+        + "          <property><name>bb</name><value>BB</value></property>"
+        + "          <property><name>cc</name><value>from_action</value></property>"
+        + "        </configuration>"
+        + "      </map-reduce>"
+        + "    <ok to=\"end\"/>"
+        + "    <error to=\"fail\"/>"
+        + "</action>"
+        + "<kill name=\"fail\">"
+        + "    <message>Map/Reduce failed, error message[${wf:errorMessage(wf:lastErrorNode())}]</message>"
+        + "</kill>"
+        + "<end name=\"end\"/>"
+        + "</workflow-app>";
+
+        Writer writer = new FileWriter(getTestCaseDir() + "/workflow.xml");
+        IOUtils.copyCharStream(new StringReader(wfXml), writer);
+
+        Configuration conf = new XConfiguration();
+        conf.set("nameNode", getNameNodeUri());
+        conf.set("jobTracker", getJobTrackerUri());
+        conf.set(OozieClient.USER_NAME, getTestUser());
+        conf.set(OozieClient.APP_PATH, getTestCaseFileUri("workflow.xml"));
+        conf.set(OozieClient.LOG_TOKEN, "t");
+
+        OutputStream os = new FileOutputStream(getTestCaseDir() + "/config-default.xml");
+        XConfiguration defaultConf = new XConfiguration();
+        defaultConf.set("outputDir", "output-data-dir");
+        defaultConf.set("mapred.mapper.class", "MM");
+        defaultConf.set("mapred.reducer.class", "RR");
+        defaultConf.set("cc", "from_default");
+        defaultConf.writeXml(os);
+        os.close();
+
+        String wfId = new SubmitXCommand(conf).call();
+        new StartXCommand(wfId).call();
+        sleep(3000);
+
+        Services services = Services.get();
+        JPAService jpaService = services.get(JPAService.class);
+        WorkflowActionBean mrAction = jpaService.execute(new WorkflowActionGetJPAExecutor(wfId + "@mr-node"));
+
+        // check NN and JT settings
+        Element eConf = XmlUtils.parseXml(mrAction.getConf());
+        eConf = eConf.getChild("name-node", eConf.getNamespace());
+        assertEquals(getNameNodeUri(), eConf.getText());
+        eConf = XmlUtils.parseXml(mrAction.getConf());
+        eConf = eConf.getChild("job-tracker", eConf.getNamespace());
+        assertEquals(getJobTrackerUri(), eConf.getText());
+
+        // check other m-r settings
+        eConf = XmlUtils.parseXml(mrAction.getConf());
+        eConf = eConf.getChild("configuration", eConf.getNamespace());
+        Configuration actionConf = new XConfiguration(new StringReader(XmlUtils.prettyPrint(eConf).toString()));
+        assertEquals("output-data-dir", actionConf.get("outputDir"));
+        assertEquals("MM", actionConf.get("mapred.mapper.class"));
+        assertEquals("RR", actionConf.get("mapred.reducer.class"));
+        // check that default did not overwrite same property explicit in action conf
+        assertEquals("from_action", actionConf.get("cc"));
+        // check that original conf and from global was not deleted
+        assertEquals("AA", actionConf.get("aa"));
+        assertEquals("BB", actionConf.get("bb"));
+
+    }
     public void _testSetupMethods(boolean launcherJarShouldExist) throws Exception {
         MapReduceActionExecutor ae = new MapReduceActionExecutor();
         Path jar = new Path(ae.getOozieRuntimeDir(), ae.getLauncherJarName());

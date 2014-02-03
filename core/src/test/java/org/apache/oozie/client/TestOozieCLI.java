@@ -67,7 +67,7 @@ public class TestOozieCLI extends DagServletTestCase {
     }
 
     private String createConfigFile(String appPath) throws Exception {
-        String path = getTestCaseDir() + "/" + getName() + ".xml";
+        String path = new File(getTestCaseDir(), getName() + ".xml").toString();
         Configuration conf = new Configuration(false);
         conf.set(OozieClient.APP_PATH, appPath);
         conf.set(OozieClient.RERUN_SKIP_NODES, "node");
@@ -79,7 +79,7 @@ public class TestOozieCLI extends DagServletTestCase {
     }
 
     private String createPropertiesFile(String appPath) throws Exception {
-        String path = getTestCaseDir() + "/" + getName() + ".properties";
+        String path = new File(getTestCaseDir(), getName() + ".properties").toString();
         Properties props = new Properties();
         props.setProperty(OozieClient.USER_NAME, getTestUser());
         props.setProperty(OozieClient.GROUP_NAME, getTestGroup());
@@ -94,7 +94,7 @@ public class TestOozieCLI extends DagServletTestCase {
     }
 
     private String createPropertiesFileWithTrailingSpaces(String appPath) throws Exception {
-        String path = getTestCaseDir() + "/" + getName() + ".properties";
+        String path = new File(getTestCaseDir(), getName() + ".properties").toString();
         Properties props = new Properties();
         props.setProperty(OozieClient.USER_NAME, getTestUser());
         props.setProperty(OozieClient.GROUP_NAME, getTestGroup());
@@ -109,7 +109,7 @@ public class TestOozieCLI extends DagServletTestCase {
     }
 
     private String createPigPropertiesFile(String appPath) throws Exception {
-        String path = getTestCaseDir() + "/" + getName() + ".properties";
+        String path = new File(getTestCaseDir(), getName() + ".properties").toString();
         Properties props = new Properties();
         props.setProperty(OozieClient.USER_NAME, getTestUser());
         props.setProperty(XOozieClient.NN, "localhost:9000");
@@ -124,8 +124,8 @@ public class TestOozieCLI extends DagServletTestCase {
         return path;
     }
 
-    private String createMRProperties(String appPath, boolean useNewAPI) throws Exception {
-        String path = getTestCaseDir() + "/" + getName() + ".properties";
+    private String createMRProperties(String appPath,boolean useNewAPI) throws Exception {
+        String path = new File(getTestCaseDir(), getName() + ".properties").toString();
         Properties props = new Properties();
         props.setProperty(OozieClient.USER_NAME, getTestUser());
         props.setProperty(OozieClient.GROUP_NAME, getTestGroup());
@@ -153,7 +153,7 @@ public class TestOozieCLI extends DagServletTestCase {
     }
 
     private String createPigScript(String appPath) throws Exception {
-        String path = getTestCaseDir() + "/" + getName() + ".properties";
+        String path = new File(getTestCaseDir(), getName() + ".properties").toString();
 
         DataOutputStream dos = new DataOutputStream(new FileOutputStream(path));
 

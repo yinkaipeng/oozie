@@ -27,7 +27,7 @@
     </parent>
     <groupId>org.apache.oozie</groupId>
     <artifactId>oozie-hbase</artifactId>
-    <version>0.95.2.oozie-4.0.0</version>
+    <version>0.96.0.42.oozie-4.0.0</version>
     <description>Apache Oozie Hbase ${project.version}</description>
     <name>Apache Oozie Hbase ${project.version}</name>
     <packaging>jar</packaging>

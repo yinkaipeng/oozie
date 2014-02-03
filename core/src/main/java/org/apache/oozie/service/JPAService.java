@@ -50,6 +50,8 @@ import org.apache.oozie.util.IOUtils;
 import org.apache.oozie.util.Instrumentable;
 import org.apache.oozie.util.Instrumentation;
 import org.apache.oozie.util.XLog;
+import org.apache.oozie.util.db.PasswordProvider;
+import org.apache.oozie.util.db.SimplePasswordProvider;
 import org.apache.openjpa.persistence.OpenJPAEntityManagerFactorySPI;
 
 /**
@@ -66,6 +68,7 @@ public class JPAService implements Service, Instrumentable {
     public static final String CONF_DRIVER = CONF_PREFIX + "jdbc.driver";
     public static final String CONF_USERNAME = CONF_PREFIX + "jdbc.username";
     public static final String CONF_PASSWORD = CONF_PREFIX + "jdbc.password";
+    public static final String CONF_PASSWORDPROVIDER = CONF_PREFIX + "jdbc.password.provider";
     public static final String CONF_CONN_DATA_SOURCE = CONF_PREFIX + "connection.data.source";
 
     public static final String CONF_MAX_ACTIVE_CONN = CONF_PREFIX + "pool.max.active.conn";
@@ -94,6 +97,35 @@ public class JPAService implements Service, Instrumentable {
         this.instr = instr;
     }
 
+    protected String getDbPassword(Configuration conf) throws ServiceException {
+        String password = null;
+        String pwdProviderClass = conf.get(CONF_PASSWORDPROVIDER);
+        PasswordProvider pwdProvider = null;
+
+        if (pwdProviderClass == null) {
+            // No key provider was provided so use the provided key as is.
+            pwdProvider = new SimplePasswordProvider();
+        } else {
+            // create an instance of the key provider class and verify it
+            // implements KeyProvider
+            Object pwdProviderObject = null;
+            try {
+                Class<?> clazz = conf.getClassByName(pwdProviderClass);
+                pwdProviderObject = clazz.newInstance();
+            } catch (Exception e) {
+                throw new ServiceException(ErrorCode.E0608, "Unable to load password provider class.");
+            }
+            if (!(pwdProviderObject instanceof PasswordProvider)) {
+                throw new ServiceException(ErrorCode.E0608, pwdProviderClass
+                        + " specified in config is not a valid PasswordProvider class.");
+            }
+            pwdProvider = (PasswordProvider) pwdProviderObject;
+        }
+        password = pwdProvider.getPassword(conf, CONF_PREFIX);
+
+        return password;
+    }
+    
     /**
      * Initializes the {@link JPAService}.
      *
@@ -106,7 +138,7 @@ public class JPAService implements Service, Instrumentable {
         String url = conf.get(CONF_URL, "jdbc:derby:${oozie.home.dir}/${oozie.db.schema.name}-db;create=true");
         String driver = conf.get(CONF_DRIVER, "org.apache.derby.jdbc.EmbeddedDriver");
         String user = conf.get(CONF_USERNAME, "sa");
-        String password = conf.get(CONF_PASSWORD, "").trim();
+        String password = getDbPassword(conf);
         String maxConn = conf.get(CONF_MAX_ACTIVE_CONN, "10").trim();
         String dataSource = conf.get(CONF_CONN_DATA_SOURCE, "org.apache.commons.dbcp.BasicDataSource");
         boolean autoSchemaCreation = conf.getBoolean(CONF_CREATE_DB_SCHEMA, true);

@@ -127,7 +127,7 @@
 
     <property>
         <name>oozie.service.JPAService.create.db.schema</name>
-        <value>false</value>
+        <value>true</value>
         <description>
             Creates Oozie DB.
 
@@ -162,7 +162,7 @@
 
     <property>
         <name>oozie.service.JPAService.jdbc.password</name>
-        <value> </value>
+        <value>pwd</value>
         <description>
             DB user password.
 
@@ -266,7 +266,7 @@
         <value>simple</value>
         <description>
             Defines authentication used for Oozie HTTP endpoint.
-            Supported values are: simple | kerberos | #AUTHENTICATION_HANDLER_CLASSNAME#
+            Supported values are: simple | basic | kerberos | #AUTHENTICATION_HANDLER_CLASSNAME#
         </description>
     </property>
 

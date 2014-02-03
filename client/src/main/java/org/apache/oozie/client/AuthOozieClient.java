@@ -27,6 +27,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.commons.codec.binary.Base64;
 
 import org.apache.hadoop.security.authentication.client.AuthenticatedURL;
 import org.apache.hadoop.security.authentication.client.AuthenticationException;
@@ -58,10 +59,12 @@ public class AuthOozieClient extends XOozieClient {
     public static final File AUTH_TOKEN_CACHE_FILE = new File(System.getProperty("user.home"), ".oozie-auth-token");
 
     public static enum AuthType {
-        KERBEROS, SIMPLE
+        KERBEROS, SIMPLE, BASIC
     }
 
     private String authOption = null;
+    private String username = null;
+    private String password = null;
 
     /**
      * Create an instance of the AuthOozieClient.
@@ -69,7 +72,7 @@ public class AuthOozieClient extends XOozieClient {
      * @param oozieUrl the Oozie URL
      */
     public AuthOozieClient(String oozieUrl) {
-        this(oozieUrl, null);
+        this(oozieUrl, null, null, null);
     }
 
     /**
@@ -77,13 +80,17 @@ public class AuthOozieClient extends XOozieClient {
      *
      * @param oozieUrl the Oozie URL
      * @param authOption the auth option
+     * @param username the username for BASIC authentication
+     * @param password the password for BASIC authentication
      */
-    public AuthOozieClient(String oozieUrl, String authOption) {
+    public AuthOozieClient(String oozieUrl, String authOption, String username, String password) {
         super(oozieUrl);
         this.authOption = authOption;
+        this.username = username;
+        this.password = password;
     }
 
-    /**
+   /**
      * Create an authenticated connection to the Oozie server.
      * <p/>
      * It uses Hadoop-auth client authentication which by default supports
@@ -99,8 +106,7 @@ public class AuthOozieClient extends XOozieClient {
      * @throws IOException if an IO error occurred.
      * @throws OozieClientException if an oozie client error occurred.
      */
-    @Override
-    protected HttpURLConnection createConnection(URL url, String method) throws IOException, OozieClientException {
+    protected HttpURLConnection createTokenBasedAuthConnection(URL url, String method) throws IOException, OozieClientException {
         boolean useAuthFile = System.getProperty(USE_AUTH_TOKEN_CACHE_SYS_PROP, "false").equalsIgnoreCase("true");
         AuthenticatedURL.Token readToken = new AuthenticatedURL.Token();
         AuthenticatedURL.Token currentToken = new AuthenticatedURL.Token();
@@ -142,10 +148,53 @@ public class AuthOozieClient extends XOozieClient {
         }
         HttpURLConnection conn = super.createConnection(url, method);
         AuthenticatedURL.injectToken(conn, currentToken);
-
         return conn;
     }
 
+   /**
+     * Create an authenticated connection to the Oozie server.
+     * <p/>
+     * It uses basic HTTP authentication. This is meant to be used for users
+     * who connect to Oozie through an intermediate gateway that uses basic
+     * HTTP authentication.
+     * <p/>
+     *
+     * @param url the URL to open a HTTP connection to.
+     * @param method the HTTP method for the HTTP connection.
+     * @return a connection populated with credentials to the gateway.
+     * @throws IOException if an IO error occurred.
+     * @throws OozieClientException if an oozie client error occurred.
+     */
+    protected HttpURLConnection createBasicAuthConnection(URL url, String method) throws IOException, OozieClientException {
+        String authString = username + ":" + password;
+        byte[] authEncBytes = Base64.encodeBase64(authString.getBytes());
+        String authStringEnc = new String(authEncBytes);
+        HttpURLConnection conn = super.createConnection(url, method);
+        conn.setRequestProperty("Authorization", "Basic " + authStringEnc);
+        return conn;
+    }
+
+   /**
+     * Create an authenticated connection to the Oozie server.
+     * <p/>
+     * Based on the auth option, it can use Hadoop-auth client authentication
+     * or Basic HTTP authentication.
+     * <p/>
+     * @param url the URL to open a HTTP connection to.
+     * @param method the HTTP method for the HTTP connection.
+     * @return an authenticated connection to the Oozie server.
+     * @throws IOException if an IO error occurred.
+     * @throws OozieClientException if an oozie client error occurred.
+     */
+    @Override
+    protected HttpURLConnection createConnection(URL url, String method) throws IOException, OozieClientException {
+        if(authOption != null && authOption.equalsIgnoreCase("BASIC")) {
+            return createBasicAuthConnection(url, method);
+        }
+        else {
+            return createTokenBasedAuthConnection(url, method);
+        }
+    }
 
     /**
      * Read a authentication token cached in the user home directory.
@@ -224,7 +273,7 @@ public class AuthOozieClient extends XOozieClient {
             }
             catch (IllegalArgumentException iae) {
                 throw new OozieClientException(OozieClientException.AUTHENTICATION, "Invalid options provided for auth: " + authOption
-                        + ", (" + AuthType.KERBEROS + " or " + AuthType.SIMPLE + " expected.)");
+                        + ", (" + AuthType.KERBEROS + ", " + AuthType.SIMPLE + ", or " + AuthType.BASIC + " expected.)");
             }
             catch (InstantiationException ex) {
                 throw new OozieClientException(OozieClientException.AUTHENTICATION,
@@ -268,6 +317,7 @@ public class AuthOozieClient extends XOozieClient {
      * Default values are:
      * null -> KerberosAuthenticator
      * SIMPLE -> PseudoAuthenticator
+     * BASIC -> PseudoAuthenticator (won't actually get used)
      * KERBEROS -> KerberosAuthenticator
      *
      * @return the map for classes of Authenticator
@@ -277,6 +327,7 @@ public class AuthOozieClient extends XOozieClient {
         Map<String, Class<? extends Authenticator>> authClasses = new HashMap<String, Class<? extends Authenticator>>();
         authClasses.put(AuthType.KERBEROS.toString(), KerberosAuthenticator.class);
         authClasses.put(AuthType.SIMPLE.toString(), PseudoAuthenticator.class);
+        authClasses.put(AuthType.BASIC.toString(), PseudoAuthenticator.class);
         authClasses.put(null, KerberosAuthenticator.class);
         return authClasses;
     }

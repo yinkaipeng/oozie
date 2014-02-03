@@ -49,6 +49,7 @@ import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.MiniMRCluster;
 import org.apache.hadoop.security.authorize.ProxyUsers;
+import org.apache.hadoop.util.Shell;
 import org.apache.oozie.BundleActionBean;
 import org.apache.oozie.BundleJobBean;
 import org.apache.oozie.CoordinatorActionBean;
@@ -125,7 +126,7 @@ public abstract class XTestCase extends TestCase {
             OOZIE_SRC_DIR = OOZIE_SRC_DIR.getParentFile();
 
             String testPropsFile = System.getProperty(OOZIE_TEST_PROPERTIES, "test.properties");
-           File file = (testPropsFile.startsWith("/"))
+            File file = new File(testPropsFile).isAbsolute()
                         ? new File(testPropsFile) : new File(OOZIE_SRC_DIR, testPropsFile);
             if (file.exists()) {
                 System.out.println();
@@ -230,6 +231,21 @@ public abstract class XTestCase extends TestCase {
     public static final String TEST_MINICLUSTER_MONITOR_SHUTDOWN_WAIT = "oozie.test.minicluster.monitor.shutdown.wait";
 
     /**
+     * Name of the shell command
+     */
+    protected static final String SHELL_COMMAND_NAME = (Shell.WINDOWS)? "cmd": "bash";
+
+    /**
+     * Extension for shell script files
+     */
+    protected static final String SHELL_COMMAND_SCRIPTFILE_EXTENSION = (Shell.WINDOWS)? "cmd": "sh";
+
+    /**
+     * Option for shell command to pass script files
+     */
+    protected static final String SHELL_COMMAND_SCRIPTFILE_OPTION = (Shell.WINDOWS) ? "/c" : "-c";
+
+    /**
      * Initialize the test working directory. <p/> If it does not exist it creates it, if it already exists it deletes
      * all its contents. <p/> The test working directory it is not deleted after the test runs. <p/>
      *
@@ -241,7 +257,8 @@ public abstract class XTestCase extends TestCase {
         super.setUp();
         String baseDir = System.getProperty(OOZIE_TEST_DIR, new File("target/test-data").getAbsolutePath());
         String msg = null;
-        if (!baseDir.startsWith("/")) {
+        File path = new File(baseDir);
+        if (!path.isAbsolute()) {
             msg = XLog.format("System property [{0}]=[{1}] must be set to an absolute path", OOZIE_TEST_DIR, baseDir);
         }
         else {
@@ -274,7 +291,7 @@ public abstract class XTestCase extends TestCase {
         String defaultOozieSize =
             new File(OOZIE_SRC_DIR, "core/src/test/resources/" + oozieTestDB + "-oozie-site.xml").getAbsolutePath();
         String customOozieSite = System.getProperty("oozie.test.config.file", defaultOozieSize);
-        File source = (customOozieSite.startsWith("/"))
+        File source = new File(customOozieSite).isAbsolute()
                       ? new File(customOozieSite) : new File(OOZIE_SRC_DIR, customOozieSite);
         source = source.getAbsoluteFile();
         InputStream oozieSiteSourceStream = null;
@@ -363,6 +380,25 @@ public abstract class XTestCase extends TestCase {
      */
     protected String getTestCaseDir() {
         return testCaseDir;
+    }
+
+    /**
+     * Return the URI for a test file. The returned value is the testDir + concatenated URI.
+     *
+     * @return the test working directory path, it is always an absolute path and appends the relative path. The
+     * reason for the manual parsing instead of an actual File.toURI is because Oozie tests use tokens ${}
+     * frequently. Something like URI("c:/temp/${HOUR}").toString() will generate escaped values that will break tests
+     */
+    protected String getTestCaseFileUri(String relativeUri) {
+
+        String uri = new File(testCaseDir).toURI().toString();
+
+        // truncates '/' if the testCaseDir was provided with a fullpath ended with separator
+        if (uri.endsWith("/")){
+            uri = uri.substring(0, uri.length() -1);
+        }
+
+        return uri + "/" + relativeUri;
     }
 
     /**
@@ -501,12 +537,21 @@ public abstract class XTestCase extends TestCase {
     /**
      * Create a Test case sub directory.
      *
-     * @param subDirName sub directory name.
+     * @param subDirNames sub directories names.
      * @return the absolute path to the created directory.
      */
-    protected String createTestCaseSubDir(String subDirName) {
-        ParamChecker.notNull(subDirName, "subDirName");
-        File dir = new File(testCaseDir, subDirName);
+    protected String createTestCaseSubDir(String... subDirNames) {
+        ParamChecker.notNull(subDirNames, "subDirName");
+        if (subDirNames.length == 0) {
+            throw new RuntimeException(XLog.format("Could not create testcase subdir ''; it already exists"));
+        }
+
+        File dir = new File(testCaseDir);
+        for (int i=0; i<subDirNames.length; i++) {
+            ParamChecker.notNull(subDirNames[i], "subDirName["+i+"]");
+            dir = new File(dir, subDirNames[i]);
+        }
+
         if (!dir.mkdirs()) {
             throw new RuntimeException(XLog.format("Could not create testcase subdir[{0}]", dir));
         }
@@ -801,7 +846,7 @@ public abstract class XTestCase extends TestCase {
                 dfsCluster = new MiniDFSCluster(conf, dataNodes, true, null);
                 FileSystem fileSystem = dfsCluster.getFileSystem();
                 fileSystem.mkdirs(new Path("target/test-data"));
-                fileSystem.mkdirs(new Path("target/test-data"+"/minicluster/mapred"));
+                fileSystem.mkdirs(new Path("target/test-data/minicluster/mapred"));
                 fileSystem.mkdirs(new Path("/user"));
                 fileSystem.mkdirs(new Path("/tmp"));
                 fileSystem.mkdirs(new Path("/hadoop/mapred/system"));
