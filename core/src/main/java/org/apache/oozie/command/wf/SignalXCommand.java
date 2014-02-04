@@ -312,7 +312,18 @@ public class SignalXCommand extends WorkflowXCommand<Void> {
                         String actionSlaXml = getActionSLAXml(newAction.getName(), workflowInstance.getApp()
                                 .getDefinition(), wfJob.getConf());
                         newAction.setSlaXml(actionSlaXml);
-                        insertList.add(newAction);
+
+                        try {
+                            // If we already have this action in db lets just update it
+                            // (previous transaction may be successful but exception has been thrown)
+                            jpaService.execute(new WorkflowActionGetJPAExecutor(newAction.getId()));
+                            updateList.add(newAction);
+                        }
+                        catch (JPAExecutorException jee) {
+                            // this action hasn't been created before
+                            insertList.add(newAction);
+                        }
+
                         LOG.debug("SignalXCommand: Name: "+ newAction.getName() + ", Id: " +newAction.getId() + ", Authcode:" + newAction.getCred());
                         queue(new ActionStartXCommand(newAction.getId(), newAction.getType()));
                     }
