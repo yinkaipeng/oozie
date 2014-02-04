@@ -46,6 +46,7 @@ import org.apache.oozie.client.CoordinatorJob;
 import org.apache.oozie.client.Job;
 import org.apache.oozie.client.OozieClient;
 import org.apache.oozie.client.CoordinatorJob.Execution;
+import org.apache.oozie.client.CoordinatorJob.Recovery;
 import org.apache.oozie.command.CommandException;
 import org.apache.oozie.command.SubmitTransitionXCommand;
 import org.apache.oozie.command.bundle.BundleStatusUpdateXCommand;
@@ -706,6 +707,14 @@ public class CoordSubmitXCommand extends SubmitTransitionXCommand {
         coordJob.setExecution(Execution.valueOf(val));
         String[] acceptedVals = { Execution.LIFO.toString(), Execution.FIFO.toString(), Execution.LAST_ONLY.toString() };
         ParamChecker.isMember(val, acceptedVals, "execution");
+
+        val = resolveTagContents("recovery", eAppXml.getChild("controls", eAppXml.getNamespace()), evalNofuncs);
+        if (val == "") {
+            val = Recovery.ALL.toString();
+        }
+        coordJob.setRecovery(Recovery.valueOf(val));
+        String[] acceptedRecoveryVals = { Recovery.ALL.toString(), Recovery.NONE.toString(), Recovery.LAST_ONLY.toString() };
+        ParamChecker.isMember(val, acceptedRecoveryVals, "recovery");
 
         // datasets
         resolveTagContents("include", eAppXml.getChild("datasets", eAppXml.getNamespace()), evalNofuncs);

@@ -53,6 +53,7 @@ public class OozieDBCLI {
     public static final String SQL_FILE_OPT = "sqlfile";
     public static final String RUN_OPT = "run";
     private final static String DB_VERSION = "2";
+    private final static String NEW_DB_VERSION = "2.5";
 
     public static final String[] HELP_INFO = {
         "",
@@ -195,10 +196,13 @@ public class OozieDBCLI {
             if (ver.equals("1")) { // if db.version equals to 1 (after 3.2+), need to upgrade
                 upgradeDBTo40(sqlFile, run, true);
             }
-            else if (ver.equals(DB_VERSION)) { // if db.version equals to 2, it's already upgraded
+            else if (ver.equals(NEW_DB_VERSION)) { // if db.version equals to 2.5, it's already upgraded
                 throw new Exception("Oozie DB has already been upgraded");
             }
         }
+
+        upgradeDBTo50(sqlFile, run);
+        updateOozieSysTable(sqlFile, run);
 
         if (run) {
             System.out.println();
@@ -224,6 +228,65 @@ public class OozieDBCLI {
         }
     }
 
+    private void upgradeDBTo50(String sqlFile, boolean run) throws Exception {
+        createUpgradeDB(sqlFile, run, false);
+        PrintWriter writer = new PrintWriter(new FileWriter(sqlFile, true));
+        writer.println();
+
+        String dbVendor = getDBVendor();
+        ArrayList<String> ddlQueries = new ArrayList<String>();
+        if (dbVendor.equals("derby")) {
+            ddlQueries.add("ALTER TABLE COORD_JOBS ADD COLUMN recovery VARCHAR(255)");
+            ddlQueries.add("ALTER TABLE OOZIE_SYS ALTER COLUMN name NOT NULL");
+            ddlQueries.add("ALTER TABLE OOZIE_SYS ADD PRIMARY KEY (name)");
+        }
+        else
+        if (dbVendor.equals("oracle")) {
+            ddlQueries.add("ALTER TABLE COORD_JOBS ADD (recovery VARCHAR2(255))");
+            ddlQueries.add("ALTER TABLE OOZIE_SYS ALTER COLUMN name NOT NULL");
+            ddlQueries.add("ALTER TABLE OOZIE_SYS ADD PRIMARY KEY (name)");
+
+        }
+        else
+        if (dbVendor.equals("mysql")) {
+            ddlQueries.add("ALTER TABLE COORD_JOBS ADD COLUMN recovery VARCHAR(255)");
+            ddlQueries.add("ALTER TABLE OOZIE_SYS MODIFY name VARCHAR(255) NOT NULL");
+            ddlQueries.add("ALTER TABLE OOZIE_SYS ADD PRIMARY KEY (name)");
+        }
+        else
+        if (dbVendor.equals("postgresql")) {
+            ddlQueries.add("ALTER TABLE COORD_JOBS ADD COLUMN recovery VARCHAR(255)");
+            ddlQueries.add("ALTER TABLE OOZIE_SYS ALTER COLUMN name SET NOT NULL");
+            ddlQueries.add("ALTER TABLE OOZIE_SYS ADD PRIMARY KEY (name)");
+        }
+        else
+        if (dbVendor.equals("sqlserver")) {
+            ddlQueries.add("ALTER TABLE COORD_JOBS ADD recovery VARCHAR(255)");
+            ddlQueries.add("ALTER TABLE OOZIE_SYS ALTER COLUMN name VARCHAR(255) NOT NULL");
+            ddlQueries.add("ALTER TABLE OOZIE_SYS ADD CONSTRAINT PRIMARY KEY CLUSTERED (name)");
+        }
+        Connection conn = (run) ? createConnection() : null;
+
+        try {
+            for(String query : ddlQueries){
+                writer.println(query + ";");
+                if (run) {
+                    conn.setAutoCommit(true);
+                    Statement st = conn.createStatement();
+                    st.executeUpdate(query);
+                    st.close();
+                }
+            }
+            System.out.println("DONE");
+
+            writer.close();
+        }
+        finally {
+            if (run) {
+                conn.close();
+            }
+        }
+    }
     private final static String UPDATE_DB_VERSION =
             "update OOZIE_SYS set data='" + DB_VERSION + "' where name='db.version'";
     private final static String UPDATE_OOZIE_VERSION =
@@ -754,9 +817,17 @@ public class OozieDBCLI {
     private final static String SET_DB_VERSION =
         "insert into OOZIE_SYS (name, data) values ('db.version', '" + DB_VERSION + "')";
 
+    private final static String SET_NEW_DB_VERSION =
+            "update OOZIE_SYS set data='" + NEW_DB_VERSION + "' where name='db.version'";
+
     private final static String SET_OOZIE_VERSION =
         "insert into OOZIE_SYS (name, data) values ('oozie.version', '" +
         BuildInfo.getBuildInfo().getProperty(BuildInfo.BUILD_VERSION) + "')";
+
+    private final static String SET_NEW_OOZIE_VERSION =
+            "update OOZIE_SYS set data='" +
+                    BuildInfo.getBuildInfo().getProperty(BuildInfo.BUILD_VERSION) +
+                    "' where name='oozie.version'";
 
     private final static String CREATE_OOZIE_SYS_INDEX =
         "create clustered index OOZIE_SYS_PK on OOZIE_SYS (name);";
@@ -780,7 +851,7 @@ public class OozieDBCLI {
             try {
                 conn.setAutoCommit(true);
                 Statement st = conn.createStatement();
-                st.executeUpdate(CREATE_OOZIE_SYS);
+//                st.executeUpdate(CREATE_OOZIE_SYS);
                 if (createIndex){
                     st.executeUpdate(CREATE_OOZIE_SYS_INDEX);
                 }
@@ -798,6 +869,32 @@ public class OozieDBCLI {
         System.out.println("DONE");
     }
 
+    private void updateOozieSysTable(String sqlFile, boolean run) throws Exception {
+        PrintWriter writer = new PrintWriter(new FileWriter(sqlFile, true));
+        writer.println();
+        writer.println(SET_NEW_DB_VERSION);
+        writer.println(SET_NEW_OOZIE_VERSION);
+        writer.close();
+        System.out.println("Update OOZIE_SYS table");
+        if (run) {
+            Connection conn = createConnection();
+            try {
+                conn.setAutoCommit(true);
+                Statement st = conn.createStatement();
+
+                st.executeUpdate(SET_NEW_DB_VERSION);
+                st.executeUpdate(SET_NEW_OOZIE_VERSION);
+                st.close();
+            }
+            catch (Exception ex) {
+                throw new Exception("Could not update OOZIE_SYS table: " + ex.toString(), ex);
+            }
+            finally {
+                conn.close();
+            }
+        }
+        System.out.println("DONE");
+    }
     private final static String GET_OOZIE_SYS_INFO = "select name, data from OOZIE_SYS order by name";
 
     private void showOozieSysInfo() throws Exception {
@@ -880,6 +977,7 @@ public class OozieDBCLI {
         args.add("org.apache.oozie.BundleActionBean");
         args.add("org.apache.oozie.sla.SLASummaryBean");
         args.add("org.apache.oozie.util.db.ValidateConnectionBean");
+        args.add("org.apache.oozie.OozieSysBean");
         return args.toArray(new String[args.size()]);
     }
 

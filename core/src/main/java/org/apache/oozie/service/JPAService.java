@@ -44,6 +44,7 @@ import org.apache.oozie.client.rest.JsonWorkflowAction;
 import org.apache.oozie.client.rest.JsonWorkflowJob;
 import org.apache.oozie.executor.jpa.JPAExecutor;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
+import org.apache.oozie.OozieSysBean;
 import org.apache.oozie.sla.SLARegistrationBean;
 import org.apache.oozie.sla.SLASummaryBean;
 import org.apache.oozie.util.IOUtils;
@@ -207,6 +208,7 @@ public class JPAService implements Service, Instrumentable {
         entityManager.find(BundleActionBean.class, 1);
         entityManager.find(SLARegistrationBean.class, 1);
         entityManager.find(SLASummaryBean.class, 1);
+        entityManager.find(OozieSysBean.class, 1);
 
         LOG.info(XLog.STD, "All entities initialized");
         // need to use a pseudo no-op transaction so all entities, datasource

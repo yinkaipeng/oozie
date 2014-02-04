@@ -40,6 +40,12 @@ public interface CoordinatorJob extends Job {
     }
 
     /**
+     * Defines the possible recovery mechanism of an Oozie coordinatorJob.
+     */
+    public static enum Recovery {
+        ALL, NONE, LAST_ONLY
+    }
+    /**
      * Return the path to the Oozie application.
      *
      * @return the path to the Oozie application.

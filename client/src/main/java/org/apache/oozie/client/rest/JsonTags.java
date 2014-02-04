@@ -92,6 +92,7 @@ public interface JsonTags {
     public static final String COORDINATOR_JOB_CONF = "conf";
     public static final String COORDINATOR_JOB_STATUS = "status";
     public static final String COORDINATOR_JOB_EXECUTIONPOLICY = "executionPolicy";
+    public static final String COORDINATOR_JOB_RECOVERYPOLICY = "recoveryPolicy";
     public static final String COORDINATOR_JOB_START_TIME = "startTime";
     public static final String COORDINATOR_JOB_END_TIME = "endTime";
     public static final String COORDINATOR_JOB_PAUSE_TIME = "pauseTime";

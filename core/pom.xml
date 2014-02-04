@@ -388,6 +388,7 @@
                                 **/SLASummaryBean.class,
                                 **/BundleJobBean.class,
                                 **/BundleActionBean.class,
+                                **/OozieSysBean.class,
                                 **/ValidateConnectionBean.class,
                             </includes>
                             <addDefaultConstructor>true</addDefaultConstructor>

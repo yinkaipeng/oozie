@@ -156,6 +156,10 @@ public class CoordinatorJobBean extends JsonCoordinatorJob implements Writable {
     @Column(name = "app_namespace")
     private String appNamespace = null;
 
+    @Basic
+    @Column(name = "recovery")
+    private String recovery = CoordinatorJob.Recovery.ALL.toString();
+
     /**
      * Get start timestamp
      *
@@ -391,6 +395,34 @@ public class CoordinatorJobBean extends JsonCoordinatorJob implements Writable {
         this.appNamespace = appNamespace;
     }
 
+    /**
+     * Set order
+     *
+     * @param order
+     */
+    public void setRecovery(Recovery order) {
+        this.recovery = order.toString();
+//        super.setRecoveryOrder(order);
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.oozie.client.rest.JsonCoordinatorJob#getExecutionOrder()
+     */
+
+//    @Override
+    public Recovery getRecoveryOrder() {
+        return Recovery.valueOf(this.recovery);
+    }
+
+    /**
+     * Get execution
+     *
+     * @return execution
+     */
+    public String getRecovery() {
+        return recovery;
+    }
+
     public CoordinatorJobBean() {
     }
 
@@ -419,6 +451,7 @@ public class CoordinatorJobBean extends JsonCoordinatorJob implements Writable {
         WritableUtils.writeStr(dataOutput, getExternalId());
         dataOutput.writeInt(getTimeout());
         dataOutput.writeInt(getMatThrottling());
+        WritableUtils.writeStr(dataOutput, getRecoveryOrder().toString());
         if (isPending()) {
             dataOutput.writeInt(1);
         } else {
@@ -449,6 +482,7 @@ public class CoordinatorJobBean extends JsonCoordinatorJob implements Writable {
         setTimeZone(WritableUtils.readStr(dataInput));
         setConcurrency(dataInput.readInt());
         setExecution(Execution.valueOf(WritableUtils.readStr(dataInput)));
+        setRecovery(Recovery.valueOf(WritableUtils.readStr(dataInput)));
 
         long d = dataInput.readLong();
         if (d != -1) {
