@@ -385,9 +385,15 @@ public class StatusTransitService implements Service {
                 totalValuesTimeOut = coordActionStatus.get(CoordinatorAction.Status.TIMEDOUT);
             }
 
-            if (coordActionsCount == (totalValuesSucceed + totalValuesFailed + totalValuesKilled + totalValuesTimeOut)) {
+            int totalValuesSkipped = 0;
+            if (coordActionStatus.containsKey(CoordinatorAction.Status.SKIPPED)) {
+                totalValuesSkipped = coordActionStatus.get(CoordinatorAction.Status.SKIPPED);
+            }
+
+            if (coordActionsCount == (totalValuesSucceed + totalValuesFailed + totalValuesKilled + totalValuesTimeOut
+                                        + totalValuesSkipped)) {
                 // If all the coordinator actions are succeeded then coordinator job should be succeeded.
-                if (coordActionsCount == totalValuesSucceed && isDoneMaterialization) {
+                if (coordActionsCount == totalValuesSucceed + totalValuesSkipped && isDoneMaterialization) {
                     coordStatus[0] = Job.Status.SUCCEEDED;
                     ret = true;
                 }

@@ -37,7 +37,8 @@ public interface CoordinatorAction {
         SUCCEEDED,
         KILLED,
         FAILED,
-        DISCARDED
+        DISCARDED,
+        SKIPPED
     }
 
     /**

@@ -21,38 +21,32 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.oozie.BundleActionBean;
-import org.apache.oozie.BundleJobBean;
-import org.apache.oozie.CoordinatorActionBean;
-import org.apache.oozie.CoordinatorJobBean;
-import org.apache.oozie.ErrorCode;
-import org.apache.oozie.WorkflowActionBean;
+import org.apache.oozie.*;
 import org.apache.oozie.client.Job;
 import org.apache.oozie.client.OozieClient;
 import org.apache.oozie.command.CommandException;
-import org.apache.oozie.command.coord.CoordActionInputCheckXCommand;
-import org.apache.oozie.command.coord.CoordActionReadyXCommand;
-import org.apache.oozie.command.coord.CoordActionStartXCommand;
-import org.apache.oozie.command.coord.CoordKillXCommand;
-import org.apache.oozie.command.coord.CoordPushDependencyCheckXCommand;
-import org.apache.oozie.command.coord.CoordResumeXCommand;
-import org.apache.oozie.command.coord.CoordSubmitXCommand;
-import org.apache.oozie.command.coord.CoordSuspendXCommand;
+import org.apache.oozie.command.coord.*;
 import org.apache.oozie.command.wf.ActionEndXCommand;
 import org.apache.oozie.command.wf.ActionStartXCommand;
 import org.apache.oozie.command.wf.KillXCommand;
 import org.apache.oozie.command.wf.ResumeXCommand;
 import org.apache.oozie.command.wf.SignalXCommand;
 import org.apache.oozie.command.wf.SuspendXCommand;
+import org.apache.oozie.executor.jpa.HeartbeatGetJPAExecutor;
+import org.apache.oozie.executor.jpa.HeartbeatInsertJPAExecutor;
+import org.apache.oozie.executor.jpa.HeartbeatUpdateJPAExecutor;
+import org.apache.oozie.executor.jpa.JPAExecutorException;
 import org.apache.oozie.executor.jpa.BundleActionsGetWaitingOlderJPAExecutor;
 import org.apache.oozie.executor.jpa.BundleJobGetJPAExecutor;
 import org.apache.oozie.executor.jpa.CoordActionsGetForRecoveryJPAExecutor;
+import org.apache.oozie.executor.jpa.CoordActionsToSkipAfterDowntimeJPAExecutor;
 import org.apache.oozie.executor.jpa.CoordActionsGetReadyGroupbyJobIDJPAExecutor;
+import org.apache.oozie.executor.jpa.CoordJobsGetDowntimeRunningJPAExecutor;
 import org.apache.oozie.executor.jpa.CoordJobGetJPAExecutor;
-import org.apache.oozie.executor.jpa.JPAExecutorException;
 import org.apache.oozie.executor.jpa.WorkflowActionsGetPendingJPAExecutor;
 import org.apache.oozie.util.JobUtils;
 import org.apache.oozie.util.XCallable;
@@ -61,6 +55,7 @@ import org.apache.oozie.util.XLog;
 import org.apache.oozie.util.XmlUtils;
 import org.jdom.Attribute;
 import org.jdom.Element;
+import sun.print.resources.serviceui_es;
 
 /**
  * The Recovery Service checks for pending actions and premater coordinator jobs older than a configured age and then
@@ -96,6 +91,12 @@ public class RecoveryService implements Service {
     public static final String CONF_COORD_OLDER_THAN = CONF_PREFIX_COORD + "older.than";
 
     /**
+     * Threshold length of the downtime to kick off recovery logic for coordinatorjob
+     * in minutes
+     */
+    public static final String CONF_DOWNTIME_COORD_LONGER_THAN = CONF_PREFIX_COORD + "downtime.longer.than";
+
+    /**
      * Age of Bundle jobs to recover, in seconds.
      */
     public static final String CONF_BUNDLE_OLDER_THAN = CONF_PREFIX_BUNDLE + "older.than";
@@ -104,6 +105,12 @@ public class RecoveryService implements Service {
     private static final String INSTR_RECOVERED_ACTIONS_COUNTER = "actions";
     private static final String INSTR_RECOVERED_COORD_ACTIONS_COUNTER = "coord_actions";
     private static final String INSTR_RECOVERED_BUNDLE_ACTIONS_COUNTER = "bundle_actions";
+
+    private static long downtime;
+    private static long uptime;
+    private static boolean isRecovery = false;
+    public static boolean doneRecoveryMaterialization = false;
+    public static HashMap<String, Long> jobsToSkipMaterialization = new HashMap<String, Long>();
 
 
     /**
@@ -132,6 +139,19 @@ public class RecoveryService implements Service {
             msg = new StringBuilder();
             jpaService = Services.get().get(JPAService.class);
             runWFRecovery();
+            if (isRecovery) {
+                if (!doneRecoveryMaterialization) {
+                    return;
+                }
+                runCoordActionDowntimeRecovery(downtime, uptime);
+            }
+            else {
+                runOozieHeartbeatUpdate();
+            }
+
+            if (isRecovery) {
+                return;
+            }
             runCoordActionRecovery();
             runCoordActionRecoveryForReady();
             runBundleRecovery();
@@ -220,6 +240,120 @@ public class RecoveryService implements Service {
         }
 
         /**
+         * Detect downtime of oozie if there is any. If there is a downtime, kick off recovery skipping logic
+         * for coordinator jobs
+         */
+        private void runOozieHeartbeatUpdate() {
+            XLog.Info.get().clear();
+            XLog log = XLog.getLog(getClass());
+            long downtimeThreshold = Services.get().getConf().getLong(CONF_DOWNTIME_COORD_LONGER_THAN, 10);
+            downtimeThreshold = downtimeThreshold * 60000;
+            OozieSysBean bean = null;
+            try {
+                bean = jpaService.execute(new HeartbeatGetJPAExecutor());
+            }
+            catch (JPAExecutorException ex) {
+                log.warn("Error reading heartbeat from database", ex);
+                return;
+            }
+
+            if (bean == null){
+                bean = new OozieSysBean("oozie.heartbeat", Long.toString(System.currentTimeMillis()));
+                try {
+                    jpaService.execute(new HeartbeatInsertJPAExecutor(bean));
+                }
+                catch (JPAExecutorException ex) {
+                    log.warn("Error reading heartbeat from database", ex);
+                    return;
+                }
+            }
+            else
+            {
+                Long lastHeartbeat = Long.valueOf(bean.getData()).longValue();
+                log.info("last updated heart beat is " + bean.getData());
+                long downtimeLength = System.currentTimeMillis() - lastHeartbeat;
+                if (downtimeLength > downtimeThreshold){
+                    downtime = lastHeartbeat;
+                    uptime = System.currentTimeMillis();
+                    isRecovery = true;
+                }
+                else {
+                    try {
+                        bean.setData(Long.toString(System.currentTimeMillis()));
+                        jpaService.execute(new HeartbeatUpdateJPAExecutor(bean));
+                    }
+                    catch (JPAExecutorException ex) {
+                        log.warn("Error reading heartbeat from database", ex);
+                    }
+                }
+            }
+        }
+
+        /**
+         * Skip certain actions for coordinatorjobs according to its recovery policy
+         */
+        private void runCoordActionDowntimeRecovery(Long start, Long end) {
+            XLog.Info.get().clear();
+            XLog log = XLog.getLog(getClass());
+            List<CoordinatorJobBean> jobs = new ArrayList<CoordinatorJobBean>();
+            log.info("downtime is " + start);
+            log.info("uptime is " + end);
+
+            try {
+                jobs = jpaService.execute(new CoordJobsGetDowntimeRunningJPAExecutor(start));
+                log.info("number of jobs to recover is " + jobs.size());
+            }
+            catch (JPAExecutorException ex) {
+                log.warn("Error reading coord jobs from database", ex);
+                return;
+            }
+
+            for (CoordinatorJobBean job : jobs) {
+
+                log.info("starttimestamp is " + job.getStartTime());
+                if (job.getRecovery().equalsIgnoreCase("ALL")){
+                    continue;
+                }
+
+                try {
+                    log.info("job id is " + job.getId());
+                    long endTime = end;
+                    String recovery = job.getRecovery();
+                    if (jobsToSkipMaterialization.containsKey(job.getId())) {
+                        endTime = jobsToSkipMaterialization.get(job.getId());
+                        recovery = "NONE";
+                    }
+                    jpaService.execute(new CoordActionsToSkipAfterDowntimeJPAExecutor(job.getId(), start, endTime, recovery));
+                }
+                catch (JPAExecutorException ex) {
+                    log.warn("Error reading coord jobs from database", ex);
+                    return;
+                }
+            }
+
+            OozieSysBean bean = null;
+            try {
+                bean = jpaService.execute(new HeartbeatGetJPAExecutor());
+            }
+            catch (JPAExecutorException ex) {
+                log.warn("Error reading heartbeat from database", ex);
+                return;
+            }
+
+            try {
+                bean.setData(Long.toString(uptime));
+                jpaService.execute(new HeartbeatUpdateJPAExecutor(bean));
+            }
+            catch (JPAExecutorException ex) {
+                log.warn("Error reading heartbeat from database", ex);
+                return;
+            }
+
+            isRecovery = false;
+            doneRecoveryMaterialization = false;
+            jobsToSkipMaterialization.clear();
+        }
+        /**
          * Recover coordinator actions that are staying in WAITING or SUBMITTED too long
          */
         private void runCoordActionRecovery() {
@@ -264,7 +398,7 @@ public class RecoveryService implements Service {
                                     + caction.getId());
                         }
                         else if (caction.getStatus() == CoordinatorActionBean.Status.SUSPENDED) {
-                            if (caction.getExternalId() != null) {
+                            if (caction.getExternalId() != null && caction.getPending() > 1) {
                                 queueCallable(new SuspendXCommand(caction.getExternalId()));
                                 log.debug("Recover a SUSPENDED coord action and resubmit SuspendXCommand :"
                                         + caction.getId());
@@ -304,7 +438,7 @@ public class RecoveryService implements Service {
                 jobids = Services.get().get(JobsConcurrencyService.class).getJobIdsForThisServer(jobids);
                 msg.append(", COORD_READY_JOBS : " + jobids.size());
                 for (String jobid : jobids) {
-                        queueCallable(new CoordActionReadyXCommand(jobid));
+                    queueCallable(new CoordActionReadyXCommand(jobid));
 
                     log.info("Recover READY coord actions for jobid :" + jobid);
                 }
@@ -434,7 +568,7 @@ public class RecoveryService implements Service {
         Runnable recoveryRunnable = new RecoveryRunnable(conf.getInt(CONF_WF_ACTIONS_OLDER_THAN, 120), conf.getInt(
                 CONF_COORD_OLDER_THAN, 600),conf.getInt(CONF_BUNDLE_OLDER_THAN, 600));
         services.get(SchedulerService.class).schedule(recoveryRunnable, 10, getRecoveryServiceInterval(conf),
-                                                      SchedulerService.Unit.SEC);
+                SchedulerService.Unit.SEC);
     }
 
     public int getRecoveryServiceInterval(Configuration conf){

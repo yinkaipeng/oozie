@@ -17,20 +17,31 @@
  */
 package org.apache.oozie.service;
 
+import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.TimeZone;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.oozie.CoordinatorJobBean;
+import org.apache.oozie.command.coord.CoordCommandUtils;
 import org.apache.oozie.command.coord.CoordMaterializeTransitionXCommand;
+import org.apache.oozie.coord.TimeUnit;
 import org.apache.oozie.executor.jpa.CoordActionsActiveCountJPAExecutor;
-import org.apache.oozie.executor.jpa.CoordJobGetRunningActionsCountJPAExecutor;
 import org.apache.oozie.executor.jpa.CoordJobUpdateJPAExecutor;
 import org.apache.oozie.executor.jpa.CoordJobsToBeMaterializedJPAExecutor;
+import org.apache.oozie.executor.jpa.HeartbeatGetJPAExecutor;
+import org.apache.oozie.executor.jpa.HeartbeatInsertJPAExecutor;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
+import org.apache.oozie.OozieSysBean;
+import org.apache.oozie.util.DateUtils;
 import org.apache.oozie.util.XCallable;
 import org.apache.oozie.util.XLog;
+import org.apache.oozie.util.XmlUtils;
+import org.jdom.Element;
 
 /**
  * The coordinator Materialization Lookup trigger service schedule lookup trigger command for every interval (default is
@@ -62,6 +73,8 @@ public class CoordMaterializeTriggerService implements Service {
     private static final int CONF_MATERIALIZATION_WINDOW_DEFAULT = 3600;
     private static final int CONF_MATERIALIZATION_SYSTEM_LIMIT_DEFAULT = 50;
 
+    public static HashSet<String> jobsToRecover = new HashSet<String>();
+
     /**
      * This runnable class will run in every "interval" to queue CoordMaterializeTransitionXCommand.
      */
@@ -69,6 +82,8 @@ public class CoordMaterializeTriggerService implements Service {
         private int materializationWindow;
         private int lookupInterval;
         private long delay = 0;
+        private long downTime = 0;
+        private long upTime = 0;
         private List<XCallable<Void>> callables;
         private List<XCallable<Void>> delayedCallables;
 
@@ -110,46 +125,190 @@ public class CoordMaterializeTriggerService implements Service {
         private void runCoordJobMatLookup() {
             XLog.Info.get().clear();
             XLog LOG = XLog.getLog(getClass());
-            JPAService jpaService = Services.get().get(JPAService.class);
             try {
-
                 // get current date
                 Date currDate = new Date(new Date().getTime() + lookupInterval * 1000);
                 // get list of all jobs that have actions that should be materialized.
                 int materializationLimit = Services.get().getConf()
                         .getInt(CONF_MATERIALIZATION_SYSTEM_LIMIT, CONF_MATERIALIZATION_SYSTEM_LIMIT_DEFAULT);
-                CoordJobsToBeMaterializedJPAExecutor cmatcmd = new CoordJobsToBeMaterializedJPAExecutor(currDate,
-                        materializationLimit);
+                // account for under-utilization of limit due to jobs maxed out
+                // against mat_throttle. hence repeat
+                if (materializeCoordJobs(currDate, materializationLimit, LOG)) {
+                    materializeCoordJobs(currDate, materializationLimit, LOG);
+                }
+            }
+
+            catch (Exception ex) {
+                LOG.error("Exception while attempting to materialize coordinator jobs, {0}", ex.getMessage(), ex);
+            }
+        }
+
+        private void setNewMaterializationTimeForRecovery(List<CoordinatorJobBean> coordJobs) throws Exception{
+            for (CoordinatorJobBean coordJob : coordJobs) {
+                if (coordJob.getRecovery().equalsIgnoreCase("ALL")) {
+                    continue;
+                }
+
+                Date nextMatdTime = coordJob.getNextMaterializedTime();
+                if (nextMatdTime == null)
+                {
+                    nextMatdTime = coordJob.getStartTime();
+                }
+
+                if (nextMatdTime.getTime() < upTime && nextMatdTime.getTime() > downTime) {
+
+                    jobsToRecover.add(coordJob.getId());
+                    RecoveryService.jobsToSkipMaterialization.put(coordJob.getId(), nextMatdTime.getTime());
+                    String jobXml = coordJob.getJobXml();
+                    Element eJob = XmlUtils.parseXml(jobXml);
+                    TimeZone appTz = DateUtils.getTimeZone(coordJob.getTimeZone());
+
+                    String frequency = coordJob.getFrequency();
+                    TimeUnit freqTU = TimeUnit.valueOf(eJob.getAttributeValue("freq_timeunit"));
+                    TimeUnit endOfFlag = TimeUnit.valueOf(eJob.getAttributeValue("end_of_duration"));
+                    Calendar start = Calendar.getInstance(appTz);
+                    start.setTime(nextMatdTime);
+                    DateUtils.moveToEnd(start, endOfFlag);
+
+                    Calendar end = Calendar.getInstance(appTz);
+                    Date jobEndTime = coordJob.getEndTime();
+                    end.setTime(jobEndTime);
+
+                    Calendar upTimeCal = Calendar.getInstance(appTz);
+                    upTimeCal.setTime(new Date(upTime));
+
+                    int lastActionNumber = coordJob.getLastActionNumber();
+
+                    // Keep the actual start time
+                    Calendar origStart = Calendar.getInstance(appTz);
+                    origStart.setTime(coordJob.getStartTimestamp());
+                    // Move to the End of duration, if needed.
+                    DateUtils.moveToEnd(origStart, endOfFlag);
+
+                    boolean isCronFrequency = false;
+                    try {
+                        Integer.parseInt(coordJob.getFrequency());
+                    } catch (NumberFormatException e) {
+                        isCronFrequency = true;
+                    }
+
+                    if (!isCronFrequency) {
+                        while (start.compareTo(end) < 0 && start.compareTo(upTimeCal) < 0) {
+                            lastActionNumber++;
+                            start = (Calendar) origStart.clone();
+                            start.add(freqTU.getCalendarUnit(), lastActionNumber * Integer.parseInt(frequency));
+                        }
+
+                        if (coordJob.getRecovery().equalsIgnoreCase("LAST_ONLY")) {
+                            lastActionNumber--;
+                            start = (Calendar) origStart.clone();
+                            start.add(freqTU.getCalendarUnit(), lastActionNumber * Integer.parseInt(frequency));
+                        }
+                    }
+                    else {
+                        Calendar secondToLastTime = (Calendar) start.clone();
+                        while (start.compareTo(end) < 0 && start.compareTo(upTimeCal) < 0) {
+                            Date nextTime = CoordCommandUtils.getNextValidActionTimeForCronFrequency(start.getTime(), coordJob);
+                            secondToLastTime = (Calendar) start.clone();
+                            start.setTime(nextTime);
+                            if (start.compareTo(end) < 0 && start.compareTo(upTimeCal) < 0) {
+                                lastActionNumber++;
+                            }
+                        }
+                        if (coordJob.getRecovery().equalsIgnoreCase("LAST_ONLY")) {
+                            lastActionNumber--;
+                            start = (Calendar) secondToLastTime.clone();
+                        }
+                    }
+
+                    coordJob.setNextMaterializedTime(start.getTime());
+                    coordJob.setLastActionNumber(lastActionNumber);
+                    coordJob.setLastModifiedTime(new Date());
+                    Services.get().get(JPAService.class).execute(new CoordJobUpdateJPAExecutor(coordJob));
+                }
+            }
+
+            if (jobsToRecover.isEmpty()) {
+                RecoveryService.doneRecoveryMaterialization = true;
+            }
+        }
+        private boolean materializeCoordJobs(Date currDate, int limit, XLog LOG) {
+            try {
+                JPAService jpaService = Services.get().get(JPAService.class);
+                CoordJobsToBeMaterializedJPAExecutor cmatcmd = new CoordJobsToBeMaterializedJPAExecutor(currDate, limit);
                 List<CoordinatorJobBean> materializeJobs = jpaService.execute(cmatcmd);
+
+                long downtimeThreshold = Services.get().getConf().getLong("oozie.service.RecoveryService.coord.downtime.longer.than", 10);
+                downtimeThreshold = downtimeThreshold * 60000;
+                OozieSysBean bean = null;
+                boolean isRecovery = false;
+                try {
+                    bean = jpaService.execute(new HeartbeatGetJPAExecutor());
+                }
+                catch (JPAExecutorException ex) {
+                    LOG.warn("Error reading heartbeat from database", ex);
+                }
+
+                if (bean == null){
+                    bean = new OozieSysBean("oozie.heartbeat", Long.toString(System.currentTimeMillis()));
+                    try {
+                        jpaService.execute(new HeartbeatInsertJPAExecutor(bean));
+                    }
+                    catch (JPAExecutorException ex) {
+                        LOG.warn("Error reading heartbeat from database", ex);
+                    }
+                }
+                else
+                {
+                    Long lastHeartbeat = Long.valueOf(bean.getData()).longValue();
+                    LOG.info("last updated heart beat is " + bean.getData());
+                    downTime = System.currentTimeMillis() - lastHeartbeat;
+                    upTime = System.currentTimeMillis();
+                    if (downTime > downtimeThreshold){
+                        downTime = lastHeartbeat;
+                        isRecovery = true;
+                    }
+                }
+
+                if (isRecovery) {
+                    try {
+                        setNewMaterializationTimeForRecovery(materializeJobs);
+                    }
+                    catch (Exception ex) {
+                        LOG.warn("Failed to set new materialization time " + ex);
+                    }
+                }
+                int rejected = 0;
                 LOG.info("CoordMaterializeTriggerService - Curr Date= " + currDate + ", Num jobs to materialize = "
                         + materializeJobs.size());
                 for (CoordinatorJobBean coordJob : materializeJobs) {
                     if (Services.get().get(JobsConcurrencyService.class).isJobIdForThisServer(coordJob.getId())) {
                         Services.get().get(InstrumentationService.class).get()
                                 .incr(INSTRUMENTATION_GROUP, INSTR_MAT_JOBS_COUNTER, 1);
-                        int numWaitingActions = jpaService
-                                .execute(new CoordActionsActiveCountJPAExecutor(coordJob.getId()));
+                        int numWaitingActions = jpaService.execute(new CoordActionsActiveCountJPAExecutor(coordJob
+                                .getId()));
                         LOG.info("Job :" + coordJob.getId() + "  numWaitingActions : " + numWaitingActions
                                 + " MatThrottle : " + coordJob.getMatThrottling());
-                        // update lastModifiedTime so next time others might have higher chance to get pick up
+                        // update lastModifiedTime so next time others get picked up in LRU fashion
                         coordJob.setLastModifiedTime(new Date());
                         jpaService.execute(new CoordJobUpdateJPAExecutor(coordJob));
                         if (numWaitingActions >= coordJob.getMatThrottling()) {
-                            LOG.info("info for JobID [" + coordJob.getId() + " already waiting "
-                                    + numWaitingActions + " actions. MatThrottle is : " + coordJob.getMatThrottling());
+                            LOG.info("info for JobID [" + coordJob.getId() + "] " + numWaitingActions
+                                    + " actions already waiting. MatThrottle is : " + coordJob.getMatThrottling());
+                            rejected++;
                             continue;
                         }
                         queueCallable(new CoordMaterializeTransitionXCommand(coordJob.getId(), materializationWindow));
                     }
                 }
-
+                if (materializeJobs.size() == limit && rejected > 0) {
+                    return true;
+                }
             }
             catch (JPAExecutorException jex) {
                 LOG.warn("JPAExecutorException while attempting to materialize coordinator jobs", jex);
             }
-            catch (Exception ex) {
-                LOG.error("Exception while attempting to materialize coordinator jobs, {0}", ex.getMessage(), ex);
-            }
+            return false;
         }
 
         /**
@@ -189,7 +348,7 @@ public class CoordMaterializeTriggerService implements Service {
         Runnable lookupTriggerJobsRunnable = new CoordMaterializeTriggerRunnable(materializationWindow, lookupInterval);
 
         services.get(SchedulerService.class).schedule(lookupTriggerJobsRunnable, 10, lookupInterval,
-                                                      SchedulerService.Unit.SEC);
+                SchedulerService.Unit.SEC);
     }
 
     @Override

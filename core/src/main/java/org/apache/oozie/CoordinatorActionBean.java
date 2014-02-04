@@ -142,6 +142,8 @@ import org.apache.openjpa.persistence.jdbc.Index;
         // Select query used by rerun, requires almost all columns so select * is used
         @NamedQuery(name = "GET_ACTION_FOR_NOMINALTIME", query = "select OBJECT(a) from CoordinatorActionBean a where a.jobId = :jobId AND a.nominalTimestamp = :nominalTime"),
 
+        @NamedQuery(name = "GET_COORD_ACTIONS_FOR_DOWNTIME", query = "select a.id, a.jobId, a.status, a.pending from CoordinatorActionBean a where a.jobId = :jobId AND a.nominalTimestamp >= :startTime AND a.nominalTimestamp <= :endTime AND a.status IN ('WAITING', 'SUBMITTED','RUNNING', 'READY') order by a.nominalTimestamp desc"),
+
         @NamedQuery(name = "GET_COORD_ACTIONS_COUNT", query = "select count(w) from CoordinatorActionBean w")})
 
 @NamedNativeQueries({

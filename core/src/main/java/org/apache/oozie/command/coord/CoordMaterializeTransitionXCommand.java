@@ -44,10 +44,7 @@ import org.apache.oozie.executor.jpa.CoordActionsActiveCountJPAExecutor;
 import org.apache.oozie.executor.jpa.CoordJobGetJPAExecutor;
 import org.apache.oozie.executor.jpa.CoordJobUpdateJPAExecutor;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
-import org.apache.oozie.service.EventHandlerService;
-import org.apache.oozie.service.JPAService;
-import org.apache.oozie.service.Service;
-import org.apache.oozie.service.Services;
+import org.apache.oozie.service.*;
 import org.apache.oozie.util.DateUtils;
 import org.apache.oozie.util.Instrumentation;
 import org.apache.oozie.util.LogUtils;
@@ -192,7 +189,7 @@ public class CoordMaterializeTransitionXCommand extends MaterializeTransitionXCo
             endMatdTime = jobEndTime;
         }
 
-        LOG.debug("Materializing coord job id=" + jobId + ", start=" + startMatdTime + ", end=" + endMatdTime
+        LOG.info("Materializing coord job id=" + jobId + ", start=" + startMatdTime + ", end=" + endMatdTime
                 + ", window=" + materializationWindow);
     }
 
@@ -409,6 +406,13 @@ public class CoordMaterializeTransitionXCommand extends MaterializeTransitionXCo
         }
 
         endMatdTime = new Date(start.getTimeInMillis());
+
+        if (CoordMaterializeTriggerService.jobsToRecover.contains(coordJob.getId())){
+            CoordMaterializeTriggerService.jobsToRecover.remove(coordJob.getId());
+            if (CoordMaterializeTriggerService.jobsToRecover.isEmpty()){
+                RecoveryService.doneRecoveryMaterialization = true;
+            }
+        }
 
         if (!dryrun) {
             return action;
