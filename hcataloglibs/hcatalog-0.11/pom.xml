@@ -36,7 +36,7 @@
          as the required jars are very less and too many dependencies to exclude -->
     <dependencies>
         <dependency>
-            <groupId>org.apache.hcatalog</groupId>
+            <groupId>org.apache.hive.hcatalog</groupId>
             <artifactId>hive-hcatalog-server-extensions</artifactId>
             <version>${hcatalog.version}</version>
             <scope>compile</scope>
@@ -81,7 +81,7 @@
         </dependency>
 
         <dependency>
-            <groupId>org.apache.hcatalog</groupId>
+            <groupId>org.apache.hive.hcatalog</groupId>
             <artifactId>hive-hcatalog-core</artifactId>
             <version>${hcatalog.version}</version>
             <scope>compile</scope>
@@ -114,7 +114,7 @@
         </dependency>
 
         <dependency>
-            <groupId>org.apache.hcatalog</groupId>
+            <groupId>org.apache.hive.hcatalog</groupId>
             <artifactId>hive-webhcat-java-client</artifactId>
             <version>${hcatalog.version}</version>
             <scope>compile</scope>
