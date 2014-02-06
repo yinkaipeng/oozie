@@ -16,4 +16,3 @@
 
 powershell.exe -NoProfile -InputFormat none -ExecutionPolicy unrestricted -File %~dp0uninstall.ps1 %*
 goto :eof
-- 

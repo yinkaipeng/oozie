@@ -20,7 +20,7 @@ param(
 # Default log file and Oozie service names
 $logFileName = "OozieService.log"
 $oozieServiceName = "oozieservice"
-$oozieVersion = "4.0.0"
+$oozieVersion = "@oozie.version@"
 $oozieDistro = "oozie-win-distro"
 
 # Default timeout value to wait for until service status changes

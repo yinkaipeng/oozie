@@ -61,7 +61,7 @@ function setOozieConfigs([string] $xmlFile, [string] $username, [string] $isotop
 #Get the IP Address of the host machine
 function getHostIP()
 {
-    $networkConfigs = Get-WmiObject Win32_NetworkAdapterConfiguration -Namespace "root\CIMV2" | where{$_.IPEnabled -eq “True”}
+    $networkConfigs = Get-WmiObject Win32_NetworkAdapterConfiguration -Namespace "root\CIMV2" | where{$_.IPEnabled -eq "True"}
     $ipAddress = $NULL
     foreach($networkConfig in $networkConfigs) 
     {
@@ -98,9 +98,7 @@ if (!(validatePath $DISTRO_HOME) -or !(validatePath $coreSiteFilePath))
 
 # STEP 1:
 # Call Setup script to add Hadoop libs to the generated oozie.war file
-$params = @{HadoopVersion="$hadoop_version";
-            HadoopHome="$ENV:HADOOP_HOME";
-            jars=$jarPath;
+$params = @{jars=$jarPath;
             inputWar="$DISTRO_HOME\oozie.war";
             outputWar="$DISTRO_HOME\oozie-server\webapps\oozie.war"}
 

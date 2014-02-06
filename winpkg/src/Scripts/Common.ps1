@@ -16,14 +16,14 @@
 
 #--------------------------------------------------------------------------
 # Used version for oozie and its dependencies
-$oozieVersion = "4.0.0"
-$hadoop_version = "2.2.0.100"
+$oozieVersion = "@oozie.version@"
+$hadoop_version = "@hadoop.version@"
 
 # Oozie setup default values
 $oozieRootName = "oozie"
 $defaultInstallRoot = Resolve-Path "$ENV:HADOOP_HOME\.."
 $defaultIsotopeGroup = "hadoopusers"
-$defaultCoreSiteXmlPath = "$ENV:HADOOP_HOME\conf\core-site.xml"
+$defaultCoreSiteXmlPath = "$ENV:HADOOP_HOME\etc\hadoop\core-site.xml"
 $oozieDistro = "oozie-win-distro"
 
 # Oozie Service configuration

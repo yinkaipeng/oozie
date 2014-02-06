@@ -59,7 +59,7 @@ param(
 
 function Main( $scriptDir )
 {
-    $FinalName = "oozie-4.0.0"
+    $FinalName = "oozie-@oozie.version@"
     if ( -not (Test-Path ENV:WINPKG_LOG))
     {
         $ENV:WINPKG_LOG = "$FinalName.winpkg.log"

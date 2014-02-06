@@ -23,9 +23,9 @@
 ###
 $ScriptDir = Resolve-Path (Split-Path $MyInvocation.MyCommand.Path)
 
-$FinalName = "oozie-4.0.0"
+$FinalName = "oozie-@oozie.version@"
 $OozieDistroName = "oozie-win-distro"
-$hadoop_version = "2.2.0.100"
+$hadoop_version = "@hadoop.version@"
 
 
 ###############################################################################
@@ -104,25 +104,9 @@ function Install(
 
         # Call Setup script to add Hadoop libs to the generated oozie.war file
         Write-Log "Calling Setup script to add Hadoop libs to the generated oozie.war file"
-        $params = @{HadoopVersion="$hadoop_version";
-                    HadoopHome="$ENV:HADOOP_HOME";
-                    jars=$oozieExtraJars;
         $params = @{command="prepare-war";d="$oozieInstallToDir\extra_libs"}
 
         Invoke-Expression -command "$oozieDistroBin\oozie-setup.ps1 @params"
-
-        # Always update the default core-site with the one used in Hadoop if it exists
-        $srcCoreFile = "$ENV:HADOOP_HOME\conf\core-site.xml"
-        $destCoreFile = "$oozieDistroHome\conf\hadoop-conf\core-site.xml"
-        if (Test-Path $srcCoreFile)
-        {
-            Copy-Item $srcCoreFile $destCoreFile -force
-            Write-Log "Succesfully updated $destCoreFile from $srcCoreFile"
-        }
-        else
-        {
-            Write-Log "File $srcCoreFile not found"
-        }
     }
     else
     {

@@ -34,6 +34,7 @@
         <dependency>
             <groupId>org.apache.oozie</groupId>
             <artifactId>oozie-win-distro</artifactId>
+            <version>${project.version}</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
