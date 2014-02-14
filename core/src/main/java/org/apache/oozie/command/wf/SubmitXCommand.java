@@ -217,27 +217,6 @@ public class SubmitXCommand extends WorkflowXCommand<String> {
             Element wfElem = XmlUtils.parseXml(app.getDefinition());
             ELEvaluator evalSla = createELEvaluatorForGroup(conf, "wf-sla-submit");
             String jobSlaXml = verifySlaElements(wfElem, evalSla);
-
-            ActionExecutorContext context = new ActionXCommand.ActionExecutorContext(workflow, null, false, false);
-            Element workflowXml = XmlUtils.parseXml(app.getDefinition());
-            removeSlaElements(workflowXml);
-            String workflowXmlString = XmlUtils.removeComments(XmlUtils.prettyPrint(workflowXml).toString());
-            workflowXmlString = context.getELEvaluator().evaluate(workflowXmlString, String.class);
-            workflowXml = XmlUtils.parseXml(workflowXmlString);
-
-            Iterator<Element> it = workflowXml.getDescendants(new ElementFilter("job-xml"));
-
-            while (it.hasNext()) {
-                Element e = it.next();
-                String jobXml = e.getTextTrim();
-                Path xmlPath = new Path(workflow.getAppPath(), jobXml);
-                Configuration jobXmlConf = new XConfiguration(fs.open(xmlPath));
-
-
-                String jobXmlConfString = XmlUtils.prettyPrint(jobXmlConf).toString();
-                jobXmlConfString = XmlUtils.removeComments(jobXmlConfString);
-                context.getELEvaluator().evaluate(jobXmlConfString, String.class);
-            }
             if (!dryrun) {
                 writeSLARegistration(wfElem, jobSlaXml, workflow.getId(), workflow.getParentId(), workflow.getUser(),
                         workflow.getGroup(), workflow.getAppName(), LOG, evalSla);
@@ -263,6 +242,26 @@ public class SubmitXCommand extends WorkflowXCommand<String> {
                 return workflow.getId();
             }
             else {
+                ActionExecutorContext context = new ActionXCommand.ActionExecutorContext(workflow, null, false, false);
+                Element workflowXml = XmlUtils.parseXml(app.getDefinition());
+                removeSlaElements(workflowXml);
+                String workflowXmlString = XmlUtils.removeComments(XmlUtils.prettyPrint(workflowXml).toString());
+                workflowXmlString = context.getELEvaluator().evaluate(workflowXmlString, String.class);
+                workflowXml = XmlUtils.parseXml(workflowXmlString);
+
+                Iterator<Element> it = workflowXml.getDescendants(new ElementFilter("job-xml"));
+
+                while (it.hasNext()) {
+                    Element e = it.next();
+                    String jobXml = e.getTextTrim();
+                    Path xmlPath = new Path(workflow.getAppPath(), jobXml);
+                    Configuration jobXmlConf = new XConfiguration(fs.open(xmlPath));
+
+
+                    String jobXmlConfString = XmlUtils.prettyPrint(jobXmlConf).toString();
+                    jobXmlConfString = XmlUtils.removeComments(jobXmlConfString);
+                    context.getELEvaluator().evaluate(jobXmlConfString, String.class);
+                }
                 return "OK";
             }
         }
