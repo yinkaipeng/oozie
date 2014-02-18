@@ -80,6 +80,16 @@ public class AuthOozieClient extends XOozieClient {
      *
      * @param oozieUrl the Oozie URL
      * @param authOption the auth option
+     */
+    public AuthOozieClient(String oozieUrl, String authOption) {
+        this(oozieUrl, authOption, null, null);
+    }
+
+    /**
+     * Create an instance of the AuthOozieClient.
+     *
+     * @param oozieUrl the Oozie URL
+     * @param authOption the auth option
      * @param username the username for BASIC authentication
      * @param password the password for BASIC authentication
      */
