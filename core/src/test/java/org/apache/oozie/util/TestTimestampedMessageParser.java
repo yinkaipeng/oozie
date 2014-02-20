@@ -128,7 +128,7 @@ public class TestTimestampedMessageParser extends XTestCase {
         try {
             File file = prepareFile3(getTestCaseDir());
             StringWriter sw = new StringWriter();
-            new TimestampedMessageParser(new BufferedReader(new FileReader(file)), xf).processRemaining(sw, 4096);
+            new TimestampedMessageParser(new BufferedReader(new FileReader(file)), xf).processRemaining(sw);
             assertTrue(sw.toString().isEmpty());
         }
         catch (Exception e) {
