@@ -349,6 +349,7 @@
       <class>org.apache.oozie.client.rest.JsonSLAEvent</class>
       <class>org.apache.oozie.client.rest.JsonBundleJob</class>
       <class>org.apache.oozie.util.db.ValidateConnectionBean</class>
+      <class>org.apache.oozie.OozieSysBean</class>
 
       <properties>
         <property name="openjpa.ConnectionDriverName" value="org.apache.oozie.util.db.InstrumentedBasicDataSource"/>
@@ -372,6 +373,7 @@
                 org.apache.oozie.client.rest.JsonCoordinatorJob;
                 org.apache.oozie.client.rest.JsonCoordinatorAction;
                 org.apache.oozie.client.rest.JsonBundleJob;
+                org.apache.oozie.OozieSysBean;
                 org.apache.oozie.util.db.ValidateConnectionBean)"></property>
 
         <property name="openjpa.DetachState" value="fetch-groups(DetachedStateField=true)"/>
