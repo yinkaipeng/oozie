@@ -53,7 +53,7 @@
         <!-- to be able to run a single test case from the main project -->
         <failIfNoTests>false</failIfNoTests>
 
-        <test.timeout>10800</test.timeout>
+        <test.timeout>18000</test.timeout>
 
         <!-- platform encoding override -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -984,7 +984,7 @@
                 <configuration>
                     <forkMode>${oozie.test.forkMode}</forkMode>
                     <forkedProcessTimeoutInSeconds>${test.timeout}</forkedProcessTimeoutInSeconds>
-                    <argLine>-Xmx4096m -da -XX:MaxPermSize=1024m -Djava.library.path=${hadoop.library.path}</argLine>
+                    <argLine>-Xmx4096m -da -XX:MaxPermSize=1024m -Djava.library.path=${hadoop.library.path} -XX:+UseConcMarkSweepGC </argLine>
                     <environmentVariables>
                         <!-- Specify where to look for the native DLL on Windows -->
                         <PATH>${env.PATH};${env.HADOOP_HOME}/bin</PATH>
