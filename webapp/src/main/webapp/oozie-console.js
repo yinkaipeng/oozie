@@ -183,7 +183,7 @@ Ext.ux.Image = Ext.extend(Ext.BoxComponent, {
 
     autoEl: {
         tag: 'img',
-        src: Ext.BLANK_IMAGE_URL,
+        src: Ext.BLANK_IMAGE_URL
     },
 
     initComponent: function() {
@@ -331,7 +331,7 @@ function jobDetailsPopup(response, request) {
             name: 'endTime',
             width: 400,
             value: jobDetails["endTime"]
-        }, ]
+        } ]
     });
     var fs = new Ext.FormPanel({
         frame: true,
@@ -394,7 +394,7 @@ function jobDetailsPopup(response, request) {
             width: 170,
             sortable: true,
             dataIndex: 'endTime'
-        }, ],
+        } ],
         stripeRows: true,
         // autoHeight: true,
         autoScroll: true,
@@ -659,7 +659,7 @@ function jobDetailsPopup(response, request) {
             title: 'Job DAG',
             items: dagImg,
             tbar: [{
-                text: "&nbsp;&nbsp;&nbsp;",
+                text: "&nbsp;&nbsp;&nbsp;"
                 // To avoid OOM
                 /*icon: 'ext-2.2/resources/images/default/grid/refresh.gif',
                 handler: function() {
@@ -872,7 +872,7 @@ function coordJobDetailsPopup(response, request) {
             name: 'concurrency',
             width: 200,
             value: jobDetails["concurrency"]
-        }, ]
+        } ]
     });
     var fs = new Ext.FormPanel({
         frame: true,
@@ -935,7 +935,7 @@ function coordJobDetailsPopup(response, request) {
             width: 170,
             sortable: true,
             dataIndex: 'LastModifiedTime'
-        }, ],
+        } ],
         stripeRows: true,
         // autoHeight: true,
         autoScroll: true,
@@ -1040,7 +1040,7 @@ function coordJobDetailsPopup(response, request) {
                     width: 400,
                     value: actionStatus["trackerUri"]
 
-                }, ]
+                } ]
             });
             /*
              var detail = new Ext.FormPanel( {
@@ -1201,7 +1201,7 @@ function bundleJobDetailsPopup(response, request) {
             name: 'group',
             width: 170,
             value: jobDetails["group"]
-        }, ]
+        } ]
     });
 
     var fs = new Ext.FormPanel({
@@ -1282,7 +1282,7 @@ function bundleJobDetailsPopup(response, request) {
             width: 200,
             sortable: true,
             dataIndex: 'nextMaterializedTime'
-        }, ],
+        } ],
         stripeRows: true,
         // autoHeight: true,
         autoScroll: true,
@@ -1449,7 +1449,7 @@ function showConfigurationInWindow(dataObject, windowTitle) {
             width: 240,
             sortable: true,
             dataIndex: 'value'
-        }, ],
+        } ],
         stripeRows: true,
         autoHeight: true,
         autoScroll: true,
@@ -1961,7 +1961,7 @@ function initConsole() {
             width: 170,
             sortable: true,
             dataIndex: 'endTime'
-        }, ],
+        } ],
 
         stripeRows: true,
         autoScroll: true,
@@ -2007,7 +2007,7 @@ function initConsole() {
             sortable: true,
             renderer: valueRenderer,
             dataIndex: 'value'
-        }, ],
+        } ],
         height: 500,
         width: 1040,
         autoScroll: true,
@@ -2093,7 +2093,7 @@ function initConsole() {
             width: 170,
             sortable: true,
             dataIndex: 'nextMaterializedTime'
-        },],
+        }],
 
         stripeRows: true,
         autoScroll: true,
@@ -2163,7 +2163,7 @@ function initConsole() {
             width: 170,
             sortable: true,
             dataIndex: 'createdTime'
-        },],
+        }],
 
         stripeRows: true,
         autoScroll: true,
