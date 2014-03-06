@@ -236,32 +236,27 @@ public class OozieDBCLI {
         String dbVendor = getDBVendor();
         ArrayList<String> ddlQueries = new ArrayList<String>();
         if (dbVendor.equals("derby")) {
-            ddlQueries.add("ALTER TABLE COORD_JOBS ADD COLUMN recovery VARCHAR(255)");
             ddlQueries.add("ALTER TABLE OOZIE_SYS ALTER COLUMN name NOT NULL");
             ddlQueries.add("ALTER TABLE OOZIE_SYS ADD PRIMARY KEY (name)");
         }
         else
         if (dbVendor.equals("oracle")) {
-            ddlQueries.add("ALTER TABLE COORD_JOBS ADD (recovery VARCHAR2(255))");
             ddlQueries.add("ALTER TABLE OOZIE_SYS ALTER COLUMN name NOT NULL");
             ddlQueries.add("ALTER TABLE OOZIE_SYS ADD PRIMARY KEY (name)");
 
         }
         else
         if (dbVendor.equals("mysql")) {
-            ddlQueries.add("ALTER TABLE COORD_JOBS ADD COLUMN recovery VARCHAR(255)");
             ddlQueries.add("ALTER TABLE OOZIE_SYS MODIFY name VARCHAR(255) NOT NULL");
             ddlQueries.add("ALTER TABLE OOZIE_SYS ADD PRIMARY KEY (name)");
         }
         else
         if (dbVendor.equals("postgresql")) {
-            ddlQueries.add("ALTER TABLE COORD_JOBS ADD COLUMN recovery VARCHAR(255)");
             ddlQueries.add("ALTER TABLE OOZIE_SYS ALTER COLUMN name SET NOT NULL");
             ddlQueries.add("ALTER TABLE OOZIE_SYS ADD PRIMARY KEY (name)");
         }
         else
         if (dbVendor.equals("sqlserver")) {
-            ddlQueries.add("ALTER TABLE COORD_JOBS ADD recovery VARCHAR(255)");
             ddlQueries.add("ALTER TABLE OOZIE_SYS ALTER COLUMN name VARCHAR(255) NOT NULL");
             ddlQueries.add("ALTER TABLE OOZIE_SYS ADD CONSTRAINT PRIMARY KEY CLUSTERED (name)");
         }
