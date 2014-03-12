@@ -197,7 +197,7 @@ public class ShellMain extends LauncherMain {
                         System.out.println("Stdoutput " + line);
                         // 2. Writing for capture output
                         if (os != null) {
-                            os.write(line);
+                            os.write(line.replace("\\", "\\\\"));
                             os.newLine();
                         }
                     }

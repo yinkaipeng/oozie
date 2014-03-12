@@ -228,6 +228,11 @@ public class TestShellActionExecutor extends ActionExecutorTestCase {
      * @throws Exception
      */
     public void testEnvVar() throws Exception {
+        Services.get().destroy();
+
+        Services services = new Services();
+        services.getConf().setInt(LauncherMapper.CONF_OOZIE_ACTION_MAX_OUTPUT_DATA, 8 * 1042);
+        services.init();
 
         FileSystem fs = getFileSystem();
         // Create the script file with canned shell command
