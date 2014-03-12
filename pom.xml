@@ -985,10 +985,6 @@
                     <forkMode>${oozie.test.forkMode}</forkMode>
                     <forkedProcessTimeoutInSeconds>${test.timeout}</forkedProcessTimeoutInSeconds>
                     <argLine>-Xmx4096m -da -XX:MaxPermSize=1024m -Djava.library.path=${hadoop.library.path} -XX:+UseConcMarkSweepGC </argLine>
-                    <environmentVariables>
-                        <!-- Specify where to look for the native DLL on Windows -->
-                        <PATH>${env.PATH};${env.HADOOP_HOME}/bin</PATH>
-                    </environmentVariables>
                     <systemPropertyVariables>
                         <oozie.test.db.host>${oozie.test.db.host}</oozie.test.db.host>
                         <oozie.test.config.file>${oozie.test.config.file}</oozie.test.config.file>
