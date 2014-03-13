@@ -444,6 +444,7 @@ public class CoordinatorJobBean extends JsonCoordinatorJob implements Writable {
         WritableUtils.writeStr(dataOutput, getTimeZone());
         dataOutput.writeInt(getConcurrency());
         WritableUtils.writeStr(dataOutput, getExecutionOrder().toString());
+        WritableUtils.writeStr(dataOutput, getRecoveryOrder().toString());
         dataOutput.writeLong((getLastActionTime() != null) ? getLastActionTime().getTime() : -1);
         dataOutput.writeLong((getNextMaterializedTime() != null) ? getNextMaterializedTime().getTime() : -1);
         dataOutput.writeLong((getStartTime() != null) ? getStartTime().getTime() : -1);
@@ -453,7 +454,6 @@ public class CoordinatorJobBean extends JsonCoordinatorJob implements Writable {
         WritableUtils.writeStr(dataOutput, getExternalId());
         dataOutput.writeInt(getTimeout());
         dataOutput.writeInt(getMatThrottling());
-        WritableUtils.writeStr(dataOutput, getRecoveryOrder().toString());
         if (isPending()) {
             dataOutput.writeInt(1);
         } else {

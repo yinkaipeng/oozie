@@ -27,6 +27,7 @@ import java.util.Date;
 import java.util.List;
 
 import org.apache.oozie.client.CoordinatorJob.Execution;
+import org.apache.oozie.client.CoordinatorJob.Recovery;
 import org.apache.oozie.client.CoordinatorJob.Timeunit;
 import org.apache.oozie.client.Job.Status;
 import org.apache.oozie.client.rest.JsonCoordinatorAction;
@@ -45,6 +46,7 @@ public class TestCoordinatorJobBean extends XTestCase {
     private static final Date spt = new Date(8L);
     private static final List<? extends JsonCoordinatorAction> actionList = Collections.singletonList(new CoordinatorActionBean());
     private static final Execution execution = Execution.LIFO;
+    private static final Recovery recovery = Recovery.ALL;
 
     private void set(CoordinatorJobBean bean) {
         bean.setActions(actionList);
@@ -61,6 +63,7 @@ public class TestCoordinatorJobBean extends XTestCase {
         bean.setEndTimestamp(DateUtils.convertDateToTimestamp(et));
         bean.setExecution(execution);
         bean.setExecutionOrder(execution);
+        bean.setRecovery(recovery);
         bean.setExternalId("ei");
         bean.setFrequency("3");
         bean.setGroup("group");
