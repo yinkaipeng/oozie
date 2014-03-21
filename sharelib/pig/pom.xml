@@ -228,6 +228,11 @@
             <artifactId>oozie-hadoop-utils</artifactId>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>org.apache.oozie</groupId>
+            <artifactId>oozie-hadoop-utils</artifactId>
+            <scope>provided</scope>
+        </dependency>
     </dependencies>
 
     <build>
