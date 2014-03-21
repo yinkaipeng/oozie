@@ -34,7 +34,6 @@ import org.apache.oozie.service.Services;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
-import java.util.Map;
 
 public class TestLauncher extends XFsTestCase {
 
@@ -80,7 +79,7 @@ public class TestLauncher extends XFsTestCase {
 
         Configuration actionConf = new XConfiguration();
         LauncherMapperHelper.setupLauncherInfo(jobConf, "1", "1@a", actionDir, "1@a-0", actionConf, "");
-        LauncherMapperHelper.setupYarnRestartHandling(jobConf, jobConf, "1@a");
+
         assertEquals("1", actionConf.get("oozie.job.id"));
         assertEquals("1@a", actionConf.get("oozie.action.id"));
 
@@ -172,7 +171,7 @@ public class TestLauncher extends XFsTestCase {
     public void testException() throws Exception {
         Path actionDir = getFsTestCaseDir();
         FileSystem fs = getFileSystem();
-        final RunningJob runningJob = _test("exception");
+        final RunningJob runningJob = _test("ex");
         waitFor(2000, new Predicate() {
             @Override
             public boolean evaluate() throws Exception {
@@ -190,29 +189,6 @@ public class TestLauncher extends XFsTestCase {
         assertFalse(fs.exists(LauncherMapperHelper.getIdSwapPath(actionDir)));
         assertFalse(fs.exists(LauncherMapperHelper.getOutputDataPath(actionDir)));
     }
-
-    public void testThrowable() throws Exception {
-        Path actionDir = getFsTestCaseDir();
-        FileSystem fs = getFileSystem();
-        final RunningJob runningJob = _test("throwable");
-        waitFor(2000, new Predicate() {
-            @Override
-            public boolean evaluate() throws Exception {
-                return runningJob.isComplete();
-            }
-        });
-        assertTrue(runningJob.isSuccessful());
-
-        assertTrue(LauncherMapperHelper.isMainDone(runningJob));
-        assertFalse(LauncherMapperHelper.isMainSuccessful(runningJob));
-        assertFalse(LauncherMapperHelper.hasOutputData(runningJob));
-        assertFalse(LauncherMapperHelper.hasIdSwap(runningJob));
-        assertTrue(LauncherMapperHelper.isMainDone(runningJob));
-        assertTrue(fs.exists(LauncherMapperHelper.getErrorPath(actionDir)));
-        assertFalse(fs.exists(LauncherMapperHelper.getIdSwapPath(actionDir)));
-        assertFalse(fs.exists(LauncherMapperHelper.getOutputDataPath(actionDir)));
-    }
-
 
     public void testOutput() throws Exception {
         Path actionDir = getFsTestCaseDir();
