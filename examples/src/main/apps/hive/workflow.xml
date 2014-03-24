@@ -20,7 +20,7 @@
     <start to="hive-node"/>
 
     <action name="hive-node">
-        <hive xmlns="uri:oozie:hive-action:0.2">
+        <hive xmlns="uri:oozie:hive-action:0.3">
             <job-tracker>${jobTracker}</job-tracker>
             <name-node>${nameNode}</name-node>
             <prepare>
