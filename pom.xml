@@ -1172,5 +1172,25 @@
                 <module>winpkg</module>
             </modules>
         </profile>
+		<profile>
+            <id>windowsTests</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <environmentVariables>
+                                <!-- Specify where to look for the native DLL on Windows -->
+                                <PATH>${env.PATH};${env.HADOOP_HOME}/bin</PATH>
+                            </environmentVariables>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
     </profiles>
 </project>
