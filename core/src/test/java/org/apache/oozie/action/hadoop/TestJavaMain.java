@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,45 +17,22 @@
  */
 package org.apache.oozie.action.hadoop;
 
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.oozie.util.XConfiguration;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.InputStream;
+import java.io.IOException;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
-import java.util.Properties;
 
-public class TestMapReduceMain extends MainTestCase {
+public class TestJavaMain extends MainTestCase {
 
+    @Override
     public Void call() throws Exception {
-        FileSystem fs = getFileSystem();
-
-        Path inputDir = new Path(getFsTestCaseDir(), "input");
-        fs.mkdirs(inputDir);
-        Writer writer = new OutputStreamWriter(fs.create(new Path(inputDir, "data.txt")));
-        writer.write("hello");
-        writer.close();
-
-        Path outputDir = new Path(getFsTestCaseDir(), "output");
 
         XConfiguration jobConf = new XConfiguration();
         XConfiguration.copy(createJobConf(), jobConf);
 
-
-        jobConf.setInt("mapred.map.tasks", 1);
-        jobConf.setInt("mapred.map.max.attempts", 1);
-        jobConf.setInt("mapred.reduce.max.attempts", 1);
-
-        jobConf.set("mapred.input.dir", inputDir.toString());
-        jobConf.set("mapred.output.dir", outputDir.toString());
-
-        jobConf.set("user.name", getTestUser());
-        jobConf.set("hadoop.job.ugi", getTestUser() + "," + getTestGroup());
+        jobConf.set("oozie.action.java.main", LauncherMainTester.class.getName());
 
         jobConf.set("mapreduce.job.tags", "" + System.currentTimeMillis());
         setSystemProperty("oozie.job.launch.time", "" + System.currentTimeMillis());
@@ -65,21 +42,21 @@ public class TestMapReduceMain extends MainTestCase {
         jobConf.writeXml(os);
         os.close();
 
-        File newIdProperties = new File(getTestCaseDir(), "newId.properties");
+        File newId = new File(getTestCaseDir(), "newId");
 
         System.setProperty("oozie.action.conf.xml", actionXml.getAbsolutePath());
-        System.setProperty("oozie.action.newId.properties", newIdProperties.getAbsolutePath());
-        MapReduceMain.main(new String[0]);
 
-        assertTrue(newIdProperties.exists());
+        // Check normal execution
+        JavaMain.main(new String[0]);
 
-        InputStream is = new FileInputStream(newIdProperties);
-        Properties props = new Properties();
-        props.load(is);
-        is.close();
+        // Check Exception handling
+        try {
+            JavaMain.main(new String[]{"ex2"});
+        } catch(JavaMainException jme) {
+            assertTrue(jme.getCause() instanceof IOException);
+            assertEquals("throwing exception", jme.getCause().getMessage());
+        }
 
-        assertTrue(props.containsKey("id"));
         return null;
     }
-
 }
