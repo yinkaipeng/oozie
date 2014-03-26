@@ -356,12 +356,6 @@
 
             <dependency>
                 <groupId>org.apache.oozie</groupId>
-                <artifactId>oozie-hadoop-utils</artifactId>
-                <version>${hadooplib.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.apache.oozie</groupId>
                 <artifactId>oozie-hadoop-test</artifactId>
                 <version>${hadooplib.version}</version>
             </dependency>

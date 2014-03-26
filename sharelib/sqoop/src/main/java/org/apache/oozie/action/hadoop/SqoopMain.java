@@ -162,8 +162,6 @@ public class SqoopMain extends LauncherMain {
             System.out.println("             " + arg);
         }
 
-        LauncherMainHadoopUtils.killChildYarnJobs(sqoopConf);
-
         System.out.println("=================================================================");
         System.out.println();
         System.out.println(">>> Invoking Sqoop command line now >>>");
