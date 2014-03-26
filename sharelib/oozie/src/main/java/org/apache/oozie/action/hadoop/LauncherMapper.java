@@ -290,7 +290,7 @@ public class LauncherMapper<K1, V1, K2, V2> implements Mapper<K1, V1, K2, V2>, R
                         }
                         handleActionStatsData(reporter);
                         handleExternalChildIDs(reporter);
-						File newId = new File(System.getProperty(LauncherMapper.ACTION_PREFIX + LauncherMapper.ACTION_DATA_NEW_ID));
+                        File newId = new File(System.getProperty("oozie.action.newId.properties"));
                         if (newId.exists()) {
                             Properties props = new Properties();
                             props.load(new FileReader(newId));
