@@ -18,6 +18,8 @@
 package org.apache.oozie.action.hadoop;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.oozie.action.ActionExecutorException;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.util.XLog;
 import org.jdom.Element;
@@ -33,17 +35,18 @@ public class DistcpActionExecutor extends JavaActionExecutor{
         super("distcp");
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.oozie.action.hadoop.JavaActionExecutor#getLauncherMain(org.apache.hadoop.conf.Configuration, org.jdom.Element)
-     */
+
     @Override
-    protected String getLauncherMain(Configuration launcherConf, Element actionXml) {
+    Configuration setupActionConf(Configuration actionConf, Context context, Element actionXml, Path appPath)
+            throws ActionExecutorException {
+        actionConf = super.setupActionConf(actionConf, context, actionXml, appPath);
         String classNameDistcp = CONF_OOZIE_DISTCP_ACTION_MAIN_CLASS;
         String name = getClassNamebyType(DISTCP_TYPE);
         if(name != null){
             classNameDistcp = name;
         }
-        return launcherConf.get(LauncherMapper.CONF_OOZIE_ACTION_MAIN_CLASS, classNameDistcp);
+        actionConf.set(JavaMain.JAVA_MAIN_CLASS, classNameDistcp);
+        return actionConf;
     }
 
     /**

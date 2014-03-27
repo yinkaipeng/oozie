@@ -291,7 +291,8 @@ public class TestJavaActionExecutor extends ActionExecutorTestCase {
 
         conf = ae.createLauncherConf(getFileSystem(), context, action, actionXml, actionConf);
         ae.setupLauncherConf(conf, actionXml, getFsTestCaseDir(), context);
-        assertEquals("MAIN-CLASS", ae.getLauncherMain(conf, actionXml));
+        assertEquals("MAIN-CLASS", actionConf.get("oozie.action.java.main", "null"));
+        assertEquals("org.apache.oozie.action.hadoop.JavaMain", ae.getLauncherMain(conf, actionXml));
         assertTrue(conf.get("mapred.child.java.opts").contains("JAVA-OPTS"));
         assertEquals(Arrays.asList("A1", "A2"), Arrays.asList(LauncherMapper.getMainArguments(conf)));
 

@@ -310,6 +310,9 @@ public class JavaActionExecutor extends ActionExecutor {
 
             has.checkSupportedFilesystem(appPath.toUri());
 
+            // Set the Java Main Class for the Java action to give to the Java launcher
+            setJavaMain(actionConf, actionXml);
+
             parseJobXmlAndConfiguration(context, actionXml, appPath, actionConf);
             return actionConf;
         }
@@ -566,9 +569,15 @@ public class JavaActionExecutor extends ActionExecutor {
 
 
     protected String getLauncherMain(Configuration launcherConf, Element actionXml) {
+        return launcherConf.get(LauncherMapper.CONF_OOZIE_ACTION_MAIN_CLASS, JavaMain.class.getName());
+    }
+
+    private void setJavaMain(Configuration actionConf, Element actionXml) {
         Namespace ns = actionXml.getNamespace();
         Element e = actionXml.getChild("main-class", ns);
-        return e.getTextTrim();
+        if (e != null) {
+            actionConf.set(JavaMain.JAVA_MAIN_CLASS, e.getTextTrim());
+        }
     }
 
     private static final String QUEUE_NAME = "mapred.job.queue.name";
@@ -595,6 +604,9 @@ public class JavaActionExecutor extends ActionExecutor {
             // launcher job configuration
             JobConf launcherJobConf = createBaseHadoopConf(context, actionXml);
             setupLauncherConf(launcherJobConf, actionXml, appPathRoot, context);
+
+            // Properties for when a launcher job's AM gets restarted
+            LauncherMapperHelper.setupYarnRestartHandling(launcherJobConf, actionConf, action.getId());
 
             String actionShareLibProperty = actionConf.get(ACTION_SHARELIB_FOR + getType());
             if (actionShareLibProperty != null) {
@@ -628,6 +640,7 @@ public class JavaActionExecutor extends ActionExecutor {
             LauncherMapperHelper.setupLauncherInfo(launcherJobConf, jobId, actionId, actionDir, recoveryId, actionConf,
                     prepareXML);
 
+            // Set the launcher Main Class
             LauncherMapperHelper.setupMainClass(launcherJobConf, getLauncherMain(launcherJobConf, actionXml));
             LauncherMapperHelper.setupLauncherURIHandlerConf(launcherJobConf);
             LauncherMapperHelper.setupMaxOutputData(launcherJobConf, maxActionOutputLen);
