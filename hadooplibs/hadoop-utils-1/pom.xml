@@ -27,7 +27,7 @@
     </parent>
     <groupId>org.apache.oozie</groupId>
     <artifactId>oozie-hadoop-utils</artifactId>
-    <version>{HadoopOne.version}.oozie-4.0.0</version>
+    <version>${hadoopOne.version}.oozie-4.0.0</version>
     <description>Apache Oozie Hadoop Utils ${project.version}</description>
     <name>Apache Oozie Hadoop Utils ${project.version}</name>
     <packaging>jar</packaging>
