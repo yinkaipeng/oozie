@@ -93,6 +93,7 @@ public class JavaActionExecutor extends ActionExecutor {
     private boolean useLauncherJar;
     private static int maxActionOutputLen;
     private static int maxExternalStatsSize;
+    private static final int maxGetJobRetries = 10;
 
     private static final String SUCCEEDED = "SUCCEEDED";
     private static final String KILLED = "KILLED";
@@ -1014,7 +1015,22 @@ public class JavaActionExecutor extends ActionExecutor {
     }
 
     protected RunningJob getRunningJob(Context context, WorkflowAction action, JobClient jobClient) throws Exception{
-        RunningJob runningJob = jobClient.getJob(JobID.forName(action.getExternalId()));
+        RunningJob runningJob = null;
+        int retries = 0;
+        while(retries++ < maxGetJobRetries){
+            XLog.getLog(getClass()).info(XLog.STD, "Trying to get job [{0}], attempt [{1}]",action
+                .getExternalId(), retries);
+            runningJob =
+                jobClient.getJob(JobID.forName(action.getExternalId()));
+            if (runningJob != null){
+                break;
+            }
+
+            try{
+                Thread.sleep(2000);
+            } catch (InterruptedException e) {
+            }
+        }
         return runningJob;
     }
 
