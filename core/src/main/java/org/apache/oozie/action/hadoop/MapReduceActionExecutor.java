@@ -18,7 +18,9 @@
 package org.apache.oozie.action.hadoop;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.io.StringReader;
+import java.io.StringWriter;
 import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
@@ -177,10 +179,12 @@ public class MapReduceActionExecutor extends JavaActionExecutor {
         boolean exception = false;
         try {
             if (action.getStatus() == WorkflowAction.Status.OK) {
+                log.info("action " + action.getId() + " status is ok");
                 Element actionXml = XmlUtils.parseXml(action.getConf());
                 JobConf jobConf = createBaseHadoopConf(context, actionXml);
                 jobClient = createJobClient(context, jobConf);
                 RunningJob runningJob = jobClient.getJob(JobID.forName(action.getExternalChildIDs()));
+                log.info("running job for action " + action.getId() + " is " + runningJob);
                 if (runningJob == null) {
                     throw new ActionExecutorException(ActionExecutorException.ErrorType.FAILED, "MR002",
                             "Unknown hadoop job [{0}] associated with action [{1}].  Failing this action!",
@@ -191,6 +195,7 @@ public class MapReduceActionExecutor extends JavaActionExecutor {
                 if (counters != null) {
                     ActionStats stats = new MRStats(counters);
                     String statsJsonString = stats.toJSON();
+                    log.info("stats to json string for action " + action.getId() + " is " + statsJsonString);
                     context.setVar(HADOOP_COUNTERS, statsJsonString);
 
                     // If action stats write property is set to false by user or
@@ -206,12 +211,17 @@ public class MapReduceActionExecutor extends JavaActionExecutor {
                 }
                 else {
                     context.setVar(HADOOP_COUNTERS, "");
+                    log.info("hadoop counters for action " + action.getId() + " is null");
                     XLog.getLog(getClass()).warn("Could not find Hadoop Counters for: [{0}]",
                             action.getExternalChildIDs());
                 }
             }
         }
         catch (Exception ex) {
+            StringWriter sw = new StringWriter();
+            PrintWriter pw = new PrintWriter(sw);
+            ex.printStackTrace(pw);
+            log.info("stacktrace for action " + action.getId() + " : " + sw.toString());
             exception = true;
             throw convertException(ex);
         }

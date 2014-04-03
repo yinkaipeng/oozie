@@ -17,6 +17,8 @@
  */
 package org.apache.oozie.command.wf;
 
+import java.io.StringWriter;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -167,6 +169,7 @@ public class ActionEndXCommand extends ActionXCommand<Void> {
 
             Instrumentation.Cron cron = new Instrumentation.Cron();
             cron.start();
+            LOG.info("end executor for wf action " + wfAction.getJobId() + " with wf job " + wfJob.getId());
             executor.end(context, wfAction);
             cron.stop();
             addActionCron(wfAction.getType(), cron);
@@ -223,6 +226,10 @@ public class ActionEndXCommand extends ActionXCommand<Void> {
             updateList.add(wfJob);
         }
         catch (ActionExecutorException ex) {
+            StringWriter sw = new StringWriter();
+            PrintWriter pw = new PrintWriter(sw);
+            ex.printStackTrace(pw);
+            LOG.info("stack trace is: " + sw.toString());
             LOG.warn(
                     "Error ending action [{0}]. ErrorType [{1}], ErrorCode [{2}], Message [{3}]",
                     wfAction.getName(), ex.getErrorType(), ex.getErrorCode(), ex.getMessage());
