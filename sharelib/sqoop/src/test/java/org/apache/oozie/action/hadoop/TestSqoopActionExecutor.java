@@ -256,6 +256,7 @@ public class TestSqoopActionExecutor extends ActionExecutorTestCase {
         ae.check(context, context.getAction());
         assertTrue(launcherId.equals(context.getAction().getExternalId()));
         assertEquals("SUCCEEDED", context.getAction().getExternalStatus());
+        assertNotNull(context.getAction().getData());
         assertNotNull(context.getAction().getExternalChildIDs());
         ae.end(context, context.getAction());
         assertEquals(WorkflowAction.Status.OK, context.getAction().getStatus());
@@ -284,7 +285,11 @@ public class TestSqoopActionExecutor extends ActionExecutorTestCase {
         }
         assertEquals(3, count);
 
-        assertTrue(actionData.get(LauncherMapper.ACTION_DATA_EXTERNAL_CHILD_IDS).trim().length() > 0);
+        assertNotNull(context.getAction().getData());
+        Properties outputData = new Properties();
+        outputData.load(new StringReader(context.getAction().getData()));
+        assertTrue(outputData.containsKey(LauncherMain.HADOOP_JOBS));
+        assertTrue(outputData.getProperty(LauncherMain.HADOOP_JOBS).trim().length() > 0);
     }
 
 

@@ -1084,7 +1084,7 @@ public class JavaActionExecutor extends ActionExecutor {
                     XLog.getLog(getClass()).info(XLog.STD, "action completed, external ID [{0}]",
                             action.getExternalChildIDs());
                     if (LauncherMapperHelper.isMainSuccessful(runningJob)) {
-                        if (LauncherMapperHelper.hasOutputData(actionData)) {
+                        if (getCaptureOutput(action) && LauncherMapperHelper.hasOutputData(actionData)) {
                             context.setExecutionData(SUCCEEDED, PropertiesUtils.stringToProperties(actionData
                                     .get(LauncherMapper.ACTION_DATA_OUTPUT_PROPS)));
                             XLog.getLog(getClass()).info(XLog.STD, "action produced output");
@@ -1096,6 +1096,7 @@ public class JavaActionExecutor extends ActionExecutor {
                             context.setExecutionStats(actionData.get(LauncherMapper.ACTION_DATA_STATS));
                             XLog.getLog(getClass()).info(XLog.STD, "action produced stats");
                         }
+                        getActionData(actionFs, runningJob, action, context);
                     }
                     else {
                         XLog log = XLog.getLog(getClass());
@@ -1160,6 +1161,20 @@ public class JavaActionExecutor extends ActionExecutor {
                 }
             }
         }
+    }
+
+    /**
+     * Get the output data of an action. Subclasses should override this method
+     * to get action specific output data.
+     *
+     * @param actionFs the FileSystem object
+     * @param runningJob the runningJob
+     * @param action the Workflow action
+     * @param context executor context
+     *
+     */
+    protected void getActionData(FileSystem actionFs, RunningJob runningJob, WorkflowAction action, Context context)
+            throws HadoopAccessorException, JDOMException, IOException, URISyntaxException {
     }
 
     protected boolean getCaptureOutput(WorkflowAction action) throws JDOMException {
