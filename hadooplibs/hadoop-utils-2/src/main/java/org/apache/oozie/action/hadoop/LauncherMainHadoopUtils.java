@@ -43,14 +43,22 @@ public class LauncherMainHadoopUtils {
         Set<ApplicationId> childYarnJobs = new HashSet<ApplicationId>();
         long startTime = 0L;
         try {
-            startTime = Long.parseLong((System.getProperty("oozie.job.launch.time")));
+            String launchTimeStr = System.getProperty("oozie.job.launch.time");
+            System.out.println("Launch time = " + launchTimeStr);
+            if (launchTimeStr != null && launchTimeStr.length() > 0) {
+                startTime = Long.parseLong(launchTimeStr);
+            }
         } catch(NumberFormatException nfe) {
             throw new RuntimeException("Could not find Oozie job launch time", nfe);
         }
         String tag = actionConf.get("mapreduce.job.tags");
-        if (tag == null) {
-            throw new RuntimeException("Could not find Yarn tags property (mapreduce.job.tags)");
+        if (tag == null || tag.length() == 0 || startTime == 0L) {
+          System.out.println("Oozie start time or job tags not found - cannot determine previously running jobs");
+          return childYarnJobs;
+            // throw new RuntimeException("Could not find Yarn tags property (mapreduce.job.tags)");
         }
+        System.out.println("Job launch time = " + startTime + " mapreduce.job.tags = " + tag);
+
         GetApplicationsRequest gar = GetApplicationsRequest.newInstance();
         gar.setScope(ApplicationsRequestScope.OWN);
         gar.setStartRange(startTime, System.currentTimeMillis());
