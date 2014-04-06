@@ -55,6 +55,8 @@ import org.apache.oozie.action.ActionExecutor;
 import org.apache.oozie.action.ActionExecutorException;
 import org.apache.oozie.client.OozieClient;
 import org.apache.oozie.client.WorkflowAction;
+import org.apache.oozie.executor.jpa.WorkflowJobGetJPAExecutor;
+import org.apache.oozie.service.JPAService;
 import org.apache.oozie.service.HadoopAccessorException;
 import org.apache.oozie.service.HadoopAccessorService;
 import org.apache.oozie.service.Services;
@@ -606,8 +608,22 @@ public class JavaActionExecutor extends ActionExecutor {
             JobConf launcherJobConf = createBaseHadoopConf(context, actionXml);
             setupLauncherConf(launcherJobConf, actionXml, appPathRoot, context);
 
+            JPAService jpaService = Services.get().get(JPAService.class);
+
+            int run = 0;
+            if (jpaService != null) {
+                String wfJobId = ((WorkflowActionBean)action).getWfId();
+                if (wfJobId != null) {
+                    WorkflowJobBean wfJob = jpaService.execute(new WorkflowJobGetJPAExecutor(wfJobId));
+                    if (wfJob != null) {
+                        run = wfJob.getRun();
+                    }
+                }
+            }
+
             // Properties for when a launcher job's AM gets restarted
-            LauncherMapperHelper.setupYarnRestartHandling(launcherJobConf, actionConf, action.getId());
+            LauncherMapperHelper.setupYarnRestartHandling(launcherJobConf,
+                actionConf, action.getId(), run);
 
             String actionShareLibProperty = actionConf.get(ACTION_SHARELIB_FOR + getType());
             if (actionShareLibProperty != null) {
