@@ -88,7 +88,7 @@ public class TestV1JobsServletBundleEngine extends DagServletTestCase {
      * {@link BundleEngine#parseFilter(String)}.
      */
     public void testGetBundleJobs() throws Exception {
-        final BundleJobBean bundleJobBean = xDataTestCase.addRecordToBundleJobTable(Job.Status.PREP, false);
+        final BundleJobBean bundleJobBean = xDataTestCase.addRecordToBundleJobTable(Job.Status.KILLED, false);
 
         runTest("/v1/jobs", V1JobsServlet.class, IS_SECURITY_ENABLED, new Callable<Void>() {
             @Override
@@ -97,7 +97,7 @@ public class TestV1JobsServletBundleEngine extends DagServletTestCase {
 
                 Map<String, String> params = new HashMap<String, String>();
                 params.put(RestConstants.JOBTYPE_PARAM, "bundle");
-                params.put(RestConstants.JOBS_FILTER_PARAM, OozieClient.FILTER_STATUS + "=PREP;" + OozieClient.FILTER_NAME
+                params.put(RestConstants.JOBS_FILTER_PARAM, OozieClient.FILTER_STATUS + "=KILLED;" + OozieClient.FILTER_NAME
                         + "=BUNDLE-TEST;" + OozieClient.FILTER_USER + "=" + getTestUser());
 
                 URL url = createURL("", params);
