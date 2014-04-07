@@ -116,6 +116,11 @@ function Main( $scriptDir )
     Install "oozie" $nodeInstallRoot $serviceCredential $OozieRoles
 
     Write-Log "Installation of Oozie completed successfully"
+
+    Write-Log "Configuring Oozie"
+    Configure "oozie" $NodeInstallRoot $ServiceCredential @{
+        "oozie.service.AuthorizationService.security.enabled" = "false" }
+
 }
 
 try
