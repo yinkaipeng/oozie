@@ -276,6 +276,11 @@ public class OozieDBCLI {
 
             writer.close();
         }
+        catch (Exception ex) {
+            if (!ex.getMessage().contains("have the same set of columns")) {
+                throw new Exception(ex.getMessage());
+            }
+        }
         finally {
             if (run) {
                 conn.close();
@@ -744,8 +749,8 @@ public class OozieDBCLI {
     private void verifyOozieDBVersion() throws Exception {
         System.out.println("Verify Oozie DB version");
         String version = getOozieDBVersion();
-        if (!DB_VERSION.equals(version.trim())) {
-            throw new Exception("ERROR: Expected Oozie DB version '" + DB_VERSION + "', found '" + version.trim() + "'");
+        if (!NEW_DB_VERSION.equals(version.trim())) {
+            throw new Exception("ERROR: Expected Oozie DB version '" + NEW_DB_VERSION + "', found '" + version.trim() + "'");
         }
         System.out.println("DONE");
     }
@@ -810,7 +815,7 @@ public class OozieDBCLI {
         "create table OOZIE_SYS (name varchar(100), data varchar(100))";
 
     private final static String SET_DB_VERSION =
-        "insert into OOZIE_SYS (name, data) values ('db.version', '" + DB_VERSION + "')";
+        "insert into OOZIE_SYS (name, data) values ('db.version', '" + NEW_DB_VERSION + "')";
 
     private final static String SET_NEW_DB_VERSION =
             "update OOZIE_SYS set data='" + NEW_DB_VERSION + "' where name='db.version'";
