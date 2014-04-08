@@ -119,7 +119,7 @@ function Main( $scriptDir )
 
     Write-Log "Configuring Oozie"
     Configure "oozie" $NodeInstallRoot $ServiceCredential @{
-        "oozie.service.AuthorizationService.security.enabled" = "false" }
+        "oozie.service.AuthorizationService.security.enabled" = "true" }
 
 }
 
