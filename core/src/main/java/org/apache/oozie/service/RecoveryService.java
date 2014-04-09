@@ -263,8 +263,6 @@ public class RecoveryService implements Service {
                     jpaService.execute(new HeartbeatInsertJPAExecutor(bean));
                 }
                 catch (JPAExecutorException ex) {
-                    log.warn("Error reading heartbeat from database", ex);
-                    return;
                 }
             }
             else
@@ -283,7 +281,7 @@ public class RecoveryService implements Service {
                         jpaService.execute(new HeartbeatUpdateJPAExecutor(bean));
                     }
                     catch (JPAExecutorException ex) {
-                        log.warn("Error reading heartbeat from database", ex);
+                        log.warn("Error updating heartbeat to database", ex);
                     }
                 }
             }
@@ -345,7 +343,7 @@ public class RecoveryService implements Service {
                 jpaService.execute(new HeartbeatUpdateJPAExecutor(bean));
             }
             catch (JPAExecutorException ex) {
-                log.warn("Error reading heartbeat from database", ex);
+                log.warn("Error updating heartbeat to database", ex);
                 return;
             }
 

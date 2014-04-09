@@ -255,7 +255,6 @@ public class CoordMaterializeTriggerService implements Service {
                         jpaService.execute(new HeartbeatInsertJPAExecutor(bean));
                     }
                     catch (JPAExecutorException ex) {
-                        LOG.warn("Error reading heartbeat from database", ex);
                     }
                 }
                 else
