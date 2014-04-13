@@ -258,7 +258,7 @@ public class OozieDBCLI {
         else
         if (dbVendor.equals("sqlserver")) {
             ddlQueries.add("ALTER TABLE OOZIE_SYS ALTER COLUMN name VARCHAR(255) NOT NULL");
-            ddlQueries.add("ALTER TABLE OOZIE_SYS ADD CONSTRAINT PRIMARY KEY CLUSTERED (name)");
+            ddlQueries.add("ALTER TABLE OOZIE_SYS ADD PRIMARY KEY CLUSTERED (name)");
         }
         Connection conn = (run) ? createConnection() : null;
 
@@ -833,28 +833,18 @@ public class OozieDBCLI {
         "create clustered index OOZIE_SYS_PK on OOZIE_SYS (name);";
 
     private void createOozieSysTable(String sqlFile, boolean run) throws Exception {
-        // Some databases do not support tables without a clustered index
-        // so we need to explicitly create a clustered index for OOZIE_SYS table
-        boolean createIndex = getDBVendor().equals("sqlserver");
         PrintWriter writer = new PrintWriter(new FileWriter(sqlFile, true));
         writer.println();
-        writer.println(CREATE_OOZIE_SYS);
-        if (createIndex){
-            writer.println(CREATE_OOZIE_SYS_INDEX);
-        }
+
         writer.println(SET_DB_VERSION);
         writer.println(SET_OOZIE_VERSION);
         writer.close();
-        System.out.println("Create OOZIE_SYS table");
         if (run) {
             Connection conn = createConnection();
             try {
                 conn.setAutoCommit(true);
                 Statement st = conn.createStatement();
 //                st.executeUpdate(CREATE_OOZIE_SYS);
-                if (createIndex){
-                    st.executeUpdate(CREATE_OOZIE_SYS_INDEX);
-                }
                 st.executeUpdate(SET_DB_VERSION);
                 st.executeUpdate(SET_OOZIE_VERSION);
                 st.close();
