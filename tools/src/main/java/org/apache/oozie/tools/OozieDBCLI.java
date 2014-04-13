@@ -277,9 +277,6 @@ public class OozieDBCLI {
             writer.close();
         }
         catch (Exception ex) {
-            if (!ex.getMessage().contains("have the same set of columns")) {
-                throw new Exception(ex.getMessage());
-            }
         }
         finally {
             if (run) {
