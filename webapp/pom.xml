@@ -90,12 +90,6 @@
             <scope>compile</scope>
         </dependency>
 
-        <dependency>
-            <groupId>org.apache.oozie</groupId>
-            <artifactId>oozie-sharelib-pig</artifactId>
-            <scope>provided</scope>
-         </dependency>
-
          <dependency>
             <groupId>org.apache.oozie</groupId>
             <artifactId>oozie-sharelib-hive</artifactId>
@@ -180,7 +174,7 @@
                         </goals>
                         <configuration>
                             <includeArtifactIds>
-                                oozie-sharelib-pig,oozie-sharelib-hive,oozie-sharelib-sqoop,oozie-sharelib-streaming,
+                                oozie-sharelib-hive,oozie-sharelib-sqoop,oozie-sharelib-streaming,
                                 oozie-sharelib-oozie,oozie-sharelib-hcatalog,oozie-sharelib-distcp
                             </includeArtifactIds>
                             <excludeTransitive>true</excludeTransitive>
