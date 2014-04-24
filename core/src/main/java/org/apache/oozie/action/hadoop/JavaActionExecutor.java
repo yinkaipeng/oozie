@@ -95,6 +95,7 @@ public class JavaActionExecutor extends ActionExecutor {
     private boolean useLauncherJar;
     private static int maxActionOutputLen;
     private static int maxExternalStatsSize;
+    private static final int MAX_GET_JOB_RETRIES = 30;
     private static final int maxGetJobRetries = 10;
 
     private static final String SUCCEEDED = "SUCCEEDED";
@@ -1059,7 +1060,22 @@ public class JavaActionExecutor extends ActionExecutor {
             FileSystem actionFs = context.getAppFileSystem();
             JobConf jobConf = createBaseHadoopConf(context, actionXml);
             jobClient = createJobClient(context, jobConf);
-            RunningJob runningJob = getRunningJob(context, action, jobClient);
+            RunningJob runningJob = null;
+            int retries = 0;
+            while(retries++ < MAX_GET_JOB_RETRIES){
+                XLog.getLog(getClass()).info(XLog.STD, "Trying to get job [{0}], attempt [{1}]",action
+                        .getExternalId(), retries);
+                runningJob = getRunningJob(context, action, jobClient);
+                if (runningJob != null){
+                    break;
+                }
+
+                try{
+                    Thread.sleep(2000);
+                }catch (InterruptedException e) {
+                }
+            }
+
             if (runningJob == null) {
                 context.setExecutionData(FAILED, null);
                 throw new ActionExecutorException(ActionExecutorException.ErrorType.FAILED, "JA017",
