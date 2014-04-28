@@ -253,7 +253,7 @@ public class TestShellActionExecutor extends ActionExecutorTestCase {
         Context context = createContext(actionXml);
         // Submit the action
         final RunningJob launcherJob = submitAction(context);
-        waitFor(30 * 1000, new Predicate() { // Wait for the external job to
+        waitFor(180 * 1000, new Predicate() { // Wait for the external job to
             // finish
             public boolean evaluate() throws Exception {
                 return launcherJob.isComplete();
