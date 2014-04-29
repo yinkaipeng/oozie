@@ -42,6 +42,7 @@ public enum ErrorCode {
     E0101(XLog.OPS, "Service [{0}] does not implement declared interface [{1}]"),
     E0102(XLog.OPS, "Could not instantiate service class [{0}], {1}"),
     E0103(XLog.OPS, "Could not load service classes, {0}"),
+    E0104(XLog.OPS, "Could not fully initialize service [{0}], {1}"),
     E0110(XLog.OPS, "Could not parse or validate EL definition [{0}], {1}"),
     E0111(XLog.OPS, "class#method not found [{0}#{1}]"),
     E0112(XLog.OPS, "class#method does not have PUBLIC or STATIC modifier [{0}#{1}]"),
@@ -203,6 +204,8 @@ public enum ErrorCode {
     E1020(XLog.STD, "Could not kill coord job, this job either finished successfully or does not exist , [{0}]"),
     E1021(XLog.STD, "Coord Action Input Check Error: {0}"),
     E1022(XLog.STD, "Cannot delete running/completed coordinator action: [{0}]"),
+    E1023(XLog.STD, "Coord Job update Error: [{0}]"),
+
 
     E1100(XLog.STD, "Command precondition does not hold before execution, [{0}]"),
 

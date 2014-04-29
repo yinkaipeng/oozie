@@ -56,6 +56,8 @@ public interface RestConstants {
 
     public static final String JOB_ACTION_DRYRUN = "dryrun";
 
+    public static final String JOB_ACTION_SHOWDIFF = "diff";
+
     public static final String JOB_ACTION_SUSPEND = "suspend";
 
     public static final String JOB_ACTION_RESUME = "resume";
@@ -69,6 +71,8 @@ public interface RestConstants {
     public static final String JOB_ACTION_RERUN = "rerun";
 
     public static final String JOB_COORD_ACTION_RERUN = "coord-rerun";
+
+    public static final String JOB_COORD_UPDATE = "update";
 
     public static final String JOB_BUNDLE_ACTION_RERUN = "bundle-rerun";
 
@@ -169,5 +173,7 @@ public interface RestConstants {
     public static final String ALL_SERVER_REQUEST = "allservers";
 
     public static final String ALL_WORKFLOWS_FOR_COORD_ACTION = "allruns";
+
+    public static final String LOG_FILTER_OPTION = "logfilter";
 
 }

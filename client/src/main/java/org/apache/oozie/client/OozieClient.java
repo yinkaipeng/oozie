@@ -628,6 +628,73 @@ public class OozieClient {
     }
 
     /**
+     * Update coord definition.
+     *
+     * @param jobId the job id
+     * @param conf the conf
+     * @param dryrun the dryrun
+     * @param showDiff the show diff
+     * @return the string
+     * @throws OozieClientException the oozie client exception
+     */
+    public String updateCoord(String jobId, Properties conf, String dryrun, String showDiff)
+            throws OozieClientException {
+        return (new UpdateCoord(jobId, conf, dryrun, showDiff)).call();
+    }
+
+    /**
+     * Update coord definition without properties.
+     *
+     * @param jobId the job id
+     * @param dryrun the dryrun
+     * @param showDiff the show diff
+     * @return the string
+     * @throws OozieClientException the oozie client exception
+     */
+    public String updateCoord(String jobId, String dryrun, String showDiff) throws OozieClientException {
+        return (new UpdateCoord(jobId, dryrun, showDiff)).call();
+    }
+
+    /**
+     * The Class UpdateCoord.
+     */
+    private class UpdateCoord extends ClientCallable<String> {
+        private final Properties conf;
+
+        public UpdateCoord(String jobId, Properties conf, String jobActionDryrun, String showDiff) {
+            super("PUT", RestConstants.JOB, notEmpty(jobId, "jobId"), prepareParams(RestConstants.ACTION_PARAM,
+                    RestConstants.JOB_COORD_UPDATE, RestConstants.JOB_ACTION_DRYRUN, jobActionDryrun,
+                    RestConstants.JOB_ACTION_SHOWDIFF, showDiff));
+            this.conf = conf;
+        }
+
+        public UpdateCoord(String jobId, String jobActionDryrun, String showDiff) {
+            this(jobId, new Properties(), jobActionDryrun, showDiff);
+        }
+
+        @Override
+        protected String call(HttpURLConnection conn) throws IOException, OozieClientException {
+            conn.setRequestProperty("content-type", RestConstants.XML_CONTENT_TYPE);
+            writeToXml(conf, conn.getOutputStream());
+
+            if (conn.getResponseCode() == HttpURLConnection.HTTP_OK) {
+                JSONObject json = (JSONObject) JSONValue.parse(new InputStreamReader(conn.getInputStream()));
+                JSONObject update = (JSONObject) json.get(JsonTags.COORD_UPDATE);
+                if (update != null) {
+                    return (String) update.get(JsonTags.COORD_UPDATE_DIFF);
+                }
+                else {
+                    return "";
+                }
+            }
+            if (conn.getResponseCode() != HttpURLConnection.HTTP_OK) {
+                handleError(conn);
+            }
+            return null;
+        }
+    }
+
+    /**
      * dryrun for a given job
      *
      * @param conf Job configuration.
@@ -843,21 +910,35 @@ public class OozieClient {
      * @param jobId job Id.
      * @param logRetrievalType Based on which filter criteria the log is retrieved
      * @param logRetrievalScope Value for the retrieval type
+     * @param logFilter log filter
+     * @param ps Printstream of command line interface
+     * @throws OozieClientException thrown if the job info could not be retrieved.
+     */
+    public void getJobLog(String jobId, String logRetrievalType, String logRetrievalScope, String logFilter,
+            PrintStream ps) throws OozieClientException {
+        new JobLog(jobId, logRetrievalType, logRetrievalScope, logFilter, ps).call();
+    }
+
+    /**
+     * Get the log of a job.
+     *
+     * @param jobId job Id.
+     * @param logRetrievalType Based on which filter criteria the log is retrieved
+     * @param logRetrievalScope Value for the retrieval type
      * @param ps Printstream of command line interface
      * @throws OozieClientException thrown if the job info could not be retrieved.
      */
     public void getJobLog(String jobId, String logRetrievalType, String logRetrievalScope, PrintStream ps)
             throws OozieClientException {
-        new JobLog(jobId, logRetrievalType, logRetrievalScope, ps).call();
+        getJobLog(jobId, logRetrievalType, logRetrievalScope, null, ps);
     }
 
     private class JobLog extends JobMetadata {
         JobLog(String jobId) {
             super(jobId, RestConstants.JOB_SHOW_LOG);
         }
-
-        JobLog(String jobId, String logRetrievalType, String logRetrievalScope, PrintStream ps) {
-            super(jobId, logRetrievalType, logRetrievalScope, RestConstants.JOB_SHOW_LOG, ps);
+        JobLog(String jobId, String logRetrievalType, String logRetrievalScope, String logFilter, PrintStream ps) {
+            super(jobId, logRetrievalType, logRetrievalScope, RestConstants.JOB_SHOW_LOG, logFilter, ps);
         }
     }
 
@@ -917,10 +998,11 @@ public class OozieClient {
                     metaType));
         }
 
-        JobMetadata(String jobId, String logRetrievalType, String logRetrievalScope, String metaType, PrintStream ps) {
+        JobMetadata(String jobId, String logRetrievalType, String logRetrievalScope, String metaType, String logFilter,
+                PrintStream ps) {
             super("GET", RestConstants.JOB, notEmpty(jobId, "jobId"), prepareParams(RestConstants.JOB_SHOW_PARAM,
                     metaType, RestConstants.JOB_LOG_TYPE_PARAM, logRetrievalType, RestConstants.JOB_LOG_SCOPE_PARAM,
-                    logRetrievalScope));
+                    logRetrievalScope, RestConstants.LOG_FILTER_OPTION, logFilter));
             printStream = ps;
         }
 
@@ -1120,6 +1202,21 @@ public class OozieClient {
      */
     public CoordinatorJob getCoordJobInfo(String jobId) throws OozieClientException {
         return new CoordJobInfo(jobId, null, -1, -1, "asc").call();
+    }
+
+    /**
+     * Get the info of a coordinator job and subset actions.
+     *
+     * @param jobId job Id.
+     * @param filter filter the status filter
+     * @param start starting index in the list of actions belonging to the job
+     * @param len number of actions to be returned
+     * @return the job info.
+     * @throws OozieClientException thrown if the job info could not be retrieved.
+     */
+    public CoordinatorJob getCoordJobInfo(String jobId, String filter, int start, int len)
+            throws OozieClientException {
+        return new CoordJobInfo(jobId, filter, start, len, "asc").call();
     }
 
     /**

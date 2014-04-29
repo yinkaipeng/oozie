@@ -117,8 +117,10 @@ public abstract class BaseJobServlet extends JsonRestServlet {
             if (!requestUser.equals(UNDEF)) {
                 conf.set(OozieClient.USER_NAME, requestUser);
             }
-            BaseJobServlet.checkAuthorizationForApp(conf);
-            JobUtils.normalizeAppPath(conf.get(OozieClient.USER_NAME), conf.get(OozieClient.GROUP_NAME), conf);
+            if (conf.get(OozieClient.APP_PATH) != null) {
+                BaseJobServlet.checkAuthorizationForApp(conf);
+                JobUtils.normalizeAppPath(conf.get(OozieClient.USER_NAME), conf.get(OozieClient.GROUP_NAME), conf);
+            }
             reRunJob(request, response, conf);
             startCron();
             response.setStatus(HttpServletResponse.SC_OK);
@@ -146,6 +148,13 @@ public abstract class BaseJobServlet extends JsonRestServlet {
             else {
                 response.setStatus(HttpServletResponse.SC_OK);
             }
+        }
+        else if (action.equals(RestConstants.JOB_COORD_UPDATE)) {
+            validateContentType(request, RestConstants.XML_CONTENT_TYPE);
+            stopCron();
+            JSONObject json = updateJob(request, response);
+            startCron();
+            sendJsonResponse(response, HttpServletResponse.SC_OK, json);
         }
         else {
             throw new XServletException(HttpServletResponse.SC_BAD_REQUEST, ErrorCode.E0303,
@@ -416,4 +425,17 @@ public abstract class BaseJobServlet extends JsonRestServlet {
      */
     abstract JSONObject getJobsByParentId(HttpServletRequest request, HttpServletResponse response)
             throws XServletException, IOException;
+
+    /**
+     * Abstract method to Update coord job.
+     *
+     * @param request the request
+     * @param response the response
+     * @return the JSON object
+     * @throws XServletException the x servlet exception
+     * @throws IOException Signals that an I/O exception has occurred.
+     */
+    abstract JSONObject updateJob(HttpServletRequest request, HttpServletResponse response)
+            throws XServletException, IOException;
 }
+

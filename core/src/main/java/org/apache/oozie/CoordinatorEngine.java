@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.oozie.client.CoordinatorAction;
 import org.apache.oozie.client.CoordinatorJob;
@@ -50,15 +51,17 @@ import org.apache.oozie.command.coord.CoordRerunXCommand;
 import org.apache.oozie.command.coord.CoordResumeXCommand;
 import org.apache.oozie.command.coord.CoordSubmitXCommand;
 import org.apache.oozie.command.coord.CoordSuspendXCommand;
+import org.apache.oozie.command.coord.CoordUpdateXCommand;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
 import org.apache.oozie.executor.jpa.WorkflowJobQueryExecutor;
 import org.apache.oozie.executor.jpa.WorkflowJobQueryExecutor.WorkflowJobQuery;
 import org.apache.oozie.service.DagXLogInfoService;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.service.XLogStreamingService;
+import org.apache.oozie.util.XLogFilter;
+import org.apache.oozie.util.XLogUserFilterParam;
 import org.apache.oozie.util.ParamChecker;
 import org.apache.oozie.util.XLog;
-import org.apache.oozie.util.XLogStreamer;
 
 import com.google.common.annotations.VisibleForTesting;
 
@@ -270,12 +273,26 @@ public class CoordinatorEngine extends BaseEngine {
      * java.io.Writer)
      */
     @Override
-    public void streamLog(String jobId, Writer writer, Map<String, String[]> params) throws IOException, BaseEngineException {
-        XLogStreamer.Filter filter = new XLogStreamer.Filter();
-        filter.setParameter(DagXLogInfoService.JOB, jobId);
+    public void streamLog(String jobId, Writer writer, Map<String, String[]> params) throws IOException,
+            BaseEngineException {
 
-        CoordinatorJobBean job = getCoordJobWithNoActionInfo(jobId);
-        Services.get().get(XLogStreamingService.class).streamLog(filter, job.getCreatedTime(), new Date(), writer, params);
+        try {
+            XLogFilter filter = new XLogFilter(new XLogUserFilterParam(params));
+            filter.setParameter(DagXLogInfoService.JOB, jobId);
+            Date lastTime = null;
+            CoordinatorJobBean job = getCoordJobWithNoActionInfo(jobId);
+            if (job.isTerminalStatus()) {
+                lastTime = job.getLastModifiedTime();
+            }
+            if (lastTime == null) {
+                lastTime = new Date();
+            }
+            Services.get().get(XLogStreamingService.class)
+                    .streamLog(filter, job.getCreatedTime(), lastTime, writer, params);
+        }
+        catch (Exception e) {
+            throw new IOException(e);
+        }
     }
 
     /**
@@ -295,7 +312,8 @@ public class CoordinatorEngine extends BaseEngine {
 
         Date startTime = null;
         Date endTime = null;
-        XLogStreamer.Filter filter = new XLogStreamer.Filter();
+        XLogFilter filter = new XLogFilter(new XLogUserFilterParam(params));
+
         filter.setParameter(DagXLogInfoService.JOB, jobId);
         if (logRetrievalScope != null && logRetrievalType != null) {
             // if coordinator action logs are to be retrieved based on action id range
@@ -370,6 +388,7 @@ public class CoordinatorEngine extends BaseEngine {
                     startTime = actionBean.getCreatedTime();
                     endTime = actionBean.getStatus().equals(CoordinatorAction.Status.RUNNING) ? new Date() : actionBean
                             .getLastModifiedTime();
+                    filter.setActionList(true);
                 }
                 else if (actionSet != null && actionSet.size() > 0) {
                     List<String> tempList = new ArrayList<String>(actionSet);
@@ -382,6 +401,7 @@ public class CoordinatorEngine extends BaseEngine {
                     startTime = getCoordAction(tempList.get(0)).getCreatedTime();
                     endTime = CoordActionsInDateRange.getCoordActionsLastModifiedDate(jobId, tempList.get(0),
                             tempList.get(tempList.size() - 1));
+                    filter.setActionList(true);
                 }
             }
             // if coordinator action logs are to be retrieved based on date range
@@ -413,12 +433,12 @@ public class CoordinatorEngine extends BaseEngine {
                     orSeparatedActions.append(")");
                 }
                 filter.setParameter(DagXLogInfoService.ACTION, orSeparatedActions.toString());
-
                 if (coordActionIdList != null && coordActionIdList.size() == 1) {
                     CoordinatorActionBean actionBean = getCoordAction(coordActionIdList.get(0));
                     startTime = actionBean.getCreatedTime();
                     endTime = actionBean.getStatus().equals(CoordinatorAction.Status.RUNNING) ? new Date() : actionBean
                             .getLastModifiedTime();
+                    filter.setActionList(true);
                 }
                 else if (coordActionIdList != null && coordActionIdList.size() > 0) {
                     Collections.sort(coordActionIdList, new Comparator<String>() {
@@ -430,6 +450,7 @@ public class CoordinatorEngine extends BaseEngine {
                     startTime = getCoordAction(coordActionIdList.get(0)).getCreatedTime();
                     endTime = CoordActionsInDateRange.getCoordActionsLastModifiedDate(jobId, coordActionIdList.get(0),
                             coordActionIdList.get(coordActionIdList.size() - 1));
+                    filter.setActionList(true);
                 }
             }
         }
@@ -439,10 +460,14 @@ public class CoordinatorEngine extends BaseEngine {
                 startTime = job.getCreatedTime();
             }
             if (endTime == null) {
-                endTime = new Date();
+                if (job.isTerminalStatus()) {
+                    endTime = job.getLastModifiedTime();
+                }
+                if (endTime == null) {
+                    endTime = new Date();
+                }
             }
         }
-        //job.getActions()
         Services.get().get(XLogStreamingService.class).streamLog(filter, startTime, endTime, writer, params);
     }
 
@@ -717,5 +742,26 @@ public class CoordinatorEngine extends BaseEngine {
             throw new CoordinatorEngineException(e);
         }
         return wfBeans;
+    }
+
+    /**
+     * Update coord job definition.
+     *
+     * @param conf the conf
+     * @param jobId the job id
+     * @param dryrun the dryrun
+     * @param showDiff the show diff
+     * @return the string
+     * @throws CoordinatorEngineException the coordinator engine exception
+     */
+    public String updateJob(Configuration conf, String jobId, boolean dryrun, boolean showDiff)
+            throws CoordinatorEngineException {
+        try {
+            CoordUpdateXCommand update = new CoordUpdateXCommand(dryrun, conf, jobId, showDiff);
+            return update.call();
+        }
+        catch (CommandException ex) {
+            throw new CoordinatorEngineException(ex);
+        }
     }
 }

@@ -115,6 +115,8 @@ public class OozieCLI {
     public static final String DEFINITION_OPTION = "definition";
     public static final String CONFIG_CONTENT_OPTION = "configcontent";
     public static final String SQOOP_COMMAND_OPTION = "command";
+    public static final String SHOWDIFF_OPTION = "diff";
+    public static final String UPDATE_OPTION = "update";
 
     public static final String DO_AS_OPTION = "doas";
 
@@ -275,6 +277,9 @@ public class OozieCLI {
                 "rerun a job  (coordinator requires -action or -date, bundle requires -coordinator or -date)");
         Option dryrun = new Option(DRYRUN_OPTION, false, "Dryrun a workflow (since 3.3.2) or coordinator (since 2.0) job without"
                 + " actually executing it");
+        Option update = new Option(UPDATE_OPTION, true, "Update coord definition and properties");
+        Option showdiff = new Option(SHOWDIFF_OPTION, true,
+                "Show diff of the new coord definition and properties with the existing one (default true)");
         Option start = new Option(START_OPTION, true, "start a job");
         Option suspend = new Option(SUSPEND_OPTION, true, "suspend a job");
         Option resume = new Option(RESUME_OPTION, true, "resume a job");
@@ -297,6 +302,10 @@ public class OozieCLI {
         Option timezone = new Option(TIME_ZONE_OPTION, true,
                 "use time zone with the specified ID (default GMT).\nSee 'oozie info -timezones' for a list");
         Option log = new Option(LOG_OPTION, true, "job log");
+        Option logFilter = new Option(
+                RestConstants.LOG_FILTER_OPTION, true,
+                "job log search parameter. Can be specified as -logfilter opt1=val1;opt2=val1;opt3=val1. "
+                + "Supported options are recent, start, end, loglevel, text, limit and debug");
         Option definition = new Option(DEFINITION_OPTION, true, "job definition");
         Option config_content = new Option(CONFIG_CONTENT_OPTION, true, "job configuration");
         Option verbose = new Option(VERBOSE_OPTION, false, "verbose mode");
@@ -325,6 +334,7 @@ public class OozieCLI {
         actions.addOption(resume);
         actions.addOption(kill);
         actions.addOption(change);
+        actions.addOption(update);
         actions.addOption(info);
         actions.addOption(rerun);
         actions.addOption(log);
@@ -352,7 +362,14 @@ public class OozieCLI {
         jobOptions.addOption(rerun_nocleanup);
         jobOptions.addOption(getAllWorkflows);
         jobOptions.addOptionGroup(actions);
+        jobOptions.addOption(logFilter);
         addAuthOptions(jobOptions);
+        jobOptions.addOption(showdiff);
+
+        //Needed to make dryrun and update mutually exclusive options
+        OptionGroup updateOption = new OptionGroup();
+        updateOption.addOption(dryrun);
+        jobOptions.addOptionGroup(updateOption);
         return jobOptions;
     }
 
@@ -695,12 +712,12 @@ public class OozieCLI {
     }
 
     private Properties getConfiguration(OozieClient wc, CommandLine commandLine) throws IOException {
+        if (!isConfigurationSpecified(wc, commandLine)) {
+            throw new IOException("configuration is not specified");
+        }
         Properties conf = wc.createConfiguration();
         String configFile = commandLine.getOptionValue(CONFIG_OPTION);
-        if (configFile == null) {
-            throw new IOException("configuration file not specified");
-        }
-        else {
+        if (configFile != null) {
             File file = new File(configFile);
             if (!file.exists()) {
                 throw new IOException("configuration file [" + configFile + "] not found");
@@ -720,6 +737,28 @@ public class OozieCLI {
             conf.putAll(commandLineProperties);
         }
         return conf;
+    }
+
+    /**
+     * Check if configuration has specified
+     * @param wc
+     * @param commandLine
+     * @return
+     * @throws IOException
+     */
+    private boolean isConfigurationSpecified(OozieClient wc, CommandLine commandLine) throws IOException {
+        boolean isConf = false;
+        String configFile = commandLine.getOptionValue(CONFIG_OPTION);
+        if (configFile == null) {
+            isConf = false;
+        }
+        else {
+            isConf = new File(configFile).exists();
+        }
+        if (commandLine.hasOption("D")) {
+            isConf = true;
+        }
+        return isConf;
     }
 
     /**
@@ -829,7 +868,7 @@ public class OozieCLI {
             else if (options.contains(START_OPTION)) {
                 wc.start(commandLine.getOptionValue(START_OPTION));
             }
-            else if (options.contains(DRYRUN_OPTION)) {
+            else if (options.contains(DRYRUN_OPTION) && !options.contains(UPDATE_OPTION)) {
                 String dryrunStr = wc.dryrun(getConfiguration(wc, commandLine));
                 if (dryrunStr.equals("OK")) {  // workflow
                     System.out.println("OK");
@@ -892,7 +931,12 @@ public class OozieCLI {
             }
             else if (options.contains(RERUN_OPTION)) {
                 if (commandLine.getOptionValue(RERUN_OPTION).contains("-W")) {
-                    wc.reRun(commandLine.getOptionValue(RERUN_OPTION), getConfiguration(wc, commandLine));
+                    if (isConfigurationSpecified(wc, commandLine)) {
+                        wc.reRun(commandLine.getOptionValue(RERUN_OPTION), getConfiguration(wc, commandLine));
+                    }
+                    else {
+                        wc.reRun(commandLine.getOptionValue(RERUN_OPTION), new Properties());
+                    }
                 }
                 else if (commandLine.getOptionValue(RERUN_OPTION).contains("-B")) {
                     String bundleJobId = commandLine.getOptionValue(RERUN_OPTION);
@@ -1017,6 +1061,10 @@ public class OozieCLI {
             }
             else if (options.contains(LOG_OPTION)) {
                 PrintStream ps = System.out;
+                String logFilter = null;
+                if (options.contains(RestConstants.LOG_FILTER_OPTION)) {
+                    logFilter = commandLine.getOptionValue(RestConstants.LOG_FILTER_OPTION);
+                }
                 if (commandLine.getOptionValue(LOG_OPTION).contains("-C")) {
                     String logRetrievalScope = null;
                     String logRetrievalType = null;
@@ -1029,7 +1077,8 @@ public class OozieCLI {
                         logRetrievalScope = commandLine.getOptionValue(DATE_OPTION);
                     }
                     try {
-                        wc.getJobLog(commandLine.getOptionValue(LOG_OPTION), logRetrievalType, logRetrievalScope, ps);
+                        wc.getJobLog(commandLine.getOptionValue(LOG_OPTION), logRetrievalType, logRetrievalScope,
+                                logFilter, ps);
                     }
                     finally {
                         ps.close();
@@ -1037,7 +1086,7 @@ public class OozieCLI {
                 }
                 else {
                     if (!options.contains(ACTION_OPTION) && !options.contains(DATE_OPTION)) {
-                        wc.getJobLog(commandLine.getOptionValue(LOG_OPTION), null, null, ps);
+                        wc.getJobLog(commandLine.getOptionValue(LOG_OPTION), null, null, logFilter, ps);
                     }
                     else {
                         throw new OozieCLIException("Invalid options provided for log retrieval. " + ACTION_OPTION
@@ -1062,6 +1111,29 @@ public class OozieCLI {
                 else {
                     System.out.println("ERROR:  job id [" + commandLine.getOptionValue(CONFIG_CONTENT_OPTION)
                             + "] doesn't end with either C or W or B");
+                }
+            }
+            else if (options.contains(UPDATE_OPTION)) {
+                String coordJobId = commandLine.getOptionValue(UPDATE_OPTION);
+                Properties conf = null;
+
+                String dryrun = "";
+                String showdiff = "";
+
+                if (commandLine.getOptionValue(CONFIG_OPTION) != null) {
+                    conf = getConfiguration(wc, commandLine);
+                }
+                if (options.contains(DRYRUN_OPTION)) {
+                    dryrun = "true";
+                }
+                if (commandLine.getOptionValue(SHOWDIFF_OPTION) != null) {
+                    showdiff = commandLine.getOptionValue(SHOWDIFF_OPTION);
+                }
+                if (conf == null) {
+                    System.out.println(wc.updateCoord(coordJobId, dryrun, showdiff));
+                }
+                else {
+                    System.out.println(wc.updateCoord(coordJobId, conf, dryrun, showdiff));
                 }
             }
         }
@@ -1668,6 +1740,8 @@ public class OozieCLI {
                 sources.add(new StreamSource(Thread.currentThread().getContextClassLoader().getResourceAsStream(
                         "email-action-0.1.xsd")));
                 sources.add(new StreamSource(Thread.currentThread().getContextClassLoader().getResourceAsStream(
+                        "email-action-0.2.xsd")));
+                sources.add(new StreamSource(Thread.currentThread().getContextClassLoader().getResourceAsStream(
                         "distcp-action-0.1.xsd")));
                 sources.add(new StreamSource(Thread.currentThread().getContextClassLoader().getResourceAsStream(
                         "distcp-action-0.2.xsd")));
@@ -1679,6 +1753,8 @@ public class OozieCLI {
                         "oozie-workflow-0.3.xsd")));
                 sources.add(new StreamSource(Thread.currentThread().getContextClassLoader().getResourceAsStream(
                         "oozie-workflow-0.4.xsd")));
+                sources.add(new StreamSource(Thread.currentThread().getContextClassLoader().getResourceAsStream(
+                        "oozie-workflow-0.4.5.xsd")));
                 sources.add(new StreamSource(Thread.currentThread().getContextClassLoader().getResourceAsStream(
                         "oozie-workflow-0.5.xsd")));
                 sources.add(new StreamSource(Thread.currentThread().getContextClassLoader().getResourceAsStream(
