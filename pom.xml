@@ -53,7 +53,7 @@
         <!-- to be able to run a single test case from the main project -->
         <failIfNoTests>false</failIfNoTests>
 
-        <test.timeout>5400</test.timeout>
+        <test.timeout>18000</test.timeout>
 
         <!-- platform encoding override -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -87,7 +87,8 @@
 
          <!-- Sharelib component versions -->
          <hive.version>0.13.1</hive.version>
-         <pig.version>0.12.1</pig.version>
+         <tez.version>0.3.0-incubating</tez.version>
+         <pig.version>0.10.1</pig.version>
          <pig.classifier></pig.classifier>
          <sqoop.version>1.4.3</sqoop.version>
          <spark.version>1.1.0</spark.version>
@@ -275,6 +276,18 @@
                 <artifactId>oozie-hadoop-auth</artifactId>
                 <version>${hadooplib.version}</version>
             </dependency>
+
+             <dependency>
+                 <groupId>org.apache.hadoop</groupId>
+                 <artifactId>hadoop-common</artifactId>
+                 <version>${hadoop.version}</version>
+             </dependency>
+
+             <dependency>
+                 <groupId>org.apache.hadoop</groupId>
+                 <artifactId>hadoop-common</artifactId>
+                 <version>${hadoop.version}</version>
+             </dependency>
 
             <dependency>
                 <groupId>com.googlecode.json-simple</groupId>
@@ -662,7 +675,7 @@
             <dependency>
                 <groupId>hsqldb</groupId>
                 <artifactId>hsqldb</artifactId>
-                <version>1.8.0.10</version>
+                <version>1.8.0.7</version>
             </dependency>
 
             <dependency>
@@ -680,7 +693,7 @@
             <dependency>
                 <groupId>org.apache.derby</groupId>
                 <artifactId>derby</artifactId>
-                <version>10.10.1.1</version>
+                <version>10.6.1.0</version>
                 <scope>compile</scope>
             </dependency>
 
@@ -1054,9 +1067,6 @@
                         <oozie.test.config.file>${oozie.test.config.file}</oozie.test.config.file>
                         <oozie.data.dir>${oozie.data.dir}</oozie.data.dir>
                     </systemPropertyVariables>
-                    <environmentVariables>
-                        <HADOOP_HOME>dummy</HADOOP_HOME>
-                    </environmentVariables>
                     <excludes>
                         <exclude>**/${test.exclude}.java</exclude>
                         <exclude>${test.exclude.pattern}</exclude>
@@ -1194,6 +1204,52 @@
             <modules>
                 <module>login</module>
             </modules>
+        </profile>
+        <profile>
+            <id>windows-hadoop2-deps</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-yarn-api</artifactId>
+                    <version>${hadoopTwo.version}</version>
+                    <scope>compile</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-yarn-common</artifactId>
+                    <version>${hadoopTwo.version}</version>
+                    <scope>compile</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-yarn-server-nodemanager</artifactId>
+                    <version>${hadoopTwo.version}</version>
+                    <scope>compile</scope>
+                </dependency>
+            </dependencies>
+            <dependencies>
+                <dependency>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-yarn-api</artifactId>
+                    <version>${hadoopTwo.version}</version>
+                    <scope>compile</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-yarn-common</artifactId>
+                    <version>${hadoopTwo.version}</version>
+                    <scope>compile</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-yarn-server-nodemanager</artifactId>
+                    <version>${hadoopTwo.version}</version>
+                    <scope>compile</scope>
+                </dependency>
+            </dependencies>
         </profile>
     </profiles>
 </project>
