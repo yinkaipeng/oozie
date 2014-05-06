@@ -25,7 +25,7 @@ import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.util.Shell;
-import org.apache.hcatalog.api.HCatPartition;
+import org.apache.hive.hcatalog.api.HCatPartition;
 import org.apache.oozie.util.HCatURI;
 
 /**
