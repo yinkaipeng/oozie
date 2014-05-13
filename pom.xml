@@ -108,6 +108,9 @@
 
          <openjpa.version>2.2.2</openjpa.version>
          <xerces.version>2.10.0</xerces.version>
+
+        <!-- Native libraries path -->
+        <hadoop.library.path></hadoop.library.path>
     </properties>
 
     <modules>
@@ -246,11 +249,23 @@
                 <version>${project.version}</version>
                 <type>war</type>
             </dependency>
+            <dependency>
+                <groupId>org.apache.oozie</groupId>
+                <artifactId>oozie-distro</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.oozie</groupId>
+                <artifactId>oozie-win-distro</artifactId>
+                <version>${project.version}</version>
+                <type>war</type>
+            </dependency>
 
             <dependency>
                 <groupId>org.apache.hadoop</groupId>
                 <artifactId>hadoop-minikdc</artifactId>
-                <version>2.3.0</version>
+                <!-- TODO: Replace version once MiniKdc is in a released version of Hadoop -->
+                <version>${hadoop.version}</version>
             </dependency>
 
             <!-- client -->
@@ -988,7 +1003,7 @@
                 <configuration>
                     <forkMode>${oozie.test.forkMode}</forkMode>
                     <forkedProcessTimeoutInSeconds>${test.timeout}</forkedProcessTimeoutInSeconds>
-                    <argLine>-Xmx1024m -da -XX:MaxPermSize=512m</argLine>
+                    <argLine>-Xmx4096m -da -XX:MaxPermSize=1280m -Djava.library.path=${hadoop.library.path} -XX:+UseConcMarkSweepGC </argLine>
                     <systemPropertyVariables>
                         <oozie.test.db.host>${oozie.test.db.host}</oozie.test.db.host>
                         <oozie.test.config.file>${oozie.test.config.file}</oozie.test.config.file>
@@ -1005,6 +1020,9 @@
                              to test the SSH action
                         -->
                         <exclude>**/TestSsh*.java</exclude>
+
+                        <!-- See 'testSqoop' profile in core/pom.xml and the Building doc-->
+                        <exclude>**/TestSqoop*.java</exclude>
 
                         <!-- Explictly use -Dtest=TestMapReduceActionExecutorUberJar to test the uber jar functionality.
                              Requires at least Hadoop 1.2.0 or 2.2.0.
@@ -1060,6 +1078,37 @@
                     </excludes>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>com.google.code.maven-replacer-plugin</groupId>
+                <artifactId>replacer</artifactId>
+                <version>1.5.2</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>replace</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <includes>
+                        <include>winpkg/src/Scripts/*</include>
+                        <include>win-distro/src/Service/*</include>
+                    </includes>
+                    <excludes>
+                        <exclude>win-distro/src/Service/*.exe</exclude>
+                    </excludes>
+                    <replacements>
+                        <replacement>
+                            <token>@oozie.version@</token>
+                            <value>${project.version}</value>
+                        </replacement>
+                        <replacement>
+                            <token>@hadoop.version@</token>
+                            <value>${hadoop.version}</value>
+                        </replacement>
+                    </replacements>
+                </configuration>
+            </plugin>	
         </plugins>
     </build>
 
@@ -1147,6 +1196,36 @@
             <modules>
                 <module>login</module>
             </modules>
+        </profile>
+        <profile>
+            <id>winpkg</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <modules>
+                <module>win-distro</module>
+                <module>winpkg</module>
+            </modules>
+        </profile>
+		<profile>
+            <id>windowsTests</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <environmentVariables>
+                                <!-- Specify where to look for the native DLL on Windows -->
+                                <PATH>${env.PATH};${env.HADOOP_HOME}/bin</PATH>
+                            </environmentVariables>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
         </profile>
     </profiles>
 </project>
