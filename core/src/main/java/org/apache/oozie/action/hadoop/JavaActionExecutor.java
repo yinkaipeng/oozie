@@ -1031,13 +1031,19 @@ public class JavaActionExecutor extends ActionExecutor {
     }
 
     protected RunningJob getRunningJob(Context context, WorkflowAction action, JobClient jobClient) throws Exception{
+        RunningJob runningJob = jobClient.getJob(JobID.forName(action.getExternalId()));
+        return runningJob;
+    }
+
+    protected RunningJob getRunningJobWithRetries(Context context, WorkflowAction action, JobClient jobClient) throws Exception{
         RunningJob runningJob = null;
+
         int retries = 0;
         while(retries++ < maxGetJobRetries){
             XLog.getLog(getClass()).info(XLog.STD, "Trying to get job [{0}], attempt [{1}]",action
-                .getExternalId(), retries);
-            runningJob =
-                jobClient.getJob(JobID.forName(action.getExternalId()));
+                    .getExternalId(), retries);
+            runningJob = getRunningJob(context, action, jobClient);
+
             if (runningJob != null){
                 break;
             }
@@ -1059,7 +1065,7 @@ public class JavaActionExecutor extends ActionExecutor {
             FileSystem actionFs = context.getAppFileSystem();
             JobConf jobConf = createBaseHadoopConf(context, actionXml);
             jobClient = createJobClient(context, jobConf);
-            RunningJob runningJob = getRunningJob(context, action, jobClient);
+            RunningJob runningJob = getRunningJobWithRetries(context, action, jobClient);
 
             if (runningJob == null) {
                 context.setExecutionData(FAILED, null);
