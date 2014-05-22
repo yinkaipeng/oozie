@@ -162,7 +162,7 @@ public class TestPriorityDelayQueue extends TestCase {
         q.offer(new PriorityDelayQueue.QueueElement<Integer>(2, 0, 10, TimeUnit.MILLISECONDS));
         assertNull(q.poll());
 
-        Thread.sleep(11);
+        Thread.sleep(20);
 
         assertEquals((Integer) 2, q.poll().getElement());
         assertEquals(0, q.size());
