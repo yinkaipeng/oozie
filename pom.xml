@@ -92,7 +92,7 @@
         This is required while we support a a pre 0.23 version of Hadoop which does not have
         the hadoop-auth artifact. After we phase-out pre 0.23 we can get rid of this property.
         -->
-        <hadoop.auth.version>2.2.0-SNAPSHOT</hadoop.auth.version>
+        <hadoop.auth.version>2.4.0</hadoop.auth.version>
 
          <!-- Sharelib component versions -->
          <hive.version>0.10.0</hive.version>
