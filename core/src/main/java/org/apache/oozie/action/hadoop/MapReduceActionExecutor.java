@@ -336,10 +336,10 @@ public class MapReduceActionExecutor extends JavaActionExecutor {
         String childJobId = action.getExternalChildIDs();
 
         if (childJobId != null && childJobId.length() > 0) {
-            runningJob = jobClient.getJob(JobID.forName(childJobId));
+            runningJob = getJobClientWithRetries(action,jobClient, JobID.forName(childJobId));
         }
         else {
-            runningJob = jobClient.getJob(JobID.forName(launcherJobId));
+            runningJob = getJobClientWithRetries(action,jobClient, JobID.forName(launcherJobId));
         }
 
         return runningJob;
