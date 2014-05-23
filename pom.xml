@@ -1198,7 +1198,7 @@
                 </plugins>
             </build>
         </profile>
-		<profile>
+        <profile>
             <id>windows-hadoop2-deps</id>
             <activation>
                 <activeByDefault>false</activeByDefault>

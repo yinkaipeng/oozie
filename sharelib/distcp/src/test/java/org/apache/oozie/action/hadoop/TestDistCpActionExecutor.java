@@ -45,12 +45,6 @@ public class TestDistCpActionExecutor extends ActionExecutorTestCase{
         setSystemProperty("oozie.service.ActionService.executor.classes", DistcpActionExecutor.class.getName());
     }
 
-    @SuppressWarnings("unchecked")
-    public void testSetupMethods() throws Exception {
-        DistcpActionExecutor ae = new DistcpActionExecutor();
-        assertEquals(Arrays.asList(JavaMain.class), ae.getLauncherClasses());
-    }
-
     public void testDistCpFile() throws Exception {
         Path inputPath = new Path(getFsTestCaseDir(), "input.txt");
         final Path outputPath = new Path(getFsTestCaseDir(), "output.txt");
