@@ -226,9 +226,6 @@ public class JPAService implements Service, Instrumentable {
      * Destroy the JPAService
      */
     public void destroy() {
-        if (factory != null && factory.isOpen()) {
-            factory.close();
-        }
     }
 
     /**
