@@ -458,7 +458,7 @@ public class TestMapReduceActionExecutor extends ActionExecutorTestCase {
         assertNotNull(context.getVar("hadoop.counters"));
         String counters = context.getVar("hadoop.counters");
         assertTrue(counters.contains("Counter"));
-        assertTrue(counters.contains("\"MAP_OUTPUT_RECORDS\":2"));
+        assertTrue(counters.contains("\"MAP_INPUT_RECORDS\":2"));
 
         //External Child IDs used to be null, but after 4.0, become Non-Null in case of MR action.
         assertNotNull(context.getExternalChildIDs());
