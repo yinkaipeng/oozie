@@ -380,13 +380,17 @@ public class StatusTransitService implements Service {
             if (coordActionStatus.containsKey(CoordinatorAction.Status.KILLED)) {
                 totalValuesKilled = coordActionStatus.get(CoordinatorAction.Status.KILLED);
             }
-
             int totalValuesTimeOut = 0;
             if (coordActionStatus.containsKey(CoordinatorAction.Status.TIMEDOUT)) {
                 totalValuesTimeOut = coordActionStatus.get(CoordinatorAction.Status.TIMEDOUT);
             }
+            int totalValuesSkipped = 0;
+            if (coordActionStatus.containsKey(CoordinatorAction.Status.SKIPPED)) {
+                totalValuesSkipped = coordActionStatus.get(CoordinatorAction.Status.SKIPPED);
+            }
 
-            if (coordActionsCount == (totalValuesSucceed + totalValuesFailed + totalValuesKilled + totalValuesTimeOut)) {
+            if (coordActionsCount ==
+                    (totalValuesSucceed + totalValuesFailed + totalValuesKilled + totalValuesTimeOut + totalValuesSkipped)) {
 
                 // If all coord action is done and coord is killed, then don't change the status.
                 if (coordStatus[0].equals(Job.Status.KILLED)) {
@@ -394,7 +398,7 @@ public class StatusTransitService implements Service {
                     return true;
                 }
                 // If all the coordinator actions are succeeded then coordinator job should be succeeded.
-                if (coordActionsCount == totalValuesSucceed && isDoneMaterialization) {
+                if (coordActionsCount == (totalValuesSucceed + totalValuesSkipped) && isDoneMaterialization) {
                     coordStatus[0] = Job.Status.SUCCEEDED;
                     ret = true;
                 }
@@ -422,7 +426,7 @@ public class StatusTransitService implements Service {
             if (bundleActionStatus.containsKey(Job.Status.PREP)) {
                 // If all the bundle actions are PREP then bundle job should be RUNNING.
                 if (bundleActions.size() > bundleActionStatus.get(Job.Status.PREP)) {
-                    bundleStatus[0] = Job.Status.RUNNING;
+                    bundleStatus[0] = getRunningStatus(bundleActionStatus);
                     ret = true;
                 }
             }
@@ -614,19 +618,23 @@ public class StatusTransitService implements Service {
                 List<BundleActionBean> bundleActions, Job.Status[] bundleStatus) {
             boolean ret = false;
             if (bundleStatus[0] != Job.Status.PREP) {
-                if (bundleActionStatus.containsKey(Job.Status.FAILED)
-                        || bundleActionStatus.containsKey(Job.Status.KILLED)
-                        || bundleActionStatus.containsKey(Job.Status.DONEWITHERROR)
-                        || bundleActionStatus.containsKey(Job.Status.RUNNINGWITHERROR)) {
-                    bundleStatus[0] = Job.Status.RUNNINGWITHERROR;
-                }
-                else {
-                    bundleStatus[0] = Job.Status.RUNNING;
-                }
+                bundleStatus[0] = getRunningStatus(bundleActionStatus);
                 ret = true;
             }
             return ret;
 
+        }
+
+        private Job.Status getRunningStatus(HashMap<Job.Status, Integer> bundleActionStatus) {
+            if (bundleActionStatus.containsKey(Job.Status.FAILED)
+                    || bundleActionStatus.containsKey(Job.Status.KILLED)
+                    || bundleActionStatus.containsKey(Job.Status.DONEWITHERROR)
+                    || bundleActionStatus.containsKey(Job.Status.RUNNINGWITHERROR)) {
+                return Job.Status.RUNNINGWITHERROR;
+            }
+            else {
+                return Job.Status.RUNNING;
+            }
         }
 
         private void updateBundleJob(boolean isPending, BundleJobBean bundleJob, Job.Status bundleStatus)

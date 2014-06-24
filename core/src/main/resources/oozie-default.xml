@@ -417,12 +417,15 @@
         </description>
     </property>
 
+    <!-- Enable this if you want different scheduling interval for CoordMaterializeTriggerService.
+    By default it will use lookup interval as scheduling interval
     <property>
         <name>oozie.service.CoordMaterializeTriggerService.scheduling.interval
         </name>
         <value>300</value>
         <description> The frequency at which the CoordMaterializeTriggerService will run.</description>
     </property>
+    -->
 
     <property>
         <name>oozie.service.CoordMaterializeTriggerService.materialization.window
@@ -879,6 +882,7 @@
             coord:dataInPartitionFilter=org.apache.oozie.coord.HCatELFunctions#ph1_coord_dataInPartitionFilter_echo,
             coord:dataInPartitionMin=org.apache.oozie.coord.HCatELFunctions#ph1_coord_dataInPartitionMin_echo,
             coord:dataInPartitionMax=org.apache.oozie.coord.HCatELFunctions#ph1_coord_dataInPartitionMax_echo,
+            coord:dataInPartitions=org.apache.oozie.coord.HCatELFunctions#ph1_coord_dataInPartitions_echo,
             coord:dataOutPartitions=org.apache.oozie.coord.HCatELFunctions#ph1_coord_dataOutPartitions_echo,
             coord:dataOutPartitionValue=org.apache.oozie.coord.HCatELFunctions#ph1_coord_dataOutPartitionValue_echo
         </value>
@@ -1167,6 +1171,7 @@
             coord:dataInPartitionFilter=org.apache.oozie.coord.HCatELFunctions#ph3_coord_dataInPartitionFilter,
             coord:dataInPartitionMin=org.apache.oozie.coord.HCatELFunctions#ph3_coord_dataInPartitionMin,
             coord:dataInPartitionMax=org.apache.oozie.coord.HCatELFunctions#ph3_coord_dataInPartitionMax,
+            coord:dataInPartitions=org.apache.oozie.coord.HCatELFunctions#ph3_coord_dataInPartitions,
             coord:dataOutPartitions=org.apache.oozie.coord.HCatELFunctions#ph3_coord_dataOutPartitions,
             coord:dataOutPartitionValue=org.apache.oozie.coord.HCatELFunctions#ph3_coord_dataOutPartitionValue
         </value>
@@ -1843,7 +1848,17 @@
         </description>
     </property>
 
-	<!-- Coordinator Actions default length -->
+    <!-- Coordinator "NONE" execution order default time tolerance -->
+    <property>
+        <name>oozie.coord.execution.none.tolerance</name>
+        <value>1</value>
+        <description>
+            Default time tolerance in minutes after action nominal time for an action to be skipped
+            when execution order is "NONE"
+        </description>
+    </property>
+
+    <!-- Coordinator Actions default length -->
 	<property>
 		<name>oozie.coord.actions.default.length</name>
 		<value>1000</value>
@@ -2045,6 +2060,14 @@
             oozie.pig=hdfs:///share/lib/pig/pig-0.11.1/lib/
             oozie.distcp=hdfs:///share/lib/hadoop-2.2.0/share/hadoop/tools/lib/hadoop-distcp-2.2.0.jar
         </description>
+
+    </property>
+        <property>
+        <name>oozie.service.ShareLibService.fail.fast.on.startup</name>
+        <value>false</value>
+        <description>
+            Fails server starup if sharelib initilzation fails.
+        </description>
     </property>
 
     <property>
@@ -2113,5 +2136,13 @@
         </description>
     </property>
 
+    <property>
+        <name>oozie.service.ZKUUIDService.jobid.sequence.max</name>
+        <value>99999999990</value>
+        <description>
+        Maximum job id sequence for Oozie in HA mode. Current job id sequence is stored in ZK. Once the sequence reaches
+        maximum limit, server will reset job id sequence to 0.
+        </description>
+    </property>
 
 </configuration>

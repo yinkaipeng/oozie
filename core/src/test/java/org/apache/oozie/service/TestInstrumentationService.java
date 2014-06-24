@@ -18,6 +18,8 @@
 package org.apache.oozie.service;
 
 import org.apache.oozie.test.XTestCase;
+import org.apache.oozie.util.Instrumentation;
+import org.apache.oozie.util.MetricsInstrumentation;
 
 public class TestInstrumentationService extends XTestCase {
 
@@ -36,6 +38,12 @@ public class TestInstrumentationService extends XTestCase {
     public void testInstrumentation() throws Exception {
         assertNotNull(Services.get().get(InstrumentationService.class));
         assertNotNull(Services.get().get(InstrumentationService.class).get());
+        Instrumentation instr = Services.get().get(InstrumentationService.class).get();
+        assertFalse(instr instanceof MetricsInstrumentation);
     }
 
+    public void testIsEnabled() {
+        assertTrue(InstrumentationService.isEnabled());
+        assertFalse(MetricsInstrumentationService.isEnabled());
+    }
 }

@@ -20,6 +20,7 @@ package org.apache.oozie.service;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import org.apache.oozie.util.ConfigUtils;
 import org.apache.oozie.util.Instrumentable;
 import org.apache.oozie.util.Instrumentation;
@@ -132,6 +133,14 @@ public class JobsConcurrencyService implements Service, Instrumentable {
      * @return false.
      */
     public boolean isAllServerRequest(Map<String, String[]> params) {
+        return false;
+    }
+
+    /**
+     * Check if it is running in HA mode
+     * @return false
+     */
+    public boolean isHighlyAvailableMode(){
         return false;
     }
 }

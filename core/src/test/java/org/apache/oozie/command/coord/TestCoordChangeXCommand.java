@@ -36,10 +36,12 @@ import org.apache.oozie.executor.jpa.CoordJobGetActionByActionNumberJPAExecutor;
 import org.apache.oozie.executor.jpa.CoordJobGetJPAExecutor;
 import org.apache.oozie.executor.jpa.CoordJobInsertJPAExecutor;
 import org.apache.oozie.executor.jpa.CoordJobQueryExecutor;
+import org.apache.oozie.executor.jpa.SLARegistrationQueryExecutor;
+import org.apache.oozie.executor.jpa.SLASummaryQueryExecutor;
 import org.apache.oozie.executor.jpa.CoordJobQueryExecutor.CoordJobQuery;
+import org.apache.oozie.executor.jpa.SLARegistrationQueryExecutor.SLARegQuery;
+import org.apache.oozie.executor.jpa.SLASummaryQueryExecutor.SLASummaryQuery;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
-import org.apache.oozie.executor.jpa.sla.SLARegistrationGetJPAExecutor;
-import org.apache.oozie.executor.jpa.sla.SLASummaryGetJPAExecutor;
 import org.apache.oozie.service.JPAService;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.service.StatusTransitService;
@@ -202,26 +204,6 @@ public class TestCoordChangeXCommand extends XDataTestCase {
         }
 
         try {
-            new CoordChangeXCommand(jobId, "pausetime=1900-12-20T05:00Z").call();
-            fail("Should not reach here.");
-        }
-        catch (CommandException ex) {
-            if (ex.getErrorCode() != ErrorCode.E1015) {
-                fail("Error code should be E1015.");
-            }
-        }
-
-        try {
-            new CoordChangeXCommand(jobId, "pausetime=2009-02-01T00:00Z").call();
-            fail("Should not reach here.");
-        }
-        catch (CommandException ex) {
-            if (ex.getErrorCode() != ErrorCode.E1015) {
-                fail("Error code should be E1015.");
-            }
-        }
-
-        try {
             new CoordChangeXCommand(jobId, "pausetime=null").call();
             fail("Should not reach here.");
         }
@@ -232,13 +214,10 @@ public class TestCoordChangeXCommand extends XDataTestCase {
         }
 
         try {
-            new CoordChangeXCommand(jobId, "pausetime=2009-02-01T00:08Z").call();
-            fail("Should not reach here.");
+            new CoordChangeXCommand(jobId, "pausetime=" + pauseTime).call();
         }
         catch (CommandException ex) {
-            if (ex.getErrorCode() != ErrorCode.E1015) {
-                fail("Error code should be E1015.");
-            }
+            fail("Should not throw exception");
         }
     }
 
@@ -395,7 +374,12 @@ public class TestCoordChangeXCommand extends XDataTestCase {
         assertTrue(coordJob.isDoneMaterialization());
 
         String newEndTime = convertDateToString(startTime.getTime() + 20 * 60 * 1000);
+        try{
         new CoordChangeXCommand(coordJob.getId(), "endtime=" + newEndTime).call();
+        } catch(Exception e){
+            assertTrue(e.getMessage().contains(
+                    "Didn't change endtime. Endtime is in between coord end time and next materialization time"));
+        }
         coordJob = jpaService.execute(coordGetCmd);
         assertFalse(Job.Status.RUNNING == coordJob.getStatus());
         assertFalse(coordJob.isPending());
@@ -498,13 +482,12 @@ public class TestCoordChangeXCommand extends XDataTestCase {
 
         assertEquals(Job.Status.PREP, coordJob.getStatus());
         assertEquals(0, coordJob.getLastActionNumber());
-
         new CoordChangeXCommand(job.getId(), endTimeChangeStr).call();
-
         coordGetCmd = new CoordJobGetJPAExecutor(job.getId());
         coordJob = jpaService.execute(coordGetCmd);
         assertEquals(DateUtils.formatDateOozieTZ(coordJob.getEndTime()), DateUtils.formatDateOozieTZ(endTime));
         assertEquals(Job.Status.SUCCEEDED, coordJob.getStatus());
+
         Date newEndTime = new Date(start.getTime() - 2000);
         endTimeChangeStr = "endtime=" + DateUtils.formatDateOozieTZ(newEndTime);
         new CoordChangeXCommand(job.getId(), endTimeChangeStr).call();
@@ -512,6 +495,26 @@ public class TestCoordChangeXCommand extends XDataTestCase {
         coordJob = jpaService.execute(coordGetCmd);
         assertEquals(DateUtils.formatDateOozieTZ(coordJob.getEndTime()), DateUtils.formatDateOozieTZ(newEndTime));
         assertEquals(Job.Status.SUCCEEDED, coordJob.getStatus());
+
+        // setting end date after startdate should make coord in running state
+        newEndTime = new Date(start.getTime() + (4 * 60 * 60 * 1000));
+        endTimeChangeStr = "endtime=" + DateUtils.formatDateOozieTZ(newEndTime);
+        new CoordChangeXCommand(job.getId(), endTimeChangeStr).call();
+        coordGetCmd = new CoordJobGetJPAExecutor(job.getId());
+        coordJob = jpaService.execute(coordGetCmd);
+        assertEquals(DateUtils.formatDateOozieTZ(coordJob.getEndTime()), DateUtils.formatDateOozieTZ(newEndTime));
+        assertEquals(Job.Status.RUNNING, coordJob.getStatus());
+
+        // setting end date before startdate should make coord in SUCCEEDED state
+        newEndTime = new Date(start.getTime() - 1000);
+        endTimeChangeStr = "endtime=" + DateUtils.formatDateOozieTZ(newEndTime);
+        new CoordChangeXCommand(job.getId(), endTimeChangeStr).call();
+        coordGetCmd = new CoordJobGetJPAExecutor(job.getId());
+        coordJob = jpaService.execute(coordGetCmd);
+        assertEquals(DateUtils.formatDateOozieTZ(coordJob.getEndTime()), DateUtils.formatDateOozieTZ(newEndTime));
+        assertEquals(Job.Status.SUCCEEDED, coordJob.getStatus());
+
+
     }
 
     /**
@@ -610,17 +613,17 @@ public class TestCoordChangeXCommand extends XDataTestCase {
             assertEquals(ErrorCode.E0603, jpae.getErrorCode());
         }
 
-        slaRegBean1 = jpaService.execute(new SLARegistrationGetJPAExecutor(slaRegBean1.getId()));
+        slaRegBean1 = SLARegistrationQueryExecutor.getInstance().get(SLARegQuery.GET_SLA_REG_ALL, slaRegBean1.getId());
         assertNotNull(slaRegBean1);
-        slaRegBean2 = jpaService.execute(new SLARegistrationGetJPAExecutor(slaRegBean2.getId()));
+        slaRegBean2 = SLARegistrationQueryExecutor.getInstance().get(SLARegQuery.GET_SLA_REG_ALL, slaRegBean2.getId());
         assertNotNull(slaRegBean2);
-        slaRegBean3 = jpaService.execute(new SLARegistrationGetJPAExecutor(slaRegBean3.getId()));
+        slaRegBean3 = SLARegistrationQueryExecutor.getInstance().get(SLARegQuery.GET_SLA_REG_ALL, slaRegBean3.getId());
         assertNull(slaRegBean3);
-        slaRegBean4 = jpaService.execute(new SLARegistrationGetJPAExecutor(slaRegBean4.getId()));
+        slaRegBean4 = SLARegistrationQueryExecutor.getInstance().get(SLARegQuery.GET_SLA_REG_ALL, slaRegBean4.getId());
         assertNull(slaRegBean4);
-        slaSummaryBean3 = jpaService.execute(new SLASummaryGetJPAExecutor(slaSummaryBean3.getId()));
+        slaSummaryBean3 = SLASummaryQueryExecutor.getInstance().get(SLASummaryQuery.GET_SLA_SUMMARY, slaSummaryBean3.getId());
         assertNull(slaSummaryBean3);
-        slaSummaryBean1 = jpaService.execute(new SLASummaryGetJPAExecutor(slaSummaryBean1.getId()));
+        slaSummaryBean1 = SLASummaryQueryExecutor.getInstance().get(SLASummaryQuery.GET_SLA_SUMMARY, slaSummaryBean1.getId());
         assertNotNull(slaSummaryBean1);
     }
 

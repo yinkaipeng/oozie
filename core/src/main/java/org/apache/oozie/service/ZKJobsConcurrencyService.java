@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 import org.apache.curator.x.discovery.ServiceInstance;
 import org.apache.oozie.ErrorCode;
 import org.apache.oozie.client.rest.RestConstants;
@@ -206,5 +207,15 @@ public class ZKJobsConcurrencyService extends JobsConcurrencyService implements 
     public boolean isAllServerRequest(Map<String, String[]> params) {
         return params == null || params.get(RestConstants.ALL_SERVER_REQUEST) == null || params.isEmpty()
                 || !params.get(RestConstants.ALL_SERVER_REQUEST)[0].equalsIgnoreCase("false");
+    }
+
+    /**
+     * Return if it is running in HA mode
+     *
+     * @return
+     */
+    @Override
+    public boolean isHighlyAvailableMode() {
+        return true;
     }
 }

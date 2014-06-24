@@ -58,6 +58,7 @@ import org.apache.oozie.util.InstrumentUtils;
 import org.apache.oozie.util.LogUtils;
 import org.apache.oozie.util.XConfiguration;
 import org.apache.oozie.util.ParamChecker;
+import org.apache.oozie.util.XLog;
 import org.apache.oozie.util.XmlUtils;
 import org.apache.oozie.util.db.SLADbXOperations;
 import org.jdom.Element;
@@ -72,8 +73,6 @@ import org.apache.oozie.client.OozieClient;
 
 @SuppressWarnings("deprecation")
 public class SignalXCommand extends WorkflowXCommand<Void> {
-
-    protected static final String INSTR_SUCCEEDED_JOBS_COUNTER_NAME = "succeeded";
 
     private JPAService jpaService = null;
     private String jobId;
@@ -192,6 +191,7 @@ public class SignalXCommand extends WorkflowXCommand<Void> {
                 completed = workflowInstance.signal(wfAction.getExecutionPath(), wfAction.getSignalValue());
             }
             catch (WorkflowException e) {
+               LOG.error("Workflow action failed : " + e.getMessage(), e);
                 wfJob.setStatus(WorkflowJob.Status.valueOf(workflowInstance.getStatus().toString()));
                 completed = true;
             }
@@ -282,6 +282,7 @@ public class SignalXCommand extends WorkflowXCommand<Void> {
                     boolean isUserRetry = false;
                     ActionExecutorContext context = new ActionXCommand.ActionExecutorContext(wfJob, wfAction, isRetry,
                             isUserRetry);
+                    InstrumentUtils.incrJobCounter(INSTR_KILLED_JOBS_COUNTER_NAME, 1, getInstrumentation());
                     try {
                         String tmpNodeConf = nodeDef.getConf();
                         String actionConf = context.getELEvaluator().evaluate(tmpNodeConf, String.class);

@@ -20,6 +20,7 @@ package org.apache.oozie.executor.jpa;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
+
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
 
@@ -364,6 +365,7 @@ public class WorkflowActionQueryExecutor extends
                 bean.setId((String) arr[0]);
                 bean.setName((String) arr[1]);
                 bean.setStatusStr((String) arr[2]);
+                bean.setEndTime(DateUtils.toDate((Timestamp) arr[3]));
                 break;
             default:
                 throw new JPAExecutorException(ErrorCode.E0603, "QueryExecutor cannot construct action bean for "
@@ -405,5 +407,10 @@ public class WorkflowActionQueryExecutor extends
             jpaService = null;
             instance = null;
         }
+    }
+
+    @Override
+    public Object getSingleValue(WorkflowActionQuery namedQuery, Object... parameters) throws JPAExecutorException {
+        throw new UnsupportedOperationException();
     }
 }

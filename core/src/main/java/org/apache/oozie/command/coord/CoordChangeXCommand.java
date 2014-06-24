@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.oozie.CoordinatorActionBean;
 import org.apache.oozie.CoordinatorJobBean;
@@ -40,10 +41,12 @@ import org.apache.oozie.command.bundle.BundleStatusUpdateXCommand;
 import org.apache.oozie.executor.jpa.CoordActionGetJPAExecutor;
 import org.apache.oozie.executor.jpa.CoordJobGetActionByActionNumberJPAExecutor;
 import org.apache.oozie.executor.jpa.CoordJobGetJPAExecutor;
+import org.apache.oozie.executor.jpa.SLARegistrationQueryExecutor;
+import org.apache.oozie.executor.jpa.SLARegistrationQueryExecutor.SLARegQuery;
+import org.apache.oozie.executor.jpa.SLASummaryQueryExecutor;
 import org.apache.oozie.executor.jpa.CoordJobQueryExecutor.CoordJobQuery;
+import org.apache.oozie.executor.jpa.SLASummaryQueryExecutor.SLASummaryQuery;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
-import org.apache.oozie.executor.jpa.sla.SLARegistrationGetJPAExecutor;
-import org.apache.oozie.executor.jpa.sla.SLASummaryGetJPAExecutor;
 import org.apache.oozie.executor.jpa.BatchQueryExecutor;
 import org.apache.oozie.executor.jpa.BatchQueryExecutor.UpdateEntry;
 import org.apache.oozie.service.JPAService;
@@ -186,10 +189,7 @@ public class CoordChangeXCommand extends CoordinatorXCommand<Void> {
      */
     private void checkPauseTime(CoordinatorJobBean coordJob, Date newPauseTime)
             throws CommandException {
-        // New pauseTime has to be a non-past time.
-        if (newPauseTime.before(coordJob.getStartTime())) {
-            throw new CommandException(ErrorCode.E1015, newPauseTime, "must be a non-past time");
-        }
+        //no check.
     }
 
     /**
@@ -269,12 +269,13 @@ public class CoordChangeXCommand extends CoordinatorXCommand<Void> {
                 if (SLAService.isEnabled()) {
                     Services.get().get(SLAService.class).removeRegistration(actionId);
                 }
-                SLARegistrationBean slaReg = jpaService.execute(new SLARegistrationGetJPAExecutor(actionId));
+                SLARegistrationBean slaReg = SLARegistrationQueryExecutor.getInstance().get(SLARegQuery.GET_SLA_REG_ALL, actionId);
                 if (slaReg != null) {
                     LOG.debug("Deleting registration bean corresponding to action " + slaReg.getId());
                     deleteList.add(slaReg);
                 }
-                SLASummaryBean slaSummaryBean = jpaService.execute(new SLASummaryGetJPAExecutor(actionId));
+                SLASummaryBean slaSummaryBean = SLASummaryQueryExecutor.getInstance().get(
+                        SLASummaryQuery.GET_SLA_SUMMARY, actionId);
                 if (slaSummaryBean != null) {
                     LOG.debug("Deleting summary bean corresponding to action " + slaSummaryBean.getId());
                     deleteList.add(slaSummaryBean);
@@ -349,32 +350,45 @@ public class CoordChangeXCommand extends CoordinatorXCommand<Void> {
                 if (!dontChange) {
                     coordJob.setEndTime(newEndTime);
                     // OOZIE-1703, we should SUCCEEDED the coord, if it's in PREP and new endtime is before start time
-                    if (coordJob.getStatus() == CoordinatorJob.Status.PREP && coordJob.getStartTime().after(newEndTime)) {
-                        LOG.info("Changing coord status to SUCCEEDED, because it's in PREP and new end time is before start time. "
-                                + "Startime is " + coordJob.getStartTime() + " and new end time is " + newEndTime);
-                        coordJob.setStatus(CoordinatorJob.Status.SUCCEEDED);
-                        coordJob.setDoneMaterialization();
-                        coordJob.resetPending();
-                    }
-                    else {
-                        //move it to running iff neendtime is after starttime.
-                        if (newEndTime.after(coordJob.getStartTime())) {
-                            if (coordJob.getStatus() == CoordinatorJob.Status.SUCCEEDED) {
-                                coordJob.setStatus(CoordinatorJob.Status.RUNNING);
-                            }
-                            if (coordJob.getStatus() == CoordinatorJob.Status.DONEWITHERROR
-                                    || coordJob.getStatus() == CoordinatorJob.Status.FAILED) {
-                                // Check for backward compatibility for Oozie versions (3.2 and before)
-                                // when RUNNINGWITHERROR, SUSPENDEDWITHERROR and
-                                // PAUSEDWITHERROR is not supported
-                                coordJob.setStatus(StatusUtils
-                                        .getStatusIfBackwardSupportTrue(CoordinatorJob.Status.RUNNINGWITHERROR));
-                            }
-                            coordJob.setPending();
-                            coordJob.resetDoneMaterialization();
+                    if (coordJob.getStartTime().compareTo(newEndTime) >= 0) {
+                        if (coordJob.getStatus() != CoordinatorJob.Status.PREP) {
                             processLookaheadActions(coordJob, newEndTime);
                         }
+                        if (coordJob.getStatus() == CoordinatorJob.Status.PREP
+                                || coordJob.getStatus() == CoordinatorJob.Status.RUNNING) {
+                            LOG.info("Changing coord status to SUCCEEDED, because it's in " + coordJob.getStatus()
+                                    + " and new end time is before start time. Startime is " + coordJob.getStartTime()
+                                    + " and new end time is " + newEndTime);
+
+                            coordJob.setStatus(CoordinatorJob.Status.SUCCEEDED);
+                            coordJob.resetPending();
+                        }
+                        coordJob.setDoneMaterialization();
                     }
+                    else {
+                        // move it to running iff new end time is after starttime.
+                        if (coordJob.getStatus() == CoordinatorJob.Status.SUCCEEDED) {
+                            coordJob.setStatus(CoordinatorJob.Status.RUNNING);
+                        }
+                        if (coordJob.getStatus() == CoordinatorJob.Status.DONEWITHERROR
+                                || coordJob.getStatus() == CoordinatorJob.Status.FAILED) {
+                            // Check for backward compatibility for Oozie versions (3.2 and before)
+                            // when RUNNINGWITHERROR, SUSPENDEDWITHERROR and
+                            // PAUSEDWITHERROR is not supported
+                            coordJob.setStatus(StatusUtils
+                                    .getStatusIfBackwardSupportTrue(CoordinatorJob.Status.RUNNINGWITHERROR));
+                        }
+                        coordJob.setPending();
+                        coordJob.resetDoneMaterialization();
+                        processLookaheadActions(coordJob, newEndTime);
+                    }
+                }
+
+                else {
+                    LOG.info("Didn't change endtime. Endtime is in between coord end time and next materialization time."
+                            + "Coord endTime = " + DateUtils.formatDateOozieTZ(newEndTime)
+                            + " next materialization time ="
+                            + DateUtils.formatDateOozieTZ(coordJob.getNextMaterializedTime()));
                 }
             }
 
@@ -441,7 +455,8 @@ public class CoordChangeXCommand extends CoordinatorXCommand<Void> {
             LOG.info("ENDED CoordChangeXCommand for jobId=" + jobId);
             // update bundle action
             if (coordJob.getBundleId() != null) {
-                BundleStatusUpdateXCommand bundleStatusUpdate = new BundleStatusUpdateXCommand(coordJob, prevStatus);
+                //ignore pending as it'sync command
+                BundleStatusUpdateXCommand bundleStatusUpdate = new BundleStatusUpdateXCommand(coordJob, prevStatus, true);
                 bundleStatusUpdate.call();
             }
         }
