@@ -77,11 +77,11 @@
         <hadoop.version>1.1.1</hadoop.version>
         <hbase.version>0.95.2</hbase.version>
 
+        <hcatalog.version>0.13.1</hcatalog.version>
         <hadoopOne.version>1.1.1</hadoopOne.version>
         <hadoopTwo.version>2.4.0</hadoopTwo.version>
         <hadoopThree.version>3.0.0-SNAPSHOT</hadoopThree.version> 
         
-        <hcatalog.version>0.11.0</hcatalog.version>
 
         <hadooplib.version>${hadoop.version}.oozie-${project.version}</hadooplib.version>
         <hbaselib.version>${hbase.version}.oozie-${project.version}</hbaselib.version>
@@ -95,7 +95,7 @@
         <hadoop.auth.version>2.4.0</hadoop.auth.version>
 
          <!-- Sharelib component versions -->
-         <hive.version>0.10.0</hive.version>
+         <hive.version>0.13.1</hive.version>
          <tez.version>0.3.0-incubating</tez.version>
          <pig.version>0.10.1</pig.version>
          <pig.classifier></pig.classifier>
