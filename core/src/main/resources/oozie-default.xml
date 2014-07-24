@@ -2065,7 +2065,16 @@
         </description>
     </property>
 
-
+<!--
+    <property>
+        <name>oozie.instance.id</name>
+        <value>${OOZIE_HTTP_HOSTNAME}</value>
+        <description>
+        Each Oozie server should have its own unique instance id. The default is system property
+        =${OOZIE_HTTP_HOSTNAME}= (i.e. the hostname).
+        </description>
+    </property>
+-->
 
 
     <!-- Sharelib Configuration -->
@@ -2154,15 +2163,6 @@
             that the JVM or host machine is overloaded or other problems.  This thread sleeps for 500ms; if it sleeps for
             significantly longer, then there is likely a problem.  This property specifies the threadshold for when Oozie should log
             an INFO level message; there is also a counter named "jvm.pause.info-threshold".
-        </description>
-    </property>
-
-    <property>
-        <name>oozie.service.ZKUUIDService.jobid.sequence.max</name>
-        <value>99999999990</value>
-        <description>
-        Maximum job id sequence for Oozie in HA mode. Current job id sequence is stored in ZK. Once the sequence reaches
-        maximum limit, server will reset job id sequence to 0.
         </description>
     </property>
 
