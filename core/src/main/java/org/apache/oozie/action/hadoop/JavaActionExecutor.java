@@ -273,11 +273,27 @@ public class JavaActionExecutor extends ActionExecutor {
             throws IOException, ActionExecutorException, HadoopAccessorException, URISyntaxException {
         Namespace ns = element.getNamespace();
         Iterator<Element> it = element.getChildren("job-xml", ns).iterator();
+        HashMap<String, FileSystem> filesystemsMap = new HashMap<String, FileSystem>();
+        HadoopAccessorService has = Services.get().get(HadoopAccessorService.class);
         while (it.hasNext()) {
             Element e = it.next();
             String jobXml = e.getTextTrim();
-            Path path = new Path(appPath, jobXml);
-            FileSystem fs = context.getAppFileSystem();
+            Path pathSpecified = new Path(jobXml);
+            Path path = pathSpecified.isAbsolute() ? pathSpecified : new Path(appPath, jobXml);
+            FileSystem fs;
+            if (filesystemsMap.containsKey(path.toUri().getAuthority())) {
+              fs = filesystemsMap.get(path.toUri().getAuthority());
+            }
+            else {
+              if (path.toUri().getAuthority() != null) {
+                fs = has.createFileSystem(context.getWorkflow().getUser(), path.toUri(),
+                        has.createJobConf(path.toUri().getAuthority()));
+              }
+              else {
+                fs = context.getAppFileSystem();
+              }
+              filesystemsMap.put(path.toUri().getAuthority(), fs);
+            }
             Configuration jobXmlConf = new XConfiguration(fs.open(path));
             try {
                 String jobXmlConfString = XmlUtils.prettyPrint(jobXmlConf).toString();
@@ -361,7 +377,7 @@ public class JavaActionExecutor extends ActionExecutor {
                         Services.get().get(HadoopAccessorService.class).addFileToClassPath(user, new Path(uri.normalize()), conf, fs);
                     }
                     else {
-                        DistributedCache.addCacheFile(uri, conf);
+                        DistributedCache.addCacheFile(uri.normalize(), conf);
                     }
                 }
                 else { // regular files
@@ -431,7 +447,7 @@ public class JavaActionExecutor extends ActionExecutor {
         }
     }
 
-    protected void addShareLib(Path appPath, Configuration conf, String[] actionShareLibNames)
+    protected void addShareLib(Configuration conf, String[] actionShareLibNames)
             throws ActionExecutorException {
         if (actionShareLibNames != null) {
             for (String actionShareLibName : actionShareLibNames) {
@@ -439,31 +455,16 @@ public class JavaActionExecutor extends ActionExecutor {
                     Path systemLibPath = Services.get().get(WorkflowAppService.class).getSystemLibPath();
                     if (systemLibPath != null) {
                         Path actionLibPath = new Path(systemLibPath, actionShareLibName.trim());
-                        String user = conf.get("user.name");
-                        FileSystem fs;
-                        // If the actionLibPath has a valid scheme and authority, then use them to
-                        // determine the filesystem that the sharelib resides on; otherwise, assume
-                        // it resides on the same filesystem as the appPath and use the appPath to
-                        // determine the filesystem
-                        if (actionLibPath.toUri().getScheme() != null && actionLibPath.toUri().getAuthority() != null) {
-                            fs = Services.get().get(HadoopAccessorService.class)
-                                    .createFileSystem(user, actionLibPath.toUri(), conf);
-                        }
-                        else {
-                            fs = Services.get().get(HadoopAccessorService.class)
-                                    .createFileSystem(user, appPath.toUri(), conf);
-                        }
+                        // Shared libs are expected to be located on default FS (migration of OOZIE-1685 from trunk)
+                        FileSystem fs = FileSystem.get(Services.get().get(HadoopAccessorService.class).createJobConf(systemLibPath.toUri().getAuthority()));
+                        XLog.getLog(getClass()).info("addShareLib: using FileSystem {0}", fs.getUri().toString());
                         if (fs.exists(actionLibPath)) {
                             FileStatus[] files = fs.listStatus(actionLibPath);
                             for (FileStatus file : files) {
-                                addToCache(conf, actionLibPath, file.getPath().toUri().getPath(), false);
+                                addToCache(conf, actionLibPath, file.getPath().toUri().toString(), false);
                             }
                         }
                     }
-                }
-                catch (HadoopAccessorException ex) {
-                    throw new ActionExecutorException(ActionExecutorException.ErrorType.FAILED, ex.getErrorCode()
-                            .toString(), ex.getMessage());
                 }
                 catch (IOException ex) {
                     throw new ActionExecutorException(ActionExecutorException.ErrorType.FAILED,
@@ -550,7 +551,7 @@ public class JavaActionExecutor extends ActionExecutor {
         // Add action specific share libs
         addActionShareLib(appPath, conf, context, actionXml);
         // Add common sharelibs for Oozie
-        addShareLib(appPath, conf, new String[]{JavaActionExecutor.OOZIE_COMMON_LIBDIR});
+        addShareLib(conf, new String[]{JavaActionExecutor.OOZIE_COMMON_LIBDIR});
     }
 
     private void addActionShareLib(Path appPath, Configuration conf, Context context, Element actionXml)
@@ -566,7 +567,7 @@ public class JavaActionExecutor extends ActionExecutor {
         // Action sharelibs are only added if user has specified to use system libpath
         if (wfJobConf.getBoolean(OozieClient.USE_SYSTEM_LIBPATH, false)) {
             // add action specific sharelibs
-            addShareLib(appPath, conf, getShareLibNames(context, actionXml, conf));
+            addShareLib(conf, getShareLibNames(context, actionXml, conf));
         }
     }
 
