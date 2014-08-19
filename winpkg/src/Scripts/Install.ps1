@@ -117,9 +117,34 @@ function Main( $scriptDir )
 
     Write-Log "Installation of Oozie completed successfully"
 
-    Write-Log "Configuring Oozie"
-    Configure "oozie" $NodeInstallRoot $ServiceCredential @{
-        "oozie.service.AuthorizationService.security.enabled" = "true" }
+    $dburl = ""
+    $dbdriver = ""
+    $dbuser = "sa"
+    $dbpasswd = "pwd"
+    if ( $ENV:DB_FLAVOR -eq "mssql" )
+    {
+        $dburl = "jdbc:sqlserver://${ENV:DB_HOSTNAME}:${ENV:DB_PORT};database=${ENV:OOZIE_DB_NAME}"
+        $dbdriver = "com.microsoft.sqlserver.jdbc.SQLServerDriver"
+        $dbuser = "$ENV:OOZIE_DB_USERNAME"
+        $dbpasswd = "$ENV:OOZIE_DB_PASSWORD"
+    }
+    else
+    {
+        $dburl = "jdbc:derby:`${oozie.data.dir}/`${oozie.db.schema.name}-db;create=true"
+        $dbdriver = "org.apache.derby.jdbc.EmbeddedDriver"
+    }
+	$config = @{
+        "oozie.service.JPAService.jdbc.url" = "$dburl";
+        "oozie.service.JPAService.jdbc.driver" = "$dbdriver";
+        "oozie.service.JPAService.jdbc.username" = "$dbuser";
+        "oozie.service.JPAService.jdbc.password" = "$dbpasswd";
+        "oozie.services.ext" = "org.apache.oozie.service.PartitionDependencyManagerService,org.apache.oozie.service.HCatAccessorService";
+        "oozie.credentials.credentialclasses" = "hcat=org.apache.oozie.action.hadoop.HCatCredentials";
+        "oozie.service.URIHandlerService.uri.handlers" = "org.apache.oozie.dependency.FSURIHandler,org.apache.oozie.dependency.HCatURIHandler";
+        "oozie.service.coord.push.check.requeue.interval" = "30000";
+        "oozie.service.HadoopAccessorService.hadoop.configurations" = "*=$ENV:HADOOP_CONF_DIR";
+		"oozie.service.AuthorizationService.security.enabled" = "true" }
+		Configure "oozie" $NodeInstallRoot $ServiceCredential $config
 
 }
 
