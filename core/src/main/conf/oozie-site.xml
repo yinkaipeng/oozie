@@ -162,7 +162,7 @@
 
     <property>
         <name>oozie.service.JPAService.jdbc.password</name>
-        <value> </value>
+        <value>pwd</value>
         <description>
             DB user password.
 
