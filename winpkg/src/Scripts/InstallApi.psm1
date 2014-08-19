@@ -220,8 +220,6 @@ function Configure(
         ### Apply configuration changes to oozie-site.xml
         ###
         $xmlFile = Join-Path $oozieInstallToDir "$OozieDistroName\conf\oozie-site.xml"
-        UpdateXmlConfig $xmlFile @{
-            "oozie.service.HadoopAccessorService.hadoop.configurations" = "*=$ENV:HADOOP_CONF_DIR" }
         UpdateXmlConfig $xmlFile $configs
     }
     else
