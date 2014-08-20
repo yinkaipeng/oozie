@@ -95,7 +95,7 @@ public class JavaActionExecutor extends ActionExecutor {
     private boolean useLauncherJar;
     private static int maxActionOutputLen;
     private static int maxExternalStatsSize;
-    private static final int maxGetJobRetries = 10;
+    private static final int maxGetJobRetries = 30;
 
     private static final String SUCCEEDED = "SUCCEEDED";
     private static final String KILLED = "KILLED";
