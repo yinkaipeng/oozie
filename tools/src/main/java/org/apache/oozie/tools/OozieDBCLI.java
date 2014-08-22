@@ -642,14 +642,30 @@ public class OozieDBCLI {
                                                                 "ALTER TABLE WF_JOBS MODIFY proto_action_conf MEDIUMTEXT",
                                                                 "ALTER TABLE WF_JOBS MODIFY sla_xml MEDIUMTEXT"};
 
-    private final static String[] SQLSERVER_ALTER = {"ALTER TABLE BUNDLE_JOBS ALTER COLUMN conf VARCHAR(max)",
-            "ALTER TABLE BUNDLE_JOBS ALTER COLUMN job_xml VARCHAR(max)",
-            "ALTER TABLE WF_JOBS ALTER COLUMN proto_action_conf VARCHAR(max)",
-            "ALTER TABLE COORD_JOBS ALTER COLUMN conf VARCHAR(max)",
-            "ALTER TABLE COORD_JOBS ALTER COLUMN job_xml VARCHAR(max)",
-            "ALTER TABLE COORD_ACTIONS ALTER COLUMN run_conf VARCHAR(max)",
-            "ALTER TABLE COORD_ACTIONS ALTER COLUMN created_conf VARCHAR(max)",
-            "ALTER TABLE COORD_ACTIONS ALTER COLUMN action_xml VARCHAR(max)"
+    private final static String[] SQLSERVER_ALTER = {"ALTER TABLE BUNDLE_JOBS ALTER COLUMN conf NVARCHAR(max)",
+            "ALTER TABLE BUNDLE_JOBS ALTER COLUMN job_xml NVARCHAR(max)",
+            "ALTER TABLE BUNDLE_JOBS ALTER COLUMN orig_job_xml NVARCHAR(max)",
+            "ALTER TABLE WF_JOBS ALTER COLUMN proto_action_conf NVARCHAR(max)",
+            "ALTER TABLE WF_JOBS ALTER COLUMN conf NVARCHAR(max)",
+            "ALTER TABLE WF_JOBS ALTER COLUMN sla_xml NVARCHAR(max)",
+            "ALTER TABLE WF_ACTIONS ALTER COLUMN conf NVARCHAR(max)",
+            "ALTER TABLE WF_ACTIONS ALTER COLUMN data NVARCHAR(max)",
+            "ALTER TABLE WF_ACTIONS ALTER COLUMN stats NVARCHAR(max)",
+            "ALTER TABLE WF_ACTIONS ALTER COLUMN external_child_ids NVARCHAR(max)",
+            "ALTER TABLE WF_ACTIONS ALTER COLUMN sla_xml NVARCHAR(max)",
+            "ALTER TABLE COORD_JOBS ALTER COLUMN conf NVARCHAR(max)",
+            "ALTER TABLE COORD_JOBS ALTER COLUMN job_xml NVARCHAR(max)",
+            "ALTER TABLE COORD_JOBS ALTER COLUMN orig_job_xml NVARCHAR(max)",
+            "ALTER TABLE COORD_JOBS ALTER COLUMN sla_xml NVARCHAR(max)",
+            "ALTER TABLE COORD_ACTIONS ALTER COLUMN run_conf NVARCHAR(max)",
+            "ALTER TABLE COORD_ACTIONS ALTER COLUMN created_conf NVARCHAR(max)",
+            "ALTER TABLE COORD_ACTIONS ALTER COLUMN sla_xml NVARCHAR(max)",
+            "ALTER TABLE COORD_ACTIONS ALTER COLUMN missing_dependencies NVARCHAR(max)",
+            "ALTER TABLE COORD_ACTIONS ALTER COLUMN push_missing_dependencies NVARCHAR(max)",
+            "ALTER TABLE COORD_ACTIONS ALTER COLUMN action_xml NVARCHAR(max)",
+            "ALTER TABLE SLA_EVENTS ALTER COLUMN job_data NVARCHAR(max)",
+            "ALTER TABLE SLA_EVENTS ALTER COLUMN notification_msg NVARCHAR(max)",
+            "ALTER TABLE SLA_EVENTS ALTER COLUMN upstream_apps NVARCHAR(max)"
             };
     private void executeSqlServerAlter(String sqlFile, boolean run) throws Exception {
         PrintWriter writer = new PrintWriter(new FileWriter(sqlFile, true));
