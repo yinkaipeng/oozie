@@ -181,6 +181,10 @@ public class OozieDBCLI {
                                BuildInfo.getBuildInfo().getProperty(BuildInfo.BUILD_VERSION) + "'");
         }
         System.out.println();
+
+        if (getDBVendor().equals("sqlserver")) {
+            executeSqlServerAlter(sqlFile, run);
+        }
     }
 
     private void upgradeDB(String sqlFile, boolean run) throws Exception {
@@ -638,7 +642,40 @@ public class OozieDBCLI {
                                                                 "ALTER TABLE WF_JOBS MODIFY proto_action_conf MEDIUMTEXT",
                                                                 "ALTER TABLE WF_JOBS MODIFY sla_xml MEDIUMTEXT"};
 
+    private final static String[] SQLSERVER_ALTER = {"ALTER TABLE BUNDLE_JOBS ALTER COLUMN conf VARCHAR(max)",
+            "ALTER TABLE BUNDLE_JOBS ALTER COLUMN job_xml VARCHAR(max)",
+            "ALTER TABLE WF_JOBS ALTER COLUMN proto_action_conf VARCHAR(max)",
+            "ALTER TABLE COORD_JOBS ALTER COLUMN conf VARCHAR(max)",
+            "ALTER TABLE COORD_JOBS ALTER COLUMN job_xml VARCHAR(max)",
+            "ALTER TABLE COORD_ACTIONS ALTER COLUMN run_conf VARCHAR(max)",
+            "ALTER TABLE COORD_ACTIONS ALTER COLUMN created_conf VARCHAR(max)",
+            "ALTER TABLE COORD_ACTIONS ALTER COLUMN action_xml VARCHAR(max)"
+            };
+    private void executeSqlServerAlter(String sqlFile, boolean run) throws Exception {
+        PrintWriter writer = new PrintWriter(new FileWriter(sqlFile, true));
+        writer.println();
+        Connection conn = (run) ? createConnection() : null;
+        try {
+            System.out.println("Some sqlserver columns need to change to nvarchar");
+            for (String ddlQuery : SQLSERVER_ALTER) {
+                writer.println(ddlQuery + ";");
+                if (run) {
+                    conn.setAutoCommit(true);
+                    Statement st = conn.createStatement();
+                    st.executeUpdate(ddlQuery);
+                    st.close();
+                }
+            }
+            writer.close();
+            System.out.println("DONE");
+        }
+        finally {
+            if (run) {
+                conn.close();
+            }
+        }
 
+    }
     private void doSQLMediumTextTweaks(String sqlFile, boolean run) throws Exception {
         if (getDBVendor().equals("mysql")) {
             PrintWriter writer = new PrintWriter(new FileWriter(sqlFile, true));
