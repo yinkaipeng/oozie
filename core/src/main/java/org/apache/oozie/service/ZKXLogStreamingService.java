@@ -22,14 +22,20 @@ import java.io.BufferedReader;
 import org.apache.oozie.util.Instrumentable;
 import org.apache.oozie.util.Instrumentation;
 import org.apache.oozie.util.XLogStreamer;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.FileSystem;
 
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.TreeMap;
+import java.net.URI;
 
 import org.apache.curator.x.discovery.ServiceInstance;
 import org.apache.oozie.ErrorCode;
@@ -38,8 +44,10 @@ import org.apache.oozie.client.rest.RestConstants;
 import org.apache.oozie.util.AuthUrlClient;
 import org.apache.oozie.util.XLogFilter;
 import org.apache.oozie.util.SimpleTimestampedMessageParser;
+import org.apache.oozie.util.HDFSTimestampedMessageParser;
 import org.apache.oozie.util.TimestampedMessageParser;
 import org.apache.oozie.util.XLog;
+import org.apache.oozie.util.XLogUserFilterParam;
 import org.apache.oozie.util.ZKUtils;
 
 /**
@@ -145,6 +153,8 @@ public class ZKXLogStreamingService extends XLogStreamingService implements Serv
             throw new IOException("Issue communicating with ZooKeeper: " + ex.getMessage(), ex);
         }
         List<TimestampedMessageParser> parsers = new ArrayList<TimestampedMessageParser>(oozies.size());
+        boolean openHDFS = false;
+        FileSystem fs = null;
         try {
             // Create a BufferedReader for getting the logs of each server and put them in a TimestampedMessageParser
             for (ServiceInstance<Map> oozie : oozies) {
@@ -201,6 +211,53 @@ public class ZKXLogStreamingService extends XLogStreamingService implements Serv
                 parser.processRemaining(writer, bufferLen);
             }
             else {
+                // If one oozie server is down, we need to go to hdfs to retrieve the logs
+                if (!badOozies.isEmpty()) {
+                    XLogCopyService xls = Services.get().get(XLogCopyService.class);
+                    String hdfsDir = xls.getConfHdfsLogDir();
+                    HadoopAccessorService has = Services.get().get(HadoopAccessorService.class);
+                    URI uri = new Path(hdfsDir).toUri();
+                    Configuration fsConf = has.createJobConf(uri.getAuthority());
+
+                    try {
+                        fs = has.createFileSystem(System.getProperty("user.name"), uri, fsConf);
+                        openHDFS = true;
+                    }
+                    catch (Exception ex) {
+                        log.error("user has to be specified to access hdfs",
+                                new HadoopAccessorException(ErrorCode.E0902, "user has to be specified to access FileSystem"));
+                    }
+
+                    String jobId = filter.getFilterParams().get("JOB");
+                    Path path = new Path(hdfsDir, jobId + ".log");
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(fs.open(path)));
+                    HDFSTimestampedMessageParser parser = new HDFSTimestampedMessageParser(reader, filter);
+                    List<String> allServers = parser.getAllServers();
+                    reader.close();
+
+                    parsers = new ArrayList<TimestampedMessageParser>(oozies.size());
+                    for (String server: allServers) {
+                        Map<String, String[]> newParams = new HashMap<String, String[]>();
+                        String [] value = {"log"};
+                        newParams.put("show", value);
+                        try {
+                            XLogFilter newFilter = new XLogFilter(new XLogUserFilterParam(newParams));
+                            Map<String, String> oldParams = filter.getFilterParams();
+                            for (String key : oldParams.keySet()) {
+                                newFilter.setParameter(key, oldParams.get(key));
+                            }
+
+                            newFilter.setParameter("SERVER", server);
+                            BufferedReader newReader = new BufferedReader(new InputStreamReader(fs.open(path)));
+                            parsers.add(new TimestampedMessageParser(newReader, newFilter));
+                        }
+                        catch (Exception ex) {
+                            log.error(ex.getMessage());
+
+                        }
+                    }
+                }
+
                 // Now that we have a Reader for each server to get the logs from that server, we have to collate them.  Within each
                 // server, the logs should already be in the correct order, so we can take advantage of that.  We'll use the
                 // BufferedReaders to read the messages from the logs of each server and put them in order without having to bring
@@ -242,6 +299,9 @@ public class ZKXLogStreamingService extends XLogStreamingService implements Serv
                 parser.closeReader();
             }
             writer.flush();
+            if (openHDFS) {
+                fs.close();
+            }
         }
     }
 }

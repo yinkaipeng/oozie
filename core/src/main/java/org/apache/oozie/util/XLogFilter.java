@@ -241,6 +241,9 @@ public class XLogFilter {
         this.isActionList = isActionList;
     }
 
+    public static Pattern getSplitterPattern() {
+        return SPLITTER_PATTERN;
+    }
     private void calculateScanDate(Date jobStartTime, Date jobEndTime) throws IOException {
 
         if (userLogFilter.getStartDate() != null) {

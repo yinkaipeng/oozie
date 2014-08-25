@@ -175,6 +175,7 @@ public class XLogService implements Service, Instrumentable {
             XLog.Info.defineParameter(USER);
             XLog.Info.defineParameter(GROUP);
             XLogFilter.reset();
+            XLogFilter.defineParameter(SERVER);
             XLogFilter.defineParameter(USER);
             XLogFilter.defineParameter(GROUP);
 
@@ -284,6 +285,11 @@ public class XLogService implements Service, Instrumentable {
         XLog.Info.reset();
         XLogFilter.reset();
     }
+
+    /**
+     * Server log info constant.
+     */
+    public static final String SERVER = "SERVER";
 
     /**
      * Group log info constant.

@@ -43,6 +43,7 @@ import org.apache.oozie.executor.jpa.WorkflowJobsGetForPurgeJPAExecutor;
 import org.apache.oozie.executor.jpa.WorkflowJobsGetFromCoordParentIdJPAExecutor;
 import org.apache.oozie.service.JPAService;
 import org.apache.oozie.service.Services;
+import org.apache.oozie.service.XLogCopyService;
 
 /**
  * This class is used to purge workflows, coordinators, and bundles.  It takes into account the relationships between workflows and
@@ -183,6 +184,10 @@ public class PurgeXCommand extends XCommand<Void> {
 
         LOG.info("ENDED Purge deleted [{0}] workflows, [{1}] coordinatorActions, [{2}] coordinators, [{3}] bundles",
                 wfDel, coordActionDel, coordDel, bundleDel);
+
+        if (XLogCopyService.IS_LOG_PURGING_ENABLED){
+            queue(new XLogPurgeXCommand(wfList, coordList, bundleList));
+        }
         return null;
     }
 
