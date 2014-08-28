@@ -148,6 +148,12 @@
 
         <dependency>
             <groupId>org.apache.oozie</groupId>
+            <artifactId>oozie-hcatalog</artifactId>
+            <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.oozie</groupId>
             <artifactId>oozie-sharelib-distcp</artifactId>
             <scope>provided</scope>
         </dependency>
