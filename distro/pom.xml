@@ -48,6 +48,11 @@
             <scope>compile</scope>
             <type>war</type>
         </dependency>
+        <dependency>
+            <groupId>org.apache.oozie</groupId>
+            <artifactId>oozie-examples</artifactId>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
 
     <build>

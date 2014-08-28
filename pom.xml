@@ -121,6 +121,7 @@
         <module>hcataloglibs</module>
         <module>core</module>
         <module>webapp</module>
+        <module>examples</module>
         <module>docs</module>
         <module>sharelib</module>
         <module>tools</module>
@@ -201,6 +202,11 @@
                 <groupId>org.apache.oozie</groupId>
                 <artifactId>oozie-core</artifactId>
                 <classifier>tests</classifier>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.oozie</groupId>
+                <artifactId>oozie-examples</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

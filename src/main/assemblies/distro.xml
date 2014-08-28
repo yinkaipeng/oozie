@@ -155,7 +155,7 @@
         </file>
         <!-- Oozie examples TAR.GZ  -->
         <file>
-            <source>${basedir}/../client/target/oozie-client-${project.version}-client.tar.gz</source>
+            <source>${basedir}/../examples/target/oozie-examples-${project.version}-examples.tar.gz</source>
             <outputDirectory>/</outputDirectory>
             <destName>oozie-examples.tar.gz</destName>
         </file>
