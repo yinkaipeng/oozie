@@ -97,7 +97,7 @@
          <hive.version>0.13.1</hive.version>
          <tez.version>0.3.0-incubating</tez.version>
          <pig.version>0.10.1</pig.version>
-         <pig.classifier></pig.classifier>
+         <pig.classifier>h2</pig.classifier>
          <sqoop.version>1.4.3</sqoop.version>
          <sqoop.classifier>hadoop100</sqoop.classifier>
          <streaming.version>${hadoop.version}</streaming.version>
