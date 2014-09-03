@@ -38,15 +38,6 @@ for i in "${BASEDIR}/lib/"*.jar; do
   OOZIECPPATH="${OOZIECPPATH}:$i"
 done
 
-if [ "${OOZIE_CONFIG}" = "" ]; then
-  export OOZIE_CONFIG=${BASEDIR}/conf
-fi
-
-# if the configuration dir has a env file, source it
-#
-if [ -e "${OOZIE_CONFIG}/oozie-env.sh" ]; then
-  source ${OOZIE_CONFIG}/oozie-env.sh
-fi
 
 if test -z ${JAVA_HOME}
 then
