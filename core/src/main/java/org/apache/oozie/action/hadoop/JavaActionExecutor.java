@@ -924,6 +924,11 @@ public class JavaActionExecutor extends ActionExecutor {
             injectJobInfo(launcherJobConf, actionConf, context, action);
             injectLauncherCallback(context, launcherJobConf);
             LOG.debug("Creating Job Client for action " + action.getId());
+            LOG.info("Creating Job Client using the following properties:");
+            for (Map.Entry<String, String> entry : launcherJobConf) {
+                LOG.info("name is " + entry.getKey());
+                LOG.info("value is " + entry.getValue());
+            }
             jobClient = createJobClient(context, launcherJobConf);
             String launcherId = LauncherMapperHelper.getRecoveryId(launcherJobConf, context.getActionDir(), context
                     .getRecoveryId());
@@ -960,6 +965,12 @@ public class JavaActionExecutor extends ActionExecutor {
                 }
                 else {
                     LOG.info("No need to inject credentials.");
+                }
+
+                LOG.info("the followings are launcher conf properties:");
+                for (Map.Entry<String, String> entry : launcherJobConf) {
+                    LOG.info("name is " + entry.getKey());
+                    LOG.info("value is " + entry.getValue());
                 }
                 runningJob = jobClient.submitJob(launcherJobConf);
                 if (runningJob == null) {
