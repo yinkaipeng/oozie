@@ -32,8 +32,12 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
 import java.net.URI;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.Statement;
+import java.sql.SQLException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.ArrayList;
@@ -60,13 +64,23 @@ public class XLogCopyService implements Service {
 
     public static final String CONF_LOG_PURGE = CONF_PREFIX + "purge.enable";
 
-    public static final String LOG_COPY_PROGRESS_FILE = "logprogress.txt";
-
     public static String HDFS_LOG_DIR;
 
     public static int CURRENT_LINE_NUMBER = 0;
 
     public static String LAST_COMPLETE_LOG_FILE_NAME = "oozie.log";
+
+    public static String OOZIE_INSTANCE_ID = "";
+
+    public static HashMap<String, String> jdbcConf = new HashMap<String, String>();
+
+    public static String LOGPROGRESS_GET_QUERY = "select data from oozie_sys where name = '";
+
+    public static String LOGPROGRESS_UPDATE_QUERY = "update oozie_sys set data = '";
+
+    public static String LOGPROGRESS_UPDATE_QUERY_WHERE_CLAUSE = "' where name = '";
+
+    public static String LOGPROGRESS_INSERT_QUERY = "insert into OOZIE_SYS (name, data) values ";
 
     public static Boolean IS_LOG_PURGING_ENABLED = false;
 
@@ -155,6 +169,7 @@ public class XLogCopyService implements Service {
                 log.info("last line number is updated to " + CURRENT_LINE_NUMBER);
                 log.info("last log file is " + LAST_COMPLETE_LOG_FILE_NAME);
             }
+            updateLogProgress(CURRENT_LINE_NUMBER + "," + LAST_COMPLETE_LOG_FILE_NAME);
         }
 
         private int writeToHdfs(int lineNumber, File file){
@@ -249,42 +264,27 @@ public class XLogCopyService implements Service {
         int interval = conf.getInt(CONF_SERVICE_INTERVAL, 300);
         HDFS_LOG_DIR = conf.get(CONF_HDFS_LOG_DIR);
         IS_LOG_PURGING_ENABLED = conf.getBoolean(CONF_LOG_PURGE, false);
-        String configDir = Services.get().get(ConfigurationService.class).getConfigDir();
-        if (configDir != null) {
-            File file = new File(configDir, LOG_COPY_PROGRESS_FILE);
-            if (file.exists()) {
-                try {
-                    BufferedReader br = new BufferedReader(new FileReader(file));
-                    try {
-                        String line = br.readLine();
-                        String[] progressRecord = line.split(",");
-                        try {
-                            CURRENT_LINE_NUMBER = Integer.parseInt(progressRecord[0].trim());
-                        }
-                        catch (NumberFormatException ex) {
-                            log.warn("Can not retrieve line number from log progress file, default it to 0");
-                        }
+        OOZIE_INSTANCE_ID = System.getenv("OOZIE_INSTANCE_ID");
+        LOGPROGRESS_GET_QUERY +=  OOZIE_INSTANCE_ID + ".logprogress'";
+        LOGPROGRESS_UPDATE_QUERY_WHERE_CLAUSE +=  OOZIE_INSTANCE_ID + ".logprogress'";
+        LOGPROGRESS_INSERT_QUERY += "('" + OOZIE_INSTANCE_ID + ".logprogress', '"
+                + CURRENT_LINE_NUMBER + "," + LAST_COMPLETE_LOG_FILE_NAME + "')";
 
-                        LAST_COMPLETE_LOG_FILE_NAME = progressRecord[1].trim();
-                    }
-                    catch (IOException ex) {
-                        throw new ServiceException(ErrorCode.E0160, file.getAbsolutePath(), ex);
-                    }
-                }
-                catch (FileNotFoundException ex) {
-                    throw new ServiceException(ErrorCode.E0160, file.getAbsolutePath(), ex);
-                }
-            }
-            else {
-                LAST_COMPLETE_LOG_FILE_NAME = Services.get().get(XLogService.class).getOozieLogName();
-                try {
-                    file.createNewFile();
-                }
-                catch (IOException ex) {
-                    throw new ServiceException(ErrorCode.E0160, file.getAbsolutePath(), ex);
-                }
-            }
+        jdbcConf.put("driver", conf.get(JPAService.CONF_DRIVER));
+        String url = conf.get(JPAService.CONF_URL);
+        jdbcConf.put("url", url);
+        jdbcConf.put("user", conf.get(JPAService.CONF_USERNAME));
+
+        jdbcConf.put("password", services.get(HadoopAccessorService.class).getPasswordFromHadoopConf(conf,
+                JPAService.CONF_PASSWORD));
+        String dbType = url.substring("jdbc:".length());
+        if (dbType.indexOf(":") <= 0) {
+            throw new RuntimeException("Invalid JDBC URL, missing vendor 'jdbc:[VENDOR]:...'");
         }
+        dbType = dbType.substring(0, dbType.indexOf(":"));
+        jdbcConf.put("dbtype", dbType);
+
+        initLogProgress();
 
         XLogCopyRunnable runnable = new XLogCopyRunnable(HDFS_LOG_DIR);
         services.get(SchedulerService.class).schedule(runnable, 10, interval, SchedulerService.Unit.SEC);
@@ -298,19 +298,94 @@ public class XLogCopyService implements Service {
 
     @Override
     public void destroy() {
-        String configDir = Services.get().get(ConfigurationService.class).getConfigDir();
-        try {
-            File file = new File(configDir, LOG_COPY_PROGRESS_FILE);
-            PrintWriter writer = new PrintWriter(file);
-            writer.println(CURRENT_LINE_NUMBER + "," + LAST_COMPLETE_LOG_FILE_NAME);
-            writer.close();
-        }
-        catch (FileNotFoundException ex) {
-            log.warn("log progress file doesn't exists");
-        }
+        updateLogProgress(CURRENT_LINE_NUMBER + "," + LAST_COMPLETE_LOG_FILE_NAME);
     }
 
     public String getConfHdfsLogDir() {
         return HDFS_LOG_DIR;
+    }
+
+    private static void initLogProgress() throws ServiceException{
+        String logProgress = "";
+        XLog log = XLog.getLog(XLogCopyService.class);
+
+        try {
+            Class.forName(jdbcConf.get("driver")).newInstance();
+            Connection conn = DriverManager.getConnection(jdbcConf.get("url"), jdbcConf.get("user"), jdbcConf.get("password"));
+            try {
+                log.info("execute query: " + LOGPROGRESS_GET_QUERY);
+                Statement st = conn.createStatement();
+                ResultSet rs = st.executeQuery(LOGPROGRESS_GET_QUERY);
+                if (rs.next()) {
+                    logProgress = rs.getString(1);
+                }
+
+                rs.close();
+                st.close();
+            }
+            catch (SQLException ex) {
+                throw new ServiceException(ErrorCode.E0170, "cannot query oozie_sys table", ex);
+            }
+        }
+        catch (SQLException ex) {
+            throw new ServiceException(ErrorCode.E0600, ex);
+        }
+        catch (Exception ex) {
+            throw new ServiceException(ErrorCode.E0307, ex);
+        }
+
+        if (!logProgress.isEmpty()) {
+            String[] progressRecord = logProgress.trim().split(",");
+            try {
+                CURRENT_LINE_NUMBER = Integer.parseInt(progressRecord[0].trim());
+            }
+            catch (NumberFormatException ex) {
+                log.warn("Can not retrieve line number from log progress file, default it to 0");
+            }
+
+            LAST_COMPLETE_LOG_FILE_NAME = progressRecord[1].trim();
+        }
+        else {
+            try {
+                Class.forName(jdbcConf.get("driver")).newInstance();
+                Connection conn = DriverManager.getConnection(jdbcConf.get("url"), jdbcConf.get("user"), jdbcConf.get("password"));
+                try {
+                    log.info("insert query is " + LOGPROGRESS_INSERT_QUERY);
+                    Statement st = conn.createStatement();
+                    st.executeUpdate(LOGPROGRESS_INSERT_QUERY);
+                    st.close();
+                }
+                catch (SQLException ex) {
+                    throw new ServiceException(ErrorCode.E0170, "cannot insert into oozie_sys table", ex);
+                }
+            }
+            catch (SQLException ex) {
+                throw new ServiceException(ErrorCode.E0600, ex);
+            }
+            catch (Exception ex) {
+                throw new ServiceException(ErrorCode.E0307, ex);
+            }
+        }
+    }
+
+    private static void updateLogProgress(String logProgress) {
+        XLog log = XLog.getLog(XLogCopyService.class);
+        try {
+            Class.forName(jdbcConf.get("driver")).newInstance();
+            Connection conn = DriverManager.getConnection(jdbcConf.get("url"), jdbcConf.get("user"), jdbcConf.get("password"));
+            try {
+                String updateQuery = LOGPROGRESS_UPDATE_QUERY + logProgress + LOGPROGRESS_UPDATE_QUERY_WHERE_CLAUSE;
+                log.info("execute query; " + updateQuery);
+                Statement st = conn.createStatement();
+                st.executeUpdate(updateQuery);
+                st.close();
+            }
+            catch (SQLException ex) {
+                log.error("Cannot update logProgress in oozie_sys table: " + ex.getMessage());
+            }
+        }
+        catch (Exception ex) {
+            log.error("run time error " + ex.getMessage());
+        }
     }
 }
