@@ -175,7 +175,6 @@ public class XLogService implements Service, Instrumentable {
             XLog.Info.defineParameter(USER);
             XLog.Info.defineParameter(GROUP);
             XLogFilter.reset();
-            XLogFilter.defineParameter(SERVER);
             XLogFilter.defineParameter(USER);
             XLogFilter.defineParameter(GROUP);
 
