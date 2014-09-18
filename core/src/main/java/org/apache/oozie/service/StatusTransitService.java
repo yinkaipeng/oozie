@@ -357,6 +357,11 @@ public class StatusTransitService implements Service {
                     bundleStatus[0] = Job.Status.FAILED;
                     ret = true;
                 }
+                else if (bundleActions.size() == totalValuesKilled + totalValuesFailed) {
+                    // If all the bundle actions are KILLED then bundle job should be KILLED.
+                    bundleStatus[0] = Job.Status.KILLED;
+                    ret = true;
+                }
                 else {
                     bundleStatus[0] = Job.Status.DONEWITHERROR;
                     ret = true;
