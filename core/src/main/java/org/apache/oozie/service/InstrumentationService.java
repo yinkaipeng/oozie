@@ -105,7 +105,12 @@ public class InstrumentationService implements Service {
         String E = System.getProperty("line.separator");
         StringBuilder sb = new StringBuilder();
         for (Map.Entry<String, String> entry : map.entrySet()) {
-            sb.append("    ").append(entry.getKey()).append(" = ").append(entry.getValue()).append(E);
+            if (entry.getKey().equals("oozie.https.keystore.pass")) {
+                sb.append("    ").append(entry.getKey()).append(" = ").append("*****").append(E);
+            }
+            else {
+                sb.append("    ").append(entry.getKey()).append(" = ").append(entry.getValue()).append(E);
+            }
         }
         return sb.toString();
     }
