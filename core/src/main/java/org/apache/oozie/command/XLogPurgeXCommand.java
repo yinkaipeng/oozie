@@ -18,7 +18,9 @@
 package org.apache.oozie.command;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.oozie.ErrorCode;
 import org.apache.oozie.service.HadoopAccessorException;
@@ -80,16 +82,27 @@ public class XLogPurgeXCommand extends XCommand<Void> {
     }
 
     private void deleteJobLogs(FileSystem fs, String hdfsDir, List<String> jobIds) {
-        for (String jobId : jobIds) {
-            final Path p = new Path(hdfsDir, jobId + ".log");
-            try {
-                if (fs.exists(p)) {
-                    fs.delete(p, true);
+        Path[] paths = null;
+        try {
+            FileStatus[] fileStatuses = fs.listStatus(new Path(hdfsDir));
+            paths = FileUtil.stat2Paths(fileStatuses);
+        }
+        catch (IOException ex) {
+            LOG.error("file not found " + ex.getMessage());
+        }
+
+        for (Path path : paths) {
+            for (String jobId : jobIds) {
+                final Path p = new Path(path, jobId + ".log");
+                try {
+                    if (fs.exists(p)) {
+                        fs.delete(p, true);
+                    }
                 }
-            }
-            catch (IOException ex) {
-                LOG.error("cannot delete job logs in hdfs",
+                catch (IOException ex) {
+                    LOG.error("cannot delete job logs in hdfs",
                         new HadoopAccessorException(ErrorCode.E0902, "cannot delete file " + p));
+                }
             }
         }
     }

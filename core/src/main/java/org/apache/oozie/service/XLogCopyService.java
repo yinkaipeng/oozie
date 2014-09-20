@@ -101,8 +101,7 @@ public class XLogCopyService implements Service {
 
             XLog.Info.get().clear();
             XLog log = XLog.getLog(getClass());
-            log.info("last log file name is " + LAST_COMPLETE_LOG_FILE_NAME);
-            log.info("last line number is " + CURRENT_LINE_NUMBER);
+            log.info("hdfs log dir is " + hdfsDir);
 
             if (oozieLogPath != null && oozieLogName != null) {
                 String[] children = new File(oozieLogPath).list();
@@ -166,8 +165,6 @@ public class XLogCopyService implements Service {
                         CURRENT_LINE_NUMBER = writeToHdfs(CURRENT_LINE_NUMBER, new File(oozieLogPath, oozieLogName));
                     }
                 }
-                log.info("last line number is updated to " + CURRENT_LINE_NUMBER);
-                log.info("last log file is " + LAST_COMPLETE_LOG_FILE_NAME);
             }
             updateLogProgress(CURRENT_LINE_NUMBER + "," + LAST_COMPLETE_LOG_FILE_NAME);
         }
@@ -263,6 +260,9 @@ public class XLogCopyService implements Service {
         Configuration conf = services.getConf();
         int interval = conf.getInt(CONF_SERVICE_INTERVAL, 300);
         HDFS_LOG_DIR = conf.get(CONF_HDFS_LOG_DIR);
+        if (HDFS_LOG_DIR == null || HDFS_LOG_DIR.isEmpty()) {
+            throw new ServiceException(ErrorCode.E0307, "hdfs log directory not specified");
+        }
         IS_LOG_PURGING_ENABLED = conf.getBoolean(CONF_LOG_PURGE, false);
         OOZIE_INSTANCE_ID = System.getenv("OOZIE_INSTANCE_ID");
         LOGPROGRESS_GET_QUERY +=  OOZIE_INSTANCE_ID + ".logprogress'";
@@ -286,7 +286,7 @@ public class XLogCopyService implements Service {
 
         initLogProgress();
 
-        XLogCopyRunnable runnable = new XLogCopyRunnable(HDFS_LOG_DIR);
+        XLogCopyRunnable runnable = new XLogCopyRunnable(new Path(HDFS_LOG_DIR, OOZIE_INSTANCE_ID).toString());
         services.get(SchedulerService.class).schedule(runnable, 10, interval, SchedulerService.Unit.SEC);
         log.info("XLogCopyService is initialized");
     }

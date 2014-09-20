@@ -24,7 +24,9 @@ import org.apache.oozie.util.Instrumentation;
 import org.apache.oozie.util.XLogStreamer;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FileUtil;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -49,6 +51,7 @@ import org.apache.oozie.util.TimestampedMessageParser;
 import org.apache.oozie.util.XLog;
 import org.apache.oozie.util.XLogUserFilterParam;
 import org.apache.oozie.util.ZKUtils;
+import org.apache.tools.ant.taskdefs.condition.ParserSupports;
 
 /**
  * Service that performs streaming of log files over Web Services if enabled in XLogService and collates logs from other Oozie
@@ -224,36 +227,21 @@ public class ZKXLogStreamingService extends XLogStreamingService implements Serv
                         openHDFS = true;
                     }
                     catch (Exception ex) {
-                        log.error("user has to be specified to access hdfs",
-                                new HadoopAccessorException(ErrorCode.E0902, "user has to be specified to access FileSystem"));
+                        log.error(System.getProperty("user.name") + " has to be specified to access hdfs",
+                                new HadoopAccessorException(ErrorCode.E0902,
+                                        System.getProperty("user.name") +" has to be specified to access FileSystem"));
                     }
 
+                    FileStatus[] fileStatuses = fs.listStatus(new Path(hdfsDir));
+                    Path[] paths = FileUtil.stat2Paths(fileStatuses);
                     String jobId = filter.getFilterParams().get("JOB");
-                    Path path = new Path(hdfsDir, jobId + ".log");
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(fs.open(path)));
-                    HDFSTimestampedMessageParser parser = new HDFSTimestampedMessageParser(reader, filter);
-                    List<String> allServers = parser.getAllServers();
-                    reader.close();
 
-                    parsers = new ArrayList<TimestampedMessageParser>(oozies.size());
-                    for (String server: allServers) {
-                        Map<String, String[]> newParams = new HashMap<String, String[]>();
-                        String [] value = {"log"};
-                        newParams.put("show", value);
-                        try {
-                            XLogFilter newFilter = new XLogFilter(new XLogUserFilterParam(newParams));
-                            Map<String, String> oldParams = filter.getFilterParams();
-                            for (String key : oldParams.keySet()) {
-                                newFilter.setParameter(key, oldParams.get(key));
-                            }
-
-                            newFilter.setParameter("SERVER", server);
-                            BufferedReader newReader = new BufferedReader(new InputStreamReader(fs.open(path)));
-                            parsers.add(new TimestampedMessageParser(newReader, newFilter));
-                        }
-                        catch (Exception ex) {
-                            log.error(ex.getMessage());
-
+                    parsers = new ArrayList<TimestampedMessageParser>();
+                    for (Path path: paths) {
+                        Path logFilePath = new Path(path, jobId + ".log");
+                        if (fs.exists(logFilePath)) {
+                            BufferedReader reader = new BufferedReader(new InputStreamReader(fs.open(logFilePath)));
+                            parsers.add(new TimestampedMessageParser(reader, filter));
                         }
                     }
                 }
