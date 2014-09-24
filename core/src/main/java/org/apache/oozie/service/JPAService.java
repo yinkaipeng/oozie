@@ -140,7 +140,13 @@ public class JPAService implements Service, Instrumentable {
         String url = conf.get(CONF_URL, "jdbc:derby:${oozie.home.dir}/${oozie.db.schema.name}-db;create=true");
         String driver = conf.get(CONF_DRIVER, "org.apache.derby.jdbc.EmbeddedDriver");
         String user = conf.get(CONF_USERNAME, "sa");
-        String password = Services.get().get(HadoopAccessorService.class).getPasswordFromHadoopConf(conf, CONF_PASSWORD);
+        String password = conf.get(CONF_PASSWORD, "").trim();
+        HadoopAccessorService has =  Services.get().get(HadoopAccessorService.class);
+
+        if (has != null) {
+            password = has.getPasswordFromHadoopConf(conf, CONF_PASSWORD);
+        }
+
         String maxConn = conf.get(CONF_MAX_ACTIVE_CONN, "10").trim();
         String dataSource = conf.get(CONF_CONN_DATA_SOURCE, "org.apache.commons.dbcp.BasicDataSource");
         String connPropsConfig = conf.get(CONF_CONN_PROPERTIES);
