@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -116,7 +117,8 @@ public class AuthOozieClient extends XOozieClient {
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("OPTIONS");
             AuthenticatedURL.injectToken(conn, currentToken);
-            if (conn.getResponseCode() == HttpURLConnection.HTTP_UNAUTHORIZED) {
+            if (conn.getResponseCode() == HttpURLConnection.HTTP_UNAUTHORIZED ||
+                    isCookieExpired(conn.getRequestProperty("Cookie"))) {
                 AUTH_TOKEN_CACHE_FILE.delete();
                 currentToken = new AuthenticatedURL.Token();
             }
@@ -147,6 +149,32 @@ public class AuthOozieClient extends XOozieClient {
     }
 
 
+    protected boolean isCookieExpired(String cookie) {
+        if (cookie == null || cookie.isEmpty()) {
+            return true;
+        }
+        String [] cookieParts = cookie.split("&");
+        String expired = "";
+        for (String s: cookieParts) {
+            if (s.startsWith("e=")) {
+                expired = s;
+                break;
+            }
+        }
+
+        if (expired.isEmpty()) {
+            return true;
+        }
+
+        long expirationTime = 0;
+        try {
+            expirationTime = Long.parseLong(expired.split("=")[1]);
+        }
+        catch (NumberFormatException ex) {
+            return true;
+        }
+        return expirationTime < new Date().getTime();
+    }
     /**
      * Read a authentication token cached in the user home directory.
      * <p/>
