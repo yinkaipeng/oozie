@@ -221,6 +221,17 @@ function Configure(
         ###
         $xmlFile = Join-Path $oozieInstallToDir "$OozieDistroName\conf\oozie-site.xml"
         UpdateXmlConfig $xmlFile $configs
+        ###
+        ### Apply HA
+        ###
+        if ((Test-Path ENV:IS_OOZIE_HA) -and ($ENV:IS_OOZIE_HA -eq "yes"))
+        {
+            Write-Log "Configuring HA"
+            $lines = Get-Content "$ENV:OOZIE_HOME\bin\oozie-sys.cmd"
+            $pos = [array]::indexof($lines, $lines -match "@echo off")
+            $newLines = $lines[0..($pos +1)], "set OOZIE_BASE_URL=$ENV:OOZIE_BASE_URL", $lines[$pos..($lines.Length + 1)]
+            $newLines | Set-Content "$ENV:OOZIE_HOME\bin\oozie-sys.cmd"
+        }
     }
     else
     {
