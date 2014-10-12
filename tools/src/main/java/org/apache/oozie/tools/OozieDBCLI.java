@@ -60,6 +60,7 @@ public class OozieDBCLI {
     public static final String RUN_OPT = "run";
     private final static String DB_VERSION_PRE_4_0 = "1";
     private final static String DB_VERSION_FOR_4_0 = "2";
+    private final static String DB_VERSION_FOR_4_5 = "2.5";
     final static String DB_VERSION_FOR_5_0 = "3";
     private final static String DISCRIMINATOR_COLUMN = "bean_type";
     private final static String TEMP_COLUMN_PREFIX = "temp_";
@@ -220,7 +221,7 @@ public class OozieDBCLI {
                 upgradeDBTo40(sqlFile, run);
                 ver = run ? getOozieDBVersion().trim() : DB_VERSION_FOR_4_0;
             }
-            else if (ver.equals(DB_VERSION_FOR_4_0)) {
+            else if (ver.equals(DB_VERSION_FOR_4_0) || ver.equals((DB_VERSION_FOR_4_5))) {
                 System.out.println("Upgrading to db schema for Oozie " + version);
                 upgradeDBto50(sqlFile, run, startingVersion);
                 ver = run ? getOozieDBVersion().trim() : DB_VERSION_FOR_5_0;
@@ -563,6 +564,31 @@ public class OozieDBCLI {
         System.out.println("Done");
     }
 
+    private void convertClobToBlobInSqlServer(String sqlFile, Connection conn) throws Exception {
+        System.out.println("Converting nvarchar(max) to varbinary(max) for all tables");
+        PrintWriter writer = new PrintWriter(new FileWriter(sqlFile, true));
+        writer.println();
+        Statement statement = conn != null ? conn.createStatement() : null;
+        for (Map.Entry<String, List<String>> tableClobColumnMap : getTableClobColumnMap().entrySet()) {
+            String tableName = tableClobColumnMap.getKey();
+            List<String> columnNames = tableClobColumnMap.getValue();
+            for (String column : columnNames) {
+                if (statement != null) {
+                    statement.executeUpdate("ALTER TABLE " + tableName + " ADD " + column + "_temp varbinary(max)");
+                    statement.executeUpdate("UPDATE " + tableName + " SET " + column + "_temp = CONVERT(varbinary(max), "
+                        + column + ")");
+                    statement.executeUpdate("ALTER TABLE " + tableName + " DROP column " + column);
+                    statement.executeUpdate("sp_RENAME '" + tableName + "." + column + "_temp' , '" + column + "' , 'column'");
+                }
+            }
+        }
+        writer.close();
+        if (statement != null) {
+            statement.close();
+        }
+        System.out.println("Done");
+    }
+
     private void convertClobToBlobInPostgres(String sqlFile, Connection conn, String startingVersion) throws Exception {
         System.out.println("Converting text columns to bytea for all tables");
         PrintWriter writer = new PrintWriter(new FileWriter(sqlFile, true));
@@ -692,6 +718,11 @@ public class OozieDBCLI {
         else if (dbVendor.equals("derby")) {
             convertClobToBlobinDerby(conn, startingVersion);
         }
+        else if (dbVendor.equals("sqlserver")) {
+            convertClobToBlobInSqlServer(sqlFile, conn);
+            return;
+        }
+
         System.out.println("Dropping discriminator column");
         PrintWriter writer = new PrintWriter(new FileWriter(sqlFile, true));
         writer.println();
