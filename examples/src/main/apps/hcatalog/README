@@ -30,3 +30,12 @@ Running the coordinator example with HCatalog (End-to-end test)
          <name>oozie.credentials.credentialclasses</name>
          <value>hcat=org.apache.oozie.action.hadoop.HCatCredentials</value>
        </property>
+
+
+
+---
+To validate support for new HCatalog types in Hive 0.13+,
+ Change the table definition to be as folows
+ create table invites (foo INT, bar INT, car TIMESTAMP) partitioned by (ds STRING, region STRING)
+
+Note that Pig in 2.1 may  not be able to process, but you can see that the workflows transition from WAITING to READY
