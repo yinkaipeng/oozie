@@ -127,7 +127,7 @@
 
     <property>
         <name>oozie.service.JPAService.create.db.schema</name>
-        <value>true</value>
+        <value>false</value>
         <description>
             Creates Oozie DB.
 
