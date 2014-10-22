@@ -99,7 +99,6 @@ public class PigMain extends LauncherMain {
         for (Map.Entry<String, String> entry : actionConf) {
             pigProperties.setProperty(entry.getKey(), entry.getValue());
         }
-
         // propagate delegation related props from launcher job to Pig job
         String jobTokenFile = getFilePathFromEnv("HADOOP_TOKEN_FILE_LOCATION");
         if (jobTokenFile != null) {
@@ -114,6 +113,8 @@ public class PigMain extends LauncherMain {
         else {
             System.out.println("Non-kerberoes execution");
         }
+
+        pigProperties.setProperty("pig.use.overriden.hadoop.configs","true");
 
         OutputStream os = new FileOutputStream("pig.properties");
         pigProperties.store(os, "");
