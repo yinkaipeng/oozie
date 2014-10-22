@@ -232,6 +232,14 @@ function Configure(
             $newLines = $lines[0..($pos +1)], "set OOZIE_BASE_URL=$ENV:OOZIE_BASE_URL", $lines[$pos..($lines.Length + 1)]
             $newLines | Set-Content "$ENV:OOZIE_HOME\bin\oozie-sys.cmd"
         }
+        
+        ###
+        ### Creating db schema
+        ###
+        Write-Log "Creating db schema"
+        $cmdFile = Join-Path $oozieInstallToDir "$OozieDistroName\bin\ooziedb.cmd"
+        $cmd = "$cmdfile create -run"
+        Invoke-CmdChk $cmd
     }
     else
     {
