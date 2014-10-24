@@ -99,12 +99,14 @@ public class AuthFilter extends AuthenticationFilter {
                     try {
                         hostName = InetAddress.getLocalHost().getCanonicalHostName();
                         principal = SecurityUtil.getServerPrincipal(value, hostName);
-                    } catch(IOException ioe) {
+                    } catch (IOException ioe) {
                         // ignore.
                     }
                     props.setProperty(name, principal);
                 }
-                props.setProperty(name, value);
+                else {
+                    props.setProperty(name, value);
+                }
             }
         }
 
