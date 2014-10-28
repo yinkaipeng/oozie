@@ -265,7 +265,7 @@ public class TestSubmitXCommand extends XDataTestCase {
         WorkflowJobBean wf = WorkflowJobQueryExecutor.getInstance().get(WorkflowJobQuery.GET_WORKFLOW, jobId);
         XConfiguration protoConf = new XConfiguration(new StringReader(wf.getProtoActionConf()));
         //username, libpath, apppath
-        assertEquals(protoConf.size(), 2);
+        assertEquals(protoConf.size(), 3);
         assertNull(protoConf.get(WorkflowAppService.APP_LIB_PATH_LIST));
 
         new File(getTestCaseDir() + "/lib").mkdirs();
@@ -283,7 +283,7 @@ public class TestSubmitXCommand extends XDataTestCase {
         });
         wf = WorkflowJobQueryExecutor.getInstance().get(WorkflowJobQuery.GET_WORKFLOW, jobId1);
         protoConf = new XConfiguration(new StringReader(wf.getProtoActionConf()));
-        assertEquals(protoConf.size(), 3);
+        assertEquals(protoConf.size(), 4);
         assertNotNull(protoConf.get(WorkflowAppService.APP_LIB_PATH_LIST));
     }
 
