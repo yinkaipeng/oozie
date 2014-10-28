@@ -221,6 +221,13 @@ function Configure(
         ###
         $xmlFile = Join-Path $oozieInstallToDir "$OozieDistroName\conf\oozie-site.xml"
         UpdateXmlConfig $xmlFile $configs
+        
+        ###
+        ### Updating admin file
+        ###
+        $adminFile = Join-Path $oozieInstallToDir "$OozieDistroName\conf\adminusers.txt"
+        Add-Content -Path $adminFile -Value "hadoop" -ErrorAction Stop 
+        
         ###
         ### Apply HA
         ###

@@ -144,7 +144,7 @@ function Main( $scriptDir )
         "oozie.service.coord.push.check.requeue.interval" = "30000";
         "oozie.service.HadoopAccessorService.hadoop.configurations" = "*=$ENV:HADOOP_CONF_DIR";
         "oozie.service.HadoopAccessorService.supported.filesystems" = "hdfs, webhdfs, swebhdfs, hftp, hsftp, wasb, s3n";
-		"oozie.service.AuthorizationService.security.enabled" = "true" }
+		"oozie.service.AuthorizationService.security.enabled" = "true"}
 		Configure "oozie" $NodeInstallRoot $ServiceCredential $config
 
 }
