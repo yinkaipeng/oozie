@@ -34,6 +34,7 @@ public class TestHiveMain extends MainTestCase {
     private SecurityManager SECURITY_MANAGER;
 
     protected void setUp() throws Exception {
+        System.setProperty("oozie.test.metastore.server", "false");
         super.setUp();
         SECURITY_MANAGER = System.getSecurityManager();
     }
