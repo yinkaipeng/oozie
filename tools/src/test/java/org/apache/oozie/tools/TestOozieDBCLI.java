@@ -52,6 +52,7 @@ public class TestOozieDBCLI extends XTestCase {
         Connection conn = DriverManager.getConnection(url, "sa", "");
         conn.close();
 
+        System.setProperty("oozie.test.metastore.server", "false");
         super.setUp(false);
 
     }
