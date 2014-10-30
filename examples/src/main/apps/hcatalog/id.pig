@@ -17,5 +17,5 @@
 --
 A = load '$DB.$TABLE' using org.apache.hive.hcatalog.pig.HCatLoader();
 B = FILTER A BY $FILTER;
-C = foreach B generate foo, bar;
-store C into '$OUTPUT_DB.$OUTPUT_TABLE' USING org.apache.hive.hcatalog.pig.HCatStorer('$OUTPUT_PARTITION');
+C = foreach B generate foo, bar, car;
+store C into '$OUTPUT_DB.$OUTPUT_TABLE' USING org.apache.hcatalog.pig.HCatStorer('$OUTPUT_PARTITION');
