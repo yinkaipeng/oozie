@@ -74,9 +74,9 @@ public class XLogCopyService implements Service {
 
     public static HashMap<String, String> jdbcConf = new HashMap<String, String>();
 
-    public static String LOGPROGRESS_GET_QUERY = "select data from oozie_sys where name = '";
+    public static String LOGPROGRESS_GET_QUERY = "select data from OOZIE_SYS where name = '";
 
-    public static String LOGPROGRESS_UPDATE_QUERY = "update oozie_sys set data = '";
+    public static String LOGPROGRESS_UPDATE_QUERY = "update OOZIE_SYS set data = '";
 
     public static String LOGPROGRESS_UPDATE_QUERY_WHERE_CLAUSE = "' where name = '";
 
@@ -324,7 +324,7 @@ public class XLogCopyService implements Service {
                 st.close();
             }
             catch (SQLException ex) {
-                throw new ServiceException(ErrorCode.E0170, "cannot query oozie_sys table", ex);
+                throw new ServiceException(ErrorCode.E0170, "cannot query OOZIE_SYS table", ex);
             }
         }
         catch (SQLException ex) {
@@ -356,7 +356,7 @@ public class XLogCopyService implements Service {
                     st.close();
                 }
                 catch (SQLException ex) {
-                    throw new ServiceException(ErrorCode.E0170, "cannot insert into oozie_sys table", ex);
+                    throw new ServiceException(ErrorCode.E0170, "cannot insert into OOZIE_SYS table", ex);
                 }
             }
             catch (SQLException ex) {
@@ -381,7 +381,7 @@ public class XLogCopyService implements Service {
                 st.close();
             }
             catch (SQLException ex) {
-                log.error("Cannot update logProgress in oozie_sys table: " + ex.getMessage());
+                log.error("Cannot update logProgress in OOZIE_SYS table: " + ex.getMessage());
             }
         }
         catch (Exception ex) {
