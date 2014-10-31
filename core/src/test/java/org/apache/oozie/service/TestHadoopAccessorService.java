@@ -37,12 +37,17 @@ public class TestHadoopAccessorService extends XTestCase {
     protected void setUp() throws Exception {
         super.setUp();
         new File(getTestCaseConfDir(), "hadoop-confx").mkdir();
-        new File(getTestCaseConfDir(), "action-confx").mkdir();
+        File actConfXDir = new File(getTestCaseConfDir(), "action-confx");
+        actConfXDir.mkdir();
+        new File(actConfXDir, "action").mkdir();
         InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream("test-hadoop-config.xml");
         OutputStream os = new FileOutputStream(new File(getTestCaseConfDir() + "/hadoop-confx", "core-site.xml"));
         IOUtils.copyStream(is, os);
         is = Thread.currentThread().getContextClassLoader().getResourceAsStream("test-action-config.xml");
         os = new FileOutputStream(new File(getTestCaseConfDir() + "/action-confx", "action.xml"));
+        IOUtils.copyStream(is, os);
+        is = Thread.currentThread().getContextClassLoader().getResourceAsStream("test-action-config-2.xml");
+        os = new FileOutputStream(new File(actConfXDir + "/action", "somename.xml"));
         IOUtils.copyStream(is, os);
         setSystemProperty("oozie.service.HadoopAccessorService.hadoop.configurations",
                           "*=hadoop-conf,jt=hadoop-confx");
@@ -74,6 +79,7 @@ public class TestHadoopAccessorService extends XTestCase {
         assertNotNull(has.createActionDefaultConf("jt", "actionx"));
         assertNotNull(has.createActionDefaultConf("jtx", "action"));
         assertEquals("action.bar", has.createActionDefaultConf("jt", "action").get("action.foo"));
+        assertEquals("action.car", has.createActionDefaultConf("jt", "action").get("action.boo"));
         assertNull(has.createActionDefaultConf("*", "action").get("action.foo"));
     }
 

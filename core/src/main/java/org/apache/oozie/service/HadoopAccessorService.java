@@ -38,6 +38,7 @@ import org.apache.oozie.util.JobUtils;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
@@ -306,6 +307,42 @@ public class HadoopAccessorService implements Service {
                 catch (IOException ex) {
                     XLog.getLog(getClass()).warn("Could not read file [{0}] for action [{1}] configuration for hostPort [{2}]",
                                                  actionConfFile.getAbsolutePath(), action, hostPort);
+                }
+            }
+
+            // See if a dir with the action name exists.   If so, load all the xml files in the dir
+            File actionConfDir = new File(dir, action);
+
+            if (actionConfDir.exists() && actionConfDir.isDirectory()) {
+                XLog.getLog(getClass()).info("Processing configuration files under [{0}]"
+                        + " for action [{1}] and hostPort [{2}]",
+                        actionConfDir.getAbsolutePath(), action, hostPort);
+                File[] xmlFiles = actionConfDir.listFiles(
+                        new FilenameFilter() {
+                            @Override
+                            public boolean accept(File dir, String name) {
+                                return name.endsWith(".xml");
+                            }});
+                for (File f : xmlFiles) {
+                    if (f.isFile() && f.canRead()) {
+                        XLog.getLog(getClass()).info("Processing configuration file [{0}]", f.getName());
+                        FileInputStream fis = null;
+                        try {
+                            fis = new FileInputStream(f);
+                            XConfiguration conf = new XConfiguration(fis);
+                            XConfiguration.copy(conf, actionConf);
+                        }
+                        catch (IOException ex) {
+                            XLog.getLog(getClass())
+                                .warn("Could not read file [{0}] for action [{1}] configuration and hostPort [{2}]",
+                                    f.getAbsolutePath(), action, hostPort);
+                        }
+                        finally {
+                            if (fis != null) {
+                                try { fis.close(); } catch(IOException ioe) { }
+                            }
+                        }
+                    }
                 }
             }
         }
