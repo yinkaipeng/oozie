@@ -250,6 +250,20 @@ function Configure(
             $cmd = "$cmdfile create -run"
             Invoke-CmdChk $cmd
         }
+        
+        ###
+        ### Copying hive-site and tez-site xmls to etc\action-conf\hive
+        ###
+        Write-Log "Copying hive-site and tez-site xmls to etc\action-conf\hive"
+        if (-not (Test-Path "$ENV:OOZIE_HOME\conf\action-conf\hive"))
+        {
+            New-Item -Path "$ENV:OOZIE_HOME\conf\action-conf\hive" -ItemType Directory -Force -ErrorAction Stop
+        }
+        Copy-Item -Path "$ENV:HIVE_HOME\conf\hive-site.xml" -Destination "$ENV:OOZIE_HOME\conf\action-conf\hive\hive-site.xml" -Force -ErrorAction Stop
+        if (Test-Path "$ENV:TEZ_HOME\conf\tez-site.xml")
+        {
+            Copy-Item -Path "$ENV:TEZ_HOME\conf\tez-site.xml" -Destination "$ENV:OOZIE_HOME\conf\action-conf\hive\tez-site.xml" -Force -ErrorAction Stop
+        }
     }
     else
     {
