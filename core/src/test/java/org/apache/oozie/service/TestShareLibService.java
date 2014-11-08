@@ -571,7 +571,6 @@ public class TestShareLibService extends XFsTestCase {
         services = new Services();
         setSystemProps();
         Configuration conf = services.getConf();
-        conf.set(ShareLibService.SHIP_LAUNCHER_JAR, "true");
         try {
             services.init();
             FileSystem fs = getFileSystem();
@@ -584,6 +583,7 @@ public class TestShareLibService extends XFsTestCase {
             Path ooziePath = new Path(libpath.toString() + Path.SEPARATOR + "oozie");
             fs.mkdirs(ooziePath);
             createFile(libpath.toString() + Path.SEPARATOR + "oozie" + Path.SEPARATOR + "oozie_luncher.jar");
+            conf.set(ShareLibService.SHIP_LAUNCHER_JAR, "true");
             shareLibService.init(services);
             List<Path> launcherPath = shareLibService.getSystemLibJars(JavaActionExecutor.OOZIE_COMMON_LIBDIR);
             assertEquals(launcherPath.size(), 2);
