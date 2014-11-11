@@ -1063,6 +1063,11 @@
                         -->
                         <exclude>**/TestMapReduceActionExecutorUberJar.java</exclude>
 
+                        <!-- Explictly use -Dtest=TestZKUtilsWithSecurity to test the ZKUtils with security.
+                         It can conflict with other non-secure tests that use zookeeper
+                        -->
+                        <exclude>**/TestZKUtilsWithSecurity.java</exclude>
+
                     </excludes>
                     <!-- DO NOT CHANGE THIS VALUES, TESTCASES CANNOT RUN IN PARALLEL -->
                     <parallel>classes</parallel>
