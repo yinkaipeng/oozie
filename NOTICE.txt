@@ -18,3 +18,10 @@ documentation in the ooziedocs.war at index.html##LicenseInfo
 Oozie source contains 3 binaries (wordcount-simple_Linux-amd64-64_h20,
 wordcount-simple_Linux-i386-32_h20, wordcount-simple_Mac_OS_X-x86_64-64_h20) for
 testing purposes, these binaries are compiled artifacts from Apache Hadoop.
+
+This product includes DataTables (http://www.datatables.net/) which is dual licensed.
+We include it under the BSD license ( http://datatables.net/license_bsd).
+
+This product includes JQuery  UI TimePicker (http://trentrichardson.com/examples/timepicker/),
+copyright (c) 2013 Trent Richardson, which is dual licensed.
+We include it under the MIT license (http://trentrichardson.com/Impromptu/MIT-LICENSE.txt).
