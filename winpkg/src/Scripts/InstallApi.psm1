@@ -241,17 +241,6 @@ function Configure(
         }
         
         ###
-        ### Creating db schema
-        ###
-        if ($ENV:IS_OOZIE_SERVER -eq "yes")
-        {
-            Write-Log "Creating db schema"
-            $cmdFile = Join-Path $oozieInstallToDir "$OozieDistroName\bin\ooziedb.cmd"
-            $cmd = "$cmdfile create -run"
-            Invoke-CmdChk $cmd
-        }
-        
-        ###
         ### Copying hive-site and tez-site xmls to etc\action-conf\hive
         ###
         Write-Log "Copying hive-site and tez-site xmls to etc\action-conf\hive"
