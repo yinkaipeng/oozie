@@ -120,7 +120,7 @@ function Main( $scriptDir )
     if ($ENV:IS_OOZIE_SERVER -eq "yes")
     {
         Write-Log "Creating oozie db schema"
-        CreateMetastore()
+        CreateMetastore
     }
 
     $dburl = ""
