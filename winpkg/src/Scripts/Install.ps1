@@ -117,12 +117,6 @@ function Main( $scriptDir )
 
     Write-Log "Installation of Oozie completed successfully"
 
-    if ($ENV:IS_OOZIE_SERVER -eq "yes")
-    {
-        Write-Log "Creating oozie db schema"
-        CreateMetastore
-    }
-
     $dburl = ""
     $dbdriver = ""
     $dbuser = "sa"
@@ -152,7 +146,11 @@ function Main( $scriptDir )
         "oozie.service.HadoopAccessorService.supported.filesystems" = "hdfs, webhdfs, swebhdfs, hftp, hsftp, wasb, s3n";
 		"oozie.service.AuthorizationService.security.enabled" = "true"}
 		Configure "oozie" $NodeInstallRoot $ServiceCredential $config
-
+        if ($ENV:IS_OOZIE_SERVER -eq "yes")
+        {
+            Write-Log "Creating oozie db schema"
+            CreateMetastore
+        }
 }
 
 try
