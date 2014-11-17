@@ -655,7 +655,7 @@
             <dependency>
                 <groupId>hsqldb</groupId>
                 <artifactId>hsqldb</artifactId>
-                <version>1.8.0.7</version>
+                <version>1.8.0.10</version>
             </dependency>
 
             <dependency>
@@ -673,7 +673,7 @@
             <dependency>
                 <groupId>org.apache.derby</groupId>
                 <artifactId>derby</artifactId>
-                <version>10.6.1.0</version>
+                <version>10.10.1.1</version>
                 <scope>compile</scope>
             </dependency>
 
