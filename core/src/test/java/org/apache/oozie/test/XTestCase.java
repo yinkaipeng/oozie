@@ -890,6 +890,10 @@ public abstract class XTestCase extends TestCase {
 
             try {
                 dfsCluster = new MiniDFSCluster(conf, dataNodes, true, null);
+
+		 dfsCluster.waitClusterUp();
+		 dfsCluster.waitActive();
+
                 FileSystem fileSystem = dfsCluster.getFileSystem();
                 fileSystem.mkdirs(new Path("target/test-data"));
                 fileSystem.mkdirs(new Path("target/test-data"+"/minicluster/mapred"));
@@ -932,6 +936,10 @@ public abstract class XTestCase extends TestCase {
                 System.setProperty("test.build.data", FilenameUtils.concat(testBuildDataSaved, "2"));
                 // Only DFS cluster is created based upon current need
                 dfsCluster2 = new MiniDFSCluster(createDFSConfig(), 2, true, null);
+
+		 dfsCluster2.waitClusterUp();
+		 dfsCluster2.waitActive();
+
                 FileSystem fileSystem = dfsCluster2.getFileSystem();
                 fileSystem.mkdirs(new Path("target/test-data"));
                 fileSystem.mkdirs(new Path("/user"));
