@@ -270,7 +270,7 @@ function Configure(
 Function UpdateConfigWithAdditionalProperties([hashtable] $configs, [hashtable] $additionalConfig)
 {
     $additionalConfig.GetEnumerator() | ForEach-Object {
-        if( -not ($configs.ContainsKey($_.Key))
+        if( -not ($configs.ContainsKey($_.Key)))
         {
             $configs.Add($_.Key, $_.Value)
         }
