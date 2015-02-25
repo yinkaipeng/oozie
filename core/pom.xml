@@ -259,6 +259,12 @@
             <artifactId>oozie-sharelib-distcp</artifactId>
             <scope>compile</scope>
         </dependency>
+        
+        <dependency>
+	  <groupId>org.apache.hadoop</groupId>
+	  <artifactId>hadoop-azure</artifactId>
+	  <scope>compile</scope>
+        </dependency>
 
         <dependency>
             <groupId>org.mockito</groupId>
