@@ -292,6 +292,20 @@
                  <groupId>org.apache.hadoop</groupId>
                  <artifactId>hadoop-common</artifactId>
                  <version>${hadoop.version}</version>
+                 <exclusions>
+                     <exclusion>
+                         <artifactId>jasper-runtime</artifactId>
+                         <groupId>tomcat</groupId>
+                     </exclusion>
+                     <exclusion>
+                         <artifactId>jasper-compiler</artifactId>
+                         <groupId>tomcat</groupId>
+                     </exclusion>
+                     <exclusion>
+                         <artifactId>jsp-api</artifactId>
+                         <groupId>javax.servlet.jsp</groupId>
+                     </exclusion>
+                 </exclusions>
              </dependency>
              
              <dependency>
