@@ -564,6 +564,56 @@ public class OozieDBCLI {
         System.out.println("Done");
     }
 
+    private final static String[] SQLSERVER_ALTER = {"ALTER TABLE BUNDLE_JOBS ALTER COLUMN conf NVARCHAR(max)",
+            "ALTER TABLE BUNDLE_JOBS ALTER COLUMN job_xml NVARCHAR(max)",
+            "ALTER TABLE BUNDLE_JOBS ALTER COLUMN orig_job_xml NVARCHAR(max)",
+            "ALTER TABLE WF_JOBS ALTER COLUMN proto_action_conf NVARCHAR(max)",
+            "ALTER TABLE WF_JOBS ALTER COLUMN conf NVARCHAR(max)",
+            "ALTER TABLE WF_JOBS ALTER COLUMN sla_xml NVARCHAR(max)",
+            "ALTER TABLE WF_ACTIONS ALTER COLUMN conf NVARCHAR(max)",
+            "ALTER TABLE WF_ACTIONS ALTER COLUMN data NVARCHAR(max)",
+            "ALTER TABLE WF_ACTIONS ALTER COLUMN stats NVARCHAR(max)",
+            "ALTER TABLE WF_ACTIONS ALTER COLUMN external_child_ids NVARCHAR(max)",
+            "ALTER TABLE WF_ACTIONS ALTER COLUMN sla_xml NVARCHAR(max)",
+            "ALTER TABLE COORD_JOBS ALTER COLUMN conf NVARCHAR(max)",
+            "ALTER TABLE COORD_JOBS ALTER COLUMN job_xml NVARCHAR(max)",
+            "ALTER TABLE COORD_JOBS ALTER COLUMN orig_job_xml NVARCHAR(max)",
+            "ALTER TABLE COORD_JOBS ALTER COLUMN sla_xml NVARCHAR(max)",
+            "ALTER TABLE COORD_ACTIONS ALTER COLUMN run_conf NVARCHAR(max)",
+            "ALTER TABLE COORD_ACTIONS ALTER COLUMN created_conf NVARCHAR(max)",
+            "ALTER TABLE COORD_ACTIONS ALTER COLUMN sla_xml NVARCHAR(max)",
+            "ALTER TABLE COORD_ACTIONS ALTER COLUMN missing_dependencies NVARCHAR(max)",
+            "ALTER TABLE COORD_ACTIONS ALTER COLUMN push_missing_dependencies NVARCHAR(max)",
+            "ALTER TABLE COORD_ACTIONS ALTER COLUMN action_xml NVARCHAR(max)",
+            "ALTER TABLE SLA_EVENTS ALTER COLUMN job_data NVARCHAR(max)",
+            "ALTER TABLE SLA_EVENTS ALTER COLUMN notification_msg NVARCHAR(max)",
+            "ALTER TABLE SLA_EVENTS ALTER COLUMN upstream_apps NVARCHAR(max)"
+    };
+    private void executeSqlServerAlter(String sqlFile, boolean run) throws Exception {
+        PrintWriter writer = new PrintWriter(new FileWriter(sqlFile, true));
+        writer.println();
+        Connection conn = (run) ? createConnection() : null;
+        try {
+            System.out.println("Some sqlserver columns need to change to nvarchar");
+            for (String ddlQuery : SQLSERVER_ALTER) {
+                writer.println(ddlQuery + ";");
+                if (run) {
+                    conn.setAutoCommit(true);
+                    Statement st = conn.createStatement();
+                    st.executeUpdate(ddlQuery);
+                    st.close();
+                }
+            }
+            writer.close();
+            System.out.println("DONE");
+        }
+        finally {
+            if (run) {
+                conn.close();
+            }
+        }
+    }
+
     private void convertClobToBlobInSqlServer(String sqlFile, Connection conn) throws Exception {
         System.out.println("Converting nvarchar(max) to varbinary(max) for all tables");
         PrintWriter writer = new PrintWriter(new FileWriter(sqlFile, true));
@@ -719,6 +769,7 @@ public class OozieDBCLI {
             convertClobToBlobinDerby(conn, startingVersion);
         }
         else if (dbVendor.equals("sqlserver")) {
+            executeSqlServerAlter(sqlFile, run);
             convertClobToBlobInSqlServer(sqlFile, conn);
             return;
         }
