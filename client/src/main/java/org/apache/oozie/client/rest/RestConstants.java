@@ -87,6 +87,8 @@ public interface RestConstants {
 
     public static final String JOB_SHOW_LOG = "log";
 
+    public static final String JOB_SHOW_ERROR_LOG = "errorlog";
+
     public static final String JOB_SHOW_DEFINITION = "definition";
 
     public static final String JOB_SHOW_GRAPH = "graph";
@@ -184,4 +186,24 @@ public interface RestConstants {
     public static final String LOG_FILTER_OPTION = "logfilter";
 
     public static final String JOB_COORD_RERUN_FAILED_PARAM = "failed";
+
+    public static final String SLA_DISABLE_ALERT = "sla-disable";
+
+    public static final String SLA_ENABLE_ALERT = "sla-enable";
+
+    public static final String SLA_CHANGE = "sla-change";
+
+    public static final String SLA_ALERT_RANGE = "sla-alert-range";
+
+    public static final String COORDINATORS_PARAM = "coordinators";
+
+    public static final String SLA_NOMINAL_TIME = "sla-nominal-time";
+
+    public static final String SLA_SHOULD_START = "sla-should-start";
+
+    public static final String SLA_SHOULD_END = "sla-should-end";
+
+    public static final String SLA_MAX_DURATION = "sla-max-duration";
+
+    public static final String JOB_COORD_SCOPE_ACTION_LIST = "action-list";
 }

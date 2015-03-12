@@ -111,6 +111,8 @@ public class OozieCLI {
     public static final String RERUN_OPTION = "rerun";
     public static final String INFO_OPTION = "info";
     public static final String LOG_OPTION = "log";
+    public static final String ERROR_LOG_OPTION = "errorlog";
+
     public static final String ACTION_OPTION = "action";
     public static final String DEFINITION_OPTION = "definition";
     public static final String CONFIG_CONTENT_OPTION = "configcontent";
@@ -133,16 +135,20 @@ public class OozieCLI {
     public static final String LOCAL_TIME_OPTION = "localtime";
     public static final String TIME_ZONE_OPTION = "timezone";
     public static final String QUEUE_DUMP_OPTION = "queuedump";
-    public static final String RERUN_COORD_OPTION = "coordinator";
     public static final String DATE_OPTION = "date";
     public static final String RERUN_REFRESH_OPTION = "refresh";
     public static final String RERUN_NOCLEANUP_OPTION = "nocleanup";
     public static final String RERUN_FAILED_OPTION = "failed";
     public static final String ORDER_OPTION = "order";
+    public static final String COORD_OPTION = "coordinator";
 
     public static final String UPDATE_SHARELIB_OPTION = "sharelibupdate";
 
     public static final String LIST_SHARELIB_LIB_OPTION = "shareliblist";
+
+    public static final String SLA_DISABLE_ALERT = "sla_disable";
+    public static final String SLA_ENABLE_ALERT = "sla_enable";
+    public static final String SLA_CHANGE = "sla_change";
 
 
 
@@ -312,6 +318,8 @@ public class OozieCLI {
         Option timezone = new Option(TIME_ZONE_OPTION, true,
                 "use time zone with the specified ID (default GMT).\nSee 'oozie info -timezones' for a list");
         Option log = new Option(LOG_OPTION, true, "job log");
+        Option errorlog = new Option(ERROR_LOG_OPTION, true, "job error log");
+
         Option logFilter = new Option(
                 RestConstants.LOG_FILTER_OPTION, true,
                 "job log search parameter. Can be specified as -logfilter opt1=val1;opt2=val1;opt3=val1. "
@@ -324,7 +332,7 @@ public class OozieCLI {
                         + "(requires -log)");
         Option date = new Option(DATE_OPTION, true,
                 "coordinator/bundle rerun on action dates (requires -rerun); coordinator log retrieval on action dates (requires -log)");
-        Option rerun_coord = new Option(RERUN_COORD_OPTION, true, "bundle rerun on coordinator names (requires -rerun)");
+        Option rerun_coord = new Option(COORD_OPTION, true, "bundle rerun on coordinator names (requires -rerun)");
         Option rerun_refresh = new Option(RERUN_REFRESH_OPTION, false,
                 "re-materialize the coordinator rerun actions (requires -rerun)");
         Option rerun_nocleanup = new Option(RERUN_NOCLEANUP_OPTION, false,
@@ -344,6 +352,14 @@ public class OozieCLI {
         Option interval = new Option(INTERVAL_OPTION, true, "polling interval in minutes (default is 5, requires -poll)");
         interval.setType(Integer.class);
 
+        Option slaDisableAlert = new Option(SLA_DISABLE_ALERT, true,
+                "disables sla alerts for the job and its children");
+        Option slaEnableAlert = new Option(SLA_ENABLE_ALERT, true,
+                "enables sla alerts for the job and its children");
+        Option slaChange = new Option(SLA_CHANGE, true,
+                "Update sla param for jobs, supported param are should-start, should-end, nominal-time and max-duration");
+
+
         Option doAs = new Option(DO_AS_OPTION, true, "doAs user, impersonates as the specified user");
 
         OptionGroup actions = new OptionGroup();
@@ -359,10 +375,15 @@ public class OozieCLI {
         actions.addOption(info);
         actions.addOption(rerun);
         actions.addOption(log);
+        actions.addOption(errorlog);
         actions.addOption(definition);
         actions.addOption(config_content);
         actions.addOption(ignore);
         actions.addOption(poll);
+        actions.addOption(slaDisableAlert);
+        actions.addOption(slaEnableAlert);
+        actions.addOption(slaChange);
+
         actions.setRequired(true);
         Options jobOptions = new Options();
         jobOptions.addOption(oozie);
@@ -396,6 +417,7 @@ public class OozieCLI {
         OptionGroup updateOption = new OptionGroup();
         updateOption.addOption(dryrun);
         jobOptions.addOptionGroup(updateOption);
+
         return jobOptions;
     }
 
@@ -409,8 +431,11 @@ public class OozieCLI {
         Option jobtype = new Option(JOBTYPE_OPTION, true,
                 "job type ('Supported in Oozie-2.0 or later versions ONLY - 'coordinator' or 'bundle' or 'wf'(default))");
         Option len = new Option(LEN_OPTION, true, "number of jobs (default '100')");
-        Option filter = new Option(FILTER_OPTION, true, "user=<U>\\;name=<N>\\;group=<G>\\;status=<S>\\;frequency=<F>\\;unit=<M> " +
-                        "(Valid unit values are 'months', 'days', 'hours' or 'minutes'.)");
+        Option filter = new Option(FILTER_OPTION, true,
+                "user=<U>\\;name=<N>\\;group=<G>\\;status=<S>\\;frequency=<F>\\;unit=<M>" +
+                        "\\;startcreatedtime=<SC>\\;endcreatedtime=<EC> " +
+                        "(valid unit values are 'months', 'days', 'hours' or 'minutes'. " +
+                        "startcreatedtime, endcreatedtime: time of format yyyy-MM-dd'T'HH:mm'Z')");
         Option localtime = new Option(LOCAL_TIME_OPTION, false, "use local time (same as passing your time zone to -" +
                 TIME_ZONE_OPTION + "). Overrides -" + TIME_ZONE_OPTION + " option");
         Option timezone = new Option(TIME_ZONE_OPTION, true,
@@ -1006,8 +1031,8 @@ public class OozieCLI {
                         dateScope = commandLine.getOptionValue(DATE_OPTION);
                     }
 
-                    if (options.contains(RERUN_COORD_OPTION)) {
-                        coordScope = commandLine.getOptionValue(RERUN_COORD_OPTION);
+                    if (options.contains(COORD_OPTION)) {
+                        coordScope = commandLine.getOptionValue(COORD_OPTION);
                     }
 
                     if (options.contains(RERUN_REFRESH_OPTION)) {
@@ -1032,6 +1057,7 @@ public class OozieCLI {
                     String rerunType = null;
                     boolean refresh = false;
                     boolean noCleanup = false;
+                    boolean failed = false;
                     if (options.contains(DATE_OPTION) && options.contains(ACTION_OPTION)) {
                         throw new OozieCLIException("Invalid options provided for rerun: either" + DATE_OPTION + " or "
                                 + ACTION_OPTION + " expected. Don't use both at the same time.");
@@ -1054,11 +1080,17 @@ public class OozieCLI {
                     if (options.contains(RERUN_NOCLEANUP_OPTION)) {
                         noCleanup = true;
                     }
-                    if (options.contains(RERUN_FAILED_OPTION)) {
-                        printCoordActions(wc.reRunCoord(coordJobId, rerunType, scope, refresh, noCleanup, true));
-                    } else {
-                        printCoordActions(wc.reRunCoord(coordJobId, rerunType, scope, refresh, noCleanup));
+
+                    Properties props = null;
+                    if(isConfigurationSpecified(wc, commandLine)) {
+                        props = getConfiguration(wc, commandLine);
                     }
+
+                    if (options.contains(RERUN_FAILED_OPTION)) {
+                        failed = true;
+                    }
+
+                    printCoordActions(wc.reRunCoord(coordJobId, rerunType, scope, refresh, noCleanup, failed, props));
                 }
             }
             else if (options.contains(INFO_OPTION)) {
@@ -1152,6 +1184,16 @@ public class OozieCLI {
                     }
                 }
             }
+            else if (options.contains(ERROR_LOG_OPTION)) {
+                PrintStream ps = System.out;
+                try {
+                    wc.getJobErrorLog(commandLine.getOptionValue(ERROR_LOG_OPTION), ps);
+                }
+                finally {
+                    ps.close();
+                }
+            }
+
             else if (options.contains(DEFINITION_OPTION)) {
                 System.out.println(wc.getJobDefinition(commandLine.getOptionValue(DEFINITION_OPTION)));
             }
@@ -1208,6 +1250,15 @@ public class OozieCLI {
                 }
                 boolean verbose = commandLine.hasOption(VERBOSE_OPTION);
                 wc.pollJob(jobId, timeout, interval, verbose);
+            }
+            else if (options.contains(SLA_ENABLE_ALERT)) {
+                slaAlertCommand(commandLine.getOptionValue(SLA_ENABLE_ALERT), wc, commandLine, options);
+            }
+            else if (options.contains(SLA_DISABLE_ALERT)) {
+                slaAlertCommand(commandLine.getOptionValue(SLA_DISABLE_ALERT), wc, commandLine, options);
+            }
+            else if (options.contains(SLA_CHANGE)) {
+                slaAlertCommand(commandLine.getOptionValue(SLA_CHANGE), wc, commandLine, options);
             }
         }
         catch (OozieClientException ex) {
@@ -1877,8 +1928,8 @@ public class OozieCLI {
                         "ssh-action-0.2.xsd")));
                 sources.add(new StreamSource(Thread.currentThread().getContextClassLoader().getResourceAsStream(
                         "hive2-action-0.1.xsd")));
-                sources.add(new StreamSource(Thread.currentThread().getContextClassLoader().getResourceAsStream(
-                        "spark-action-0.1.xsd")));
+                sources.add(new StreamSource(Thread.currentThread().getContextClassLoader()
+                        .getResourceAsStream("spark-action-0.1.xsd")));
                 SchemaFactory factory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
                 Schema schema = factory.newSchema(sources.toArray(new StreamSource[sources.size()]));
                 Validator validator = schema.newValidator();
@@ -2032,6 +2083,37 @@ public class OozieCLI {
             allDeps.append(pushDeps.split(INSTANCE_SEPARATOR)[0]);
         }
         return allDeps.toString();
+    }
+
+    private void slaAlertCommand(String jobIds, OozieClient wc, CommandLine commandLine, List<String> options)
+            throws OozieCLIException, OozieClientException {
+        String actions = null, coordinators = null, dates = null;
+
+        if (options.contains(ACTION_OPTION)) {
+            actions = commandLine.getOptionValue(ACTION_OPTION);
+        }
+
+        if (options.contains(DATE_OPTION)) {
+            dates = commandLine.getOptionValue(DATE_OPTION);
+        }
+
+        if (options.contains(COORD_OPTION)) {
+            coordinators = commandLine.getOptionValue(COORD_OPTION);
+            if (coordinators == null) {
+                throw new OozieCLIException("No value specified for -coordinator option");
+            }
+        }
+
+        if (options.contains(SLA_ENABLE_ALERT)) {
+            wc.slaEnableAlert(jobIds, actions, dates, coordinators);
+        }
+        else if (options.contains(SLA_DISABLE_ALERT)) {
+            wc.slaDisableAlert(jobIds, actions, dates, coordinators);
+        }
+        else if (options.contains(SLA_CHANGE)) {
+            String newSlaParams = commandLine.getOptionValue(CHANGE_VALUE_OPTION);
+            wc.slaChange(jobIds, actions, dates, coordinators, newSlaParams);
+        }
     }
 
 }

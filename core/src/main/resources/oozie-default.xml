@@ -333,6 +333,14 @@
     </property>
 
     <property>
+        <name>oozie.service.RecoveryService.wf.actions.created.time.interval</name>
+        <value>7</value>
+        <description>
+        Created time period of the actions which are eligible to be queued for recovery in days.
+        </description>
+    </property>
+
+    <property>
         <name>oozie.service.RecoveryService.callable.batch.size</name>
         <value>10</value>
         <description>
@@ -1418,29 +1426,77 @@
    <!-- SchemaService -->
 
     <property>
-        <name>oozie.service.SchemaService.wf.ext.schemas</name>
+        <name>oozie.service.SchemaService.wf.schemas</name>
         <value>
-            shell-action-0.1.xsd,shell-action-0.2.xsd,shell-action-0.3.xsd,email-action-0.1.xsd,email-action-0.2.xsd,
-            hive-action-0.2.xsd,hive-action-0.3.xsd,hive-action-0.4.xsd,hive-action-0.5.xsd,sqoop-action-0.2.xsd,
-            sqoop-action-0.3.xsd,sqoop-action-0.4.xsd,ssh-action-0.1.xsd,ssh-action-0.2.xsd,distcp-action-0.1.xsd,
-            distcp-action-0.2.xsd,oozie-sla-0.1.xsd,oozie-sla-0.2.xsd,hive2-action-0.1.xsd,spark-action-0.1.xsd
+            oozie-workflow-0.1.xsd,oozie-workflow-0.2.xsd,oozie-workflow-0.2.5.xsd,oozie-workflow-0.3.xsd,oozie-workflow-0.4.xsd,
+            oozie-workflow-0.4.5.xsd,oozie-workflow-0.5.xsd,
+            shell-action-0.1.xsd,shell-action-0.2.xsd,shell-action-0.3.xsd,
+            email-action-0.1.xsd,email-action-0.2.xsd,
+            hive-action-0.2.xsd,hive-action-0.3.xsd,hive-action-0.4.xsd,hive-action-0.5.xsd,
+            sqoop-action-0.2.xsd,sqoop-action-0.3.xsd,sqoop-action-0.4.xsd,
+            ssh-action-0.1.xsd,ssh-action-0.2.xsd,
+            distcp-action-0.1.xsd,distcp-action-0.2.xsd,
+            oozie-sla-0.1.xsd,oozie-sla-0.2.xsd,
+            hive2-action-0.1.xsd,
+            spark-action-0.1.xsd
         </value>
         <description>
-            Schemas for additional actions types.
+            List of schemas for workflows (separated by commas).
+        </description>
+    </property>
 
-            IMPORTANT: if there are no schemas leave a 1 space string, the service trims the value,
-                       if empty Configuration assumes it is NULL.
+    <property>
+        <name>oozie.service.SchemaService.wf.ext.schemas</name>
+        <value> </value>
+        <description>
+            List of additional schemas for workflows (separated by commas).
+        </description>
+    </property>
+
+    <property>
+        <name>oozie.service.SchemaService.coord.schemas</name>
+        <value>
+            oozie-coordinator-0.1.xsd,oozie-coordinator-0.2.xsd,oozie-coordinator-0.3.xsd,oozie-coordinator-0.4.xsd,
+            oozie-sla-0.1.xsd,oozie-sla-0.2.xsd
+        </value>
+        <description>
+            List of schemas for coordinators (separated by commas).
         </description>
     </property>
 
     <property>
         <name>oozie.service.SchemaService.coord.ext.schemas</name>
-        <value>oozie-sla-0.1.xsd,oozie-sla-0.2.xsd</value>
+        <value> </value>
         <description>
-            Schemas for additional actions types.
+            List of additional schemas for coordinators (separated by commas).
+        </description>
+    </property>
 
-            IMPORTANT: if there are no schemas leave a 1 space string, the service trims the value,
-                       if empty Configuration assumes it is NULL.
+    <property>
+        <name>oozie.service.SchemaService.bundle.schemas</name>
+        <value>
+            oozie-bundle-0.1.xsd,oozie-bundle-0.2.xsd
+        </value>
+        <description>
+            List of schemas for bundles (separated by commas).
+        </description>
+    </property>
+
+    <property>
+        <name>oozie.service.SchemaService.bundle.ext.schemas</name>
+        <value> </value>
+        <description>
+            List of additional schemas for bundles (separated by commas).
+        </description>
+    </property>
+
+    <property>
+        <name>oozie.service.SchemaService.sla.schemas</name>
+        <value>
+            gms-oozie-sla-0.1.xsd,oozie-sla-0.2.xsd
+        </value>
+        <description>
+            List of schemas for semantic validation for GMS SLA (separated by commas).
         </description>
     </property>
 
@@ -1448,12 +1504,10 @@
         <name>oozie.service.SchemaService.sla.ext.schemas</name>
         <value> </value>
         <description>
-            Schemas for semantic validation for GMS SLA.
-
-            IMPORTANT: if there are no schemas leave a 1 space string, the service trims the value,
-                       if empty Configuration assumes it is NULL.
+            List of additional schemas for semantic validation for GMS SLA (separated by commas).
         </description>
     </property>
+
     <!-- CallbackService -->
 
     <property>
@@ -1461,6 +1515,15 @@
         <value>${oozie.base.url}/callback</value>
         <description>
              Base callback URL used by ActionExecutors.
+        </description>
+    </property>
+
+    <property>
+        <name>oozie.service.CallbackService.early.requeue.max.retries</name>
+        <value>5</value>
+        <description>
+            If Oozie receives a callback too early (while the action is in PREP state), it will requeue the command this many times
+            to give the action time to transition to RUNNING.
         </description>
     </property>
 
@@ -1646,6 +1709,18 @@
         </description>
     </property>
 
+    <property>
+        <name>oozie.action.launcher.yarn.timeline-service.enabled</name>
+        <value>false</value>
+        <description>
+            Enables/disables getting delegation tokens for ATS for the launcher job in
+            YARN/Hadoop 2.6 (no effect in Hadoop 1) for all action types by default if tez-site.xml is present in
+            distributed cache.
+            This can be overridden on a per-action basis by setting
+            oozie.launcher.yarn.timeline-service.enabled in an action's configuration section in a workflow.
+        </description>
+    </property>
+
     <!-- HadoopActionExecutor -->
     <!-- This is common to the subclasses action executors for map-reduce and pig -->
 
@@ -1654,6 +1729,22 @@
         <value>3</value>
         <description>
            The number of retries for executing an action in case of failure
+        </description>
+    </property>
+
+    <property>
+        <name>oozie.action.retry.interval</name>
+        <value>10</value>
+        <description>
+            The interval between retries of an action in case of failure
+        </description>
+    </property>
+
+    <property>
+        <name>oozie.action.retry.policy</name>
+        <value>periodic</value>
+        <description>
+            Retry policy of an action in case of failure. Possible values are periodic/exponential
         </description>
     </property>
 
@@ -1848,10 +1939,11 @@
 
     <property>
         <name>oozie.service.LiteWorkflowStoreService.user.retry.error.code</name>
-        <value>JA008,JA009,JA017,JA018,JA019,FS009,FS008</value>
+        <value>JA008,JA009,JA017,JA018,JA019,FS009,FS008,FS014</value>
         <description>
             Automatic retry interval for workflow action is handled for these specified error code:
             FS009, FS008 is file exists error when using chmod in fs action.
+            FS014 is permission error in fs action
             JA018 is output directory exists error in workflow map-reduce action.
             JA019 is error while executing distcp action.
             JA017 is job not exists error in action executor.
@@ -1886,6 +1978,14 @@
         <description>
             Defines authentication used for Oozie HTTP endpoint.
             Supported values are: simple | kerberos | #AUTHENTICATION_HANDLER_CLASSNAME#
+        </description>
+    </property>
+    <property>
+        <name>oozie.server.authentication.type</name>
+        <value>${oozie.authentication.type}</value>
+        <description>
+            Defines authentication used for Oozie server communicating to other Oozie server over HTTP(s).
+            Supported values are: simple | kerberos | #AUTHENTICATOR_CLASSNAME#
         </description>
     </property>
 
@@ -2118,6 +2218,15 @@
         <value>30</value>
         <description>
              Time interval, in seconds, at which SLA Worker will be scheduled to run
+        </description>
+    </property>
+
+    <property>
+        <name>oozie.sla.disable.alerts.older.than</name>
+        <value>48</value>
+        <description>
+             Time threshold, in HOURS, for disabling SLA alerting for jobs whose
+             nominal time is older than this.
         </description>
     </property>
 
@@ -2355,6 +2464,44 @@
         <value></value>
         <description>
          System level proxy setting for job notifications.
+        </description>
+    </property>
+
+    <property>
+        <name>oozie.wf.rerun.disablechild</name>
+        <value>false</value>
+        <description>
+            By setting this option, workflow rerun will be disabled if parent workflow or coordinator exist and
+            it will only rerun through parent.
+        </description>
+    </property>
+
+    <property>
+        <name>oozie.use.system.libpath</name>
+        <value>false</value>
+        <description>
+            Default value of oozie.use.system.libpath. If user haven't specified =oozie.use.system.libpath=
+            in the job.properties and this value is true and Oozie will include sharelib jars for workflow.
+        </description>
+    </property>
+
+    <property>
+        <name>oozie.service.PauseTransitService.callable.batch.size
+        </name>
+        <value>10</value>
+        <description>
+            This value determines the number of callable which will be batched together
+            to be executed by a single thread.
+        </description>
+    </property>
+
+    <!-- XConfiguration -->
+    <property>
+        <name>oozie.configuration.substitute.depth</name>
+        <value>20</value>
+        <description>
+            This value determines the depth of substitution in configurations.
+            If set -1, No limitation on substitution.
         </description>
     </property>
 

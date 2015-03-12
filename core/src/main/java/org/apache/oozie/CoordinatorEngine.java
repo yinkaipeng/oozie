@@ -19,6 +19,7 @@
 package org.apache.oozie;
 
 import com.google.common.annotations.VisibleForTesting;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.oozie.client.CoordinatorAction;
@@ -36,6 +37,9 @@ import org.apache.oozie.command.coord.CoordJobsXCommand;
 import org.apache.oozie.command.coord.CoordKillXCommand;
 import org.apache.oozie.command.coord.CoordRerunXCommand;
 import org.apache.oozie.command.coord.CoordResumeXCommand;
+import org.apache.oozie.command.coord.CoordSLAAlertsDisableXCommand;
+import org.apache.oozie.command.coord.CoordSLAAlertsEnableXCommand;
+import org.apache.oozie.command.coord.CoordSLAChangeXCommand;
 import org.apache.oozie.command.coord.CoordSubmitXCommand;
 import org.apache.oozie.command.coord.CoordSuspendXCommand;
 import org.apache.oozie.command.coord.CoordUpdateXCommand;
@@ -49,6 +53,7 @@ import org.apache.oozie.service.Services;
 import org.apache.oozie.service.XLogStreamingService;
 import org.apache.oozie.util.CoordActionsInDateRange;
 import org.apache.oozie.util.DateUtils;
+import org.apache.oozie.util.JobUtils;
 import org.apache.oozie.util.Pair;
 import org.apache.oozie.util.ParamChecker;
 import org.apache.oozie.util.XLog;
@@ -261,11 +266,11 @@ public class CoordinatorEngine extends BaseEngine {
      * @throws BaseEngineException
      */
     public CoordinatorActionInfo reRun(String jobId, String rerunType, String scope, boolean refresh, boolean noCleanup,
-                                       boolean failed)
+                                       boolean failed, Configuration conf)
             throws BaseEngineException {
         try {
             return new CoordRerunXCommand(jobId, rerunType, scope, refresh,
-                    noCleanup, failed).call();
+                    noCleanup, failed, conf).call();
         }
         catch (CommandException ex) {
             throw new BaseEngineException(ex);
@@ -293,15 +298,20 @@ public class CoordinatorEngine extends BaseEngine {
         throw new BaseEngineException(new XException(ErrorCode.E0301, "invalid use of start"));
     }
 
-    /*
-     * (non-Javadoc)
-     *
-     * @see org.apache.oozie.BaseEngine#streamLog(java.lang.String,
-     * java.io.Writer)
-     */
     @Override
     public void streamLog(String jobId, Writer writer, Map<String, String[]> params) throws IOException,
             BaseEngineException {
+        streamJobLog(jobId, writer, params, false);
+    }
+
+    @Override
+    public void streamErrorLog(String jobId, Writer writer, Map<String, String[]> params) throws IOException,
+            BaseEngineException {
+        streamJobLog(jobId, writer, params, true);
+    }
+
+    private void streamJobLog(String jobId, Writer writer, Map<String, String[]> params, boolean isErrorLog)
+            throws IOException, BaseEngineException {
 
         try {
             XLogFilter filter = new XLogFilter(new XLogUserFilterParam(params));
@@ -314,8 +324,14 @@ public class CoordinatorEngine extends BaseEngine {
             if (lastTime == null) {
                 lastTime = new Date();
             }
-            Services.get().get(XLogStreamingService.class)
-                    .streamLog(filter, job.getCreatedTime(), lastTime, writer, params);
+            if (isErrorLog) {
+                Services.get().get(XLogStreamingService.class)
+                        .streamErrorLog(filter, job.getCreatedTime(), lastTime, writer, params);
+            }
+            else {
+                Services.get().get(XLogStreamingService.class)
+                        .streamLog(filter, job.getCreatedTime(), lastTime, writer, params);
+            }
         }
         catch (Exception e) {
             throw new IOException(e);
@@ -836,4 +852,46 @@ public class CoordinatorEngine extends BaseEngine {
             throw new CoordinatorEngineException(e);
         }
     }
+
+    @Override
+    public void disableSLAAlert(String id, String actions, String dates, String childIds) throws BaseEngineException {
+        try {
+            new CoordSLAAlertsDisableXCommand(id, actions, dates).call();
+
+        }
+        catch (CommandException e) {
+            throw new CoordinatorEngineException(e);
+        }
+    }
+
+    @Override
+    public void changeSLA(String id, String actions, String dates, String childIds, String newParams)
+            throws BaseEngineException {
+        Map<String, String> slaNewParams = null;
+
+        try {
+
+            if (newParams != null) {
+                slaNewParams = JobUtils.parseChangeValue(newParams);
+            }
+
+            new CoordSLAChangeXCommand(id, actions, dates, slaNewParams).call();
+
+        }
+        catch (CommandException e) {
+            throw new CoordinatorEngineException(e);
+        }
+    }
+
+    @Override
+    public void enableSLAAlert(String id, String actions, String dates, String childIds) throws BaseEngineException {
+        try {
+            new CoordSLAAlertsEnableXCommand(id, actions, dates).call();
+
+        }
+        catch (CommandException e) {
+            throw new CoordinatorEngineException(e);
+        }
+    }
+
 }

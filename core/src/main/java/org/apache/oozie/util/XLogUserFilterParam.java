@@ -109,7 +109,7 @@ public class XLogUserFilterParam {
     private void parseFilterParam(String param) throws Exception {
         this.params = param;
 
-        if (StringUtils.isEmpty(param)) {
+        if (StringUtils.isEmpty(param) || StringUtils.equalsIgnoreCase(param, "null")) {
             return;
         }
         for (String keyValue : param.split(";")) {
@@ -276,10 +276,8 @@ public class XLogUserFilterParam {
 
         if (Character.isLetter(offset.charAt(offset.length() - 1))) {
             switch (offset.charAt(offset.length() - 1)) {
-                case 'H':
                 case 'h':
                     return Integer.parseInt(offset.substring(0, offset.length() - 1)) * 60;
-                case 'M':
                 case 'm':
                     return Integer.parseInt(offset.substring(0, offset.length() - 1));
                 default:

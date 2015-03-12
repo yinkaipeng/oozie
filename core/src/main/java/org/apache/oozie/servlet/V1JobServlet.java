@@ -675,7 +675,7 @@ public class V1JobServlet extends BaseJobServlet {
                 throw new CommandException(ErrorCode.E1018, "date or action expected.");
             }
             CoordinatorActionInfo coordInfo = coordEngine.reRun(jobId, rerunType, scope, Boolean.valueOf(refresh),
-                    Boolean.valueOf(noCleanup), Boolean.valueOf(failed));
+                    Boolean.valueOf(noCleanup), Boolean.valueOf(failed), conf);
             List<CoordinatorActionBean> coordActions;
             if (coordInfo != null) {
                 coordActions = coordInfo.getCoordActions();
@@ -1095,6 +1095,28 @@ public class V1JobServlet extends BaseJobServlet {
     @Override
     protected String getJobStatus(HttpServletRequest request, HttpServletResponse response) throws XServletException,
             IOException {
+        throw new XServletException(HttpServletResponse.SC_BAD_REQUEST, ErrorCode.E0302, "Not supported in v1");
+    }
+
+    @Override
+    protected void streamJobErrorLog(HttpServletRequest request, HttpServletResponse response) throws XServletException,
+            IOException {
+        throw new XServletException(HttpServletResponse.SC_BAD_REQUEST, ErrorCode.E0302, "Not supported in v1");
+    }
+
+    @Override
+    void slaEnableAlert(HttpServletRequest request, HttpServletResponse response) throws XServletException, IOException {
+        throw new XServletException(HttpServletResponse.SC_BAD_REQUEST, ErrorCode.E0302, "Not supported in v1");
+    }
+
+    @Override
+    void slaDisableAlert(HttpServletRequest request, HttpServletResponse response) throws XServletException,
+            IOException {
+        throw new XServletException(HttpServletResponse.SC_BAD_REQUEST, ErrorCode.E0302, "Not supported in v1");
+    }
+
+    @Override
+    void slaChange(HttpServletRequest request, HttpServletResponse response) throws XServletException, IOException {
         throw new XServletException(HttpServletResponse.SC_BAD_REQUEST, ErrorCode.E0302, "Not supported in v1");
     }
 }

@@ -63,6 +63,7 @@ public class SqoopMain extends LauncherMain {
 
         String delegationToken = getFilePathFromEnv("HADOOP_TOKEN_FILE_LOCATION");
         if (delegationToken != null) {
+            sqoopConf.setBoolean("sqoop.hbase.security.token.skip", true);
             sqoopConf.set("mapreduce.job.credentials.binary", delegationToken);
             System.out.println("------------------------");
             System.out.println("Setting env property for mapreduce.job.credentials.binary to: " + delegationToken);
@@ -187,19 +188,7 @@ public class SqoopMain extends LauncherMain {
         System.out.println();
 
         // harvesting and recording Hadoop Job IDs
-        Properties jobIds = getHadoopJobIds(logFile, SQOOP_JOB_IDS_PATTERNS);
-
-        File file = new File(System.getProperty(LauncherMapper.ACTION_PREFIX
-                + LauncherMapper.ACTION_DATA_OUTPUT_PROPS));
-        OutputStream os = new FileOutputStream(file);
-        try {
-            jobIds.store(os, "");
-        }
-        finally {
-            os.close();
-        }
-        System.out.println(" Hadoop Job IDs executed by Sqoop: " + jobIds.getProperty(HADOOP_JOBS));
-        System.out.println();
+        writeExternalChildIDs(logFile, SQOOP_JOB_IDS_PATTERNS, "Sqoop");
     }
 
     protected void runSqoopJob(String[] args) throws Exception {

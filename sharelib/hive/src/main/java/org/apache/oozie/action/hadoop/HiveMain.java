@@ -41,7 +41,8 @@ import org.apache.hadoop.hive.conf.HiveConf;
 
 public class HiveMain extends LauncherMain {
     private static final Pattern[] HIVE_JOB_IDS_PATTERNS = {
-      Pattern.compile("Ended Job = (job_\\S*)")
+      Pattern.compile("Ended Job = (job_\\S*)"),
+      Pattern.compile("Executing on YARN cluster with App id (application[0-9_]*)")
     };
     private static final Set<String> DISALLOWED_HIVE_OPTIONS = new HashSet<String>();
 
@@ -112,6 +113,8 @@ public class HiveMain extends LauncherMain {
 
         // to force hive to use the jobclient to submit the job, never using HADOOPBIN (to do localmode)
         hiveConf.setBoolean("hive.exec.mode.local.auto", false);
+
+        hiveConf.set("hive.querylog.location", "./hivelogs");
 
         return hiveConf;
     }
@@ -293,30 +296,7 @@ public class HiveMain extends LauncherMain {
         }
         finally {
             System.out.println("\n<<< Invocation of Hive command completed <<<\n");
-            writeExternalChildIDs(logFile);
-
-        }
-    }
-
-    private void writeExternalChildIDs(String logFile) {
-        // harvesting and recording Hadoop Job IDs
-        try {
-            Properties jobIds = getHadoopJobIds(logFile, HIVE_JOB_IDS_PATTERNS);
-            File file = new File(System.getProperty(LauncherMapper.ACTION_PREFIX
-                    + LauncherMapper.ACTION_DATA_OUTPUT_PROPS));
-            OutputStream os = new FileOutputStream(file);
-            try {
-                jobIds.store(os, "");
-            }
-            finally {
-                os.close();
-            }
-            System.out.println(" Hadoop Job IDs executed by Hive: " + jobIds.getProperty(HADOOP_JOBS));
-            System.out.println();
-        }
-        catch (Exception e) {
-            System.out.println("WARN: Error getting Hadoop Job IDs executed by Hive");
-            e.printStackTrace(System.out);
+            writeExternalChildIDs(logFile, HIVE_JOB_IDS_PATTERNS, "Hive");
         }
     }
 

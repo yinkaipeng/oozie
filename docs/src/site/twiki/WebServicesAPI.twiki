@@ -1431,6 +1431,29 @@ Content-Type: text/plain;charset=UTF-8
 ...
 </verbatim>
 
+---++++ Job Error Log
+
+An HTTP GET request retrieves the job error log.
+
+*Request:*
+
+<verbatim>
+GET /oozie/v2/job/0000000-150121110331712-oozie-puru-B?show=errorlog
+</verbatim>
+
+*Response:*
+
+<verbatim>
+HTTP/1.1 200 OK
+Content-Type: text/plain;charset=UTF-8
+2015-01-21 11:33:29,090  WARN CoordSubmitXCommand:523 - SERVER[-] USER[-] GROUP[-] TOKEN[-] APP[-] JOB[0000000-150121110331712-oozie-puru-B] ACTION[] SAXException :
+org.xml.sax.SAXParseException; lineNumber: 20; columnNumber: 22; cvc-complex-type.2.4.a: Invalid content was found starting with element 'concurrency'. One of '{"uri:oozie:coordinator:0.2":controls, "uri:oozie:coordinator:0.2":datasets, "uri:oozie:coordinator:0.2":input-events, "uri:oozie:coordinator:0.2":output-events, "uri:oozie:coordinator:0.2":action}' is expected.
+        at org.apache.xerces.util.ErrorHandlerWrapper.createSAXParseException(Unknown Source)
+        at org.apache.xerces.util.ErrorHandlerWrapper.error(Unknown Source)
+...
+</verbatim>
+
+
 ---++++ Filtering the server logs with logfilter options
 User can provide multiple option to filter logs using -logfilter opt1=val1;opt2=val1;opt3=val1. This can be used to fetch only just logs of interest faster as fetching Oozie server logs is slow due to the overhead of pattern matching.
 
@@ -1496,6 +1519,48 @@ Content-Type: application/json;charset=UTF-8
 </verbatim>
 
 It accepts any valid Workflow Job ID, Coordinator Job ID, Coordinator Action ID, or Bundle Job ID.
+
+---++++ Changing job SLA definition and alerting
+An =HTTP PUT= request to change job SLA alert status/SLA definition.
+
+   * All sla commands takes actions-list or date parameter.
+   * =date=: a comma-separated list of date ranges. Each date range element is specified with dates separated by =::=
+   * =action-list=: a comma-separated list of action ranges. Each action range is specified with two action numbers separated by =-=
+   * For bundle jobs additional =coordinators= (coord_name/id) parameter can be passed.
+   * Sla change command need extra parameter =value= to specify new sla definition.
+
+
+   * Changing SLA definition
+   SLA definition of should-start, should-end, nominal-time and max-duration can be changed.
+
+<verbatim>
+PUT /oozie/v2/job/0000003-140319184715726-oozie-puru-C?action=sla-change&value=<key>=<value>;...;<key>=<value>
+</verbatim>
+
+   * Disabling SLA alert
+
+<verbatim>
+PUT /oozie/v2/job/0000003-140319184715726-oozie-puru-C?action=sla-disable&action-list=3-4
+</verbatim>
+Will disable SLA alert for actions 3 and 4.
+
+<verbatim>
+PUT /oozie/v1/job/0000003-140319184715726-oozie-puru-C?action=sla-disable&date=2009-02-01T00:10Z::2009-03-01T00:10Z
+</verbatim>
+Will disable SLA alert for actions whose nominal time is in-between 2009-02-01T00:10Z 2009-03-01T00:10Z (inclusive).
+
+
+<verbatim>
+PUT /oozie/v1/job/0000004-140319184715726-oozie-puru-B?action=sla-disable&date=2009-02-01T00:10Z::2009-03-01T00:10Z&coordinators=abc
+</verbatim>
+For bundle jobs additional coordinators (list of comma separated coord_name/id) parameter can be passed.
+
+   * Enabling SLA alert
+
+<verbatim>
+PUT /oozie/v2/job/0000003-140319184715726-oozie-puru-C?action=sla-enable&action-list=1,14,17-20
+</verbatim>
+Will enable SLA alert for actions 1,14,17,18,19,20.
 
 ---++++ Jobs Information
 
@@ -1573,6 +1638,8 @@ Valid filter names are:
    * user: the user that submitted the job
    * group: the group for the job
    * status: the status of the job
+   * startCreatedTime : the start of the window about workflow job's created time
+   * endCreatedTime : the end of above window
 
 The query will do an AND among all the filter names.
 
@@ -1583,6 +1650,8 @@ Additionally the =offset= and =len= parameters can be used for pagination. The s
 
 Moreover, the =jobtype= parameter could be used to determine what type of job is looking for.
 The valid values of job type are: =wf=, =coordinator= or =bundle=.
+
+startCreatedTime and endCreatedTime should be specified either in *ISO8601 (UTC)* format (*yyyy-MM-dd'T'HH:mm'Z'*) or a offset value in days or hours from the current time. for example, -2d means the current time - 2 days. -3h means the current time - 3 hours. -5m means the current time - 5 minutes
 
 ---++++ Jobs information using Bulk API
 

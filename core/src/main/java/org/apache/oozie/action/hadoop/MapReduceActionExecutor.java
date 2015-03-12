@@ -67,6 +67,18 @@ public class MapReduceActionExecutor extends JavaActionExecutor {
     }
 
     @Override
+    protected String getActualExternalId(WorkflowAction action) {
+        String launcherJobId = action.getExternalId();
+        String childId = action.getExternalChildIDs();
+
+        if (childId != null && !childId.isEmpty()) {
+            return childId;
+        } else {
+            return launcherJobId;
+        }
+    }
+
+    @Override
     protected String getLauncherMain(Configuration launcherConf, Element actionXml) {
         String mainClass;
         Namespace ns = actionXml.getNamespace();
@@ -87,7 +99,7 @@ public class MapReduceActionExecutor extends JavaActionExecutor {
     @Override
     Configuration setupLauncherConf(Configuration conf, Element actionXml, Path appPath, Context context) throws ActionExecutorException {
         super.setupLauncherConf(conf, actionXml, appPath, context);
-        conf.setBoolean("mapreduce.job.complete.cancel.delegation.tokens", true);
+        conf.setBoolean("mapreduce.job.complete.cancel.delegation.tokens", false);
         return conf;
     }
 
@@ -166,6 +178,9 @@ public class MapReduceActionExecutor extends JavaActionExecutor {
                 actionConf.set(MapReduceMain.OOZIE_MAPREDUCE_UBER_JAR, "");
             }
         }
+
+        // child job cancel delegation token for mapred action
+        actionConf.setBoolean("mapreduce.job.complete.cancel.delegation.tokens", true);
 
         return actionConf;
     }
@@ -322,15 +337,9 @@ public class MapReduceActionExecutor extends JavaActionExecutor {
     protected RunningJob getRunningJob(Context context, WorkflowAction action, JobClient jobClient) throws Exception{
 
         RunningJob runningJob;
-        String launcherJobId = action.getExternalId();
-        String childJobId = action.getExternalChildIDs();
+        String jobId = getActualExternalId(action);
 
-        if (childJobId != null && childJobId.length() > 0) {
-            runningJob = jobClient.getJob(JobID.forName(childJobId));
-        }
-        else {
-            runningJob = jobClient.getJob(JobID.forName(launcherJobId));
-        }
+        runningJob = jobClient.getJob(JobID.forName(jobId));
 
         return runningJob;
     }

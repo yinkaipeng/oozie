@@ -30,7 +30,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.oozie.client.CoordinatorAction;
 import org.apache.oozie.client.CoordinatorJob;
@@ -40,6 +39,9 @@ import org.apache.oozie.client.WorkflowJob;
 import org.apache.oozie.client.rest.BulkResponseImpl;
 import org.apache.oozie.command.BulkJobsXCommand;
 import org.apache.oozie.command.CommandException;
+import org.apache.oozie.command.bundle.BundleSLAAlertsDisableXCommand;
+import org.apache.oozie.command.bundle.BundleSLAAlertsEnableXCommand;
+import org.apache.oozie.command.bundle.BundleSLAChangeXCommand;
 import org.apache.oozie.command.bundle.BundleJobChangeXCommand;
 import org.apache.oozie.command.bundle.BundleJobResumeXCommand;
 import org.apache.oozie.command.bundle.BundleJobSuspendXCommand;
@@ -55,6 +57,7 @@ import org.apache.oozie.service.DagXLogInfoService;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.service.XLogStreamingService;
 import org.apache.oozie.util.DateUtils;
+import org.apache.oozie.util.JobUtils;
 import org.apache.oozie.util.XLogFilter;
 import org.apache.oozie.util.XLogUserFilterParam;
 import org.apache.oozie.util.ParamChecker;
@@ -242,11 +245,18 @@ public class BundleEngine extends BaseEngine {
         }
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.oozie.BaseEngine#streamLog(java.lang.String, java.io.Writer)
-     */
-    @Override
+
     public void streamLog(String jobId, Writer writer, Map<String, String[]> params) throws IOException,
+            BundleEngineException {
+        streamJobLog(jobId, writer, params, false);
+    }
+
+    public void streamErrorLog(String jobId, Writer writer, Map<String, String[]> params) throws IOException,
+            BundleEngineException {
+        streamJobLog(jobId, writer, params, true);
+    }
+
+    private void streamJobLog(String jobId, Writer writer, Map<String, String[]> params, boolean isErrorLog) throws IOException,
             BundleEngineException {
 
         BundleJobBean job;
@@ -261,7 +271,15 @@ public class BundleEngine extends BaseEngine {
             if (lastTime == null) {
                 lastTime = new Date();
             }
-            Services.get().get(XLogStreamingService.class).streamLog(filter, job.getCreatedTime(), lastTime, writer, params);
+            if (isErrorLog) {
+                Services.get().get(XLogStreamingService.class)
+                        .streamErrorLog(filter, job.getCreatedTime(), lastTime, writer, params);
+            }
+            else {
+                Services.get().get(XLogStreamingService.class)
+                        .streamLog(filter, job.getCreatedTime(), lastTime, writer, params);
+
+            }
         }
         catch (Exception ex) {
             throw new IOException(ex);
@@ -491,4 +509,41 @@ public class BundleEngine extends BaseEngine {
             throw new BundleEngineException(e);
         }
     }
+
+    @Override
+    public void enableSLAAlert(String id, String actions, String dates, String childIds) throws BaseEngineException {
+        try {
+            new BundleSLAAlertsEnableXCommand(id, actions, dates, childIds).call();
+        }
+        catch (CommandException e) {
+            throw new BundleEngineException(e);
+        }
+    }
+
+    @Override
+    public void disableSLAAlert(String id, String actions, String dates, String childIds) throws BaseEngineException {
+        try {
+            new BundleSLAAlertsDisableXCommand(id, actions, dates, childIds).call();
+        }
+        catch (CommandException e) {
+            throw new BundleEngineException(e);
+        }
+    }
+
+    @Override
+    public void changeSLA(String id, String actions, String dates, String childIds, String newParams)
+            throws BaseEngineException {
+        Map<String, String> slaNewParams = null;
+        try {
+
+            if (newParams != null) {
+                slaNewParams = JobUtils.parseChangeValue(newParams);
+            }
+            new BundleSLAChangeXCommand(id, actions, dates, childIds, slaNewParams).call();
+        }
+        catch (CommandException e) {
+            throw new BundleEngineException(e);
+        }
+    }
+
 }

@@ -1462,7 +1462,7 @@ application. Refer to section [#FilesAchives][Adding Files and Archives for the 
 
 The =capture-output= element can be used to propagate values back into Oozie context, which can then be accessed via
 EL-functions. This needs to be written out as a java properties format file. The filename is obtained via a System 
-property specified by the constant =JavaMainMapper.OOZIE_JAVA_MAIN_CAPTURE_OUTPUT_FILE=
+property specified by the constant =oozie.action.output.properties=
 
 *IMPORTANT:* In order for a Java action to succeed on a secure cluster, it must propagate the Hadoop delegation token like in the
 following code snippet (this is benign on non-secure clusters):
@@ -1775,8 +1775,8 @@ It returns the URL UTF-8 encoded value of the given string. A string with =null=
 
 *String timestamp()*
 
-It returns the UTC current date and time in W3C format down to the second (YYYY-MM-DDThh:mm:ss.sZ). I.e.:
-1997-07-16T19:20:30.45Z
+It returns the current datetime in ISO8601 format, down to minutes (yyyy-MM-ddTHH:mmZ), in the Oozie's processing timezone,
+i.e. 1997-07-16T19:20Z
 
 *String toJsonStr(Map<String, String>)* (since Oozie 3.3)
 
@@ -2482,6 +2482,8 @@ classpath/libpath for all its actions.
 A workflow job can specify a share library path using the job property =oozie.libpath=.
 
 A workflow job can use the system share library by setting the job property =oozie.use.system.libpath= to =true=.
+=oozie.use.system.libpath= can be also configured at action configuration.
+=oozie.use.system.libpath= defined at action level overrides job property.
 
 ---+++ 17.1 Action Share Library Override (since Oozie 3.3)
 

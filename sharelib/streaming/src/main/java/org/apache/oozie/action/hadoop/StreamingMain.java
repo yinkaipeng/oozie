@@ -29,9 +29,9 @@ public class StreamingMain extends MapReduceMain {
         run(StreamingMain.class, args);
     }
 
-    protected RunningJob submitJob(Configuration actionConf) throws Exception {
-        JobConf jobConf = new JobConf();
 
+    @Override
+    protected void addActionConf(JobConf jobConf, Configuration actionConf) {
         jobConf.set("mapred.mapper.class", "org.apache.hadoop.streaming.PipeMapper");
         jobConf.set("mapred.reducer.class", "org.apache.hadoop.streaming.PipeReducer");
         jobConf.set("mapred.map.runner.class", "org.apache.hadoop.streaming.PipeMapRunner");
@@ -43,8 +43,6 @@ public class StreamingMain extends MapReduceMain {
 
         jobConf.set("mapred.create.symlink", "yes");
         jobConf.set("mapred.used.genericoptionsparser", "true");
-
-        jobConf.set("stream.addenvironment", "");
 
         String value = actionConf.get("oozie.streaming.mapper");
         if (value != null) {
@@ -73,7 +71,11 @@ public class StreamingMain extends MapReduceMain {
         }
         jobConf.set("stream.addenvironment", value);
 
-        addActionConf(jobConf, actionConf);
+        super.addActionConf(jobConf, actionConf);
+    }
+
+    @Override
+    protected RunningJob submitJob(JobConf jobConf) throws Exception {
 
         // propagate delegation related props from launcher job to MR job
         if (getFilePathFromEnv("HADOOP_TOKEN_FILE_LOCATION") != null) {

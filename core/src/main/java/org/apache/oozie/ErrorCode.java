@@ -56,7 +56,6 @@ public enum ErrorCode {
     E0131(XLog.OPS, "Could not read workflow schemas file/s, {0}"),
     E0140(XLog.OPS, "Could not access database, {0}"),
     E0141(XLog.OPS, "Could not create DataSource connection pool, {0}"),
-    E0150(XLog.OPS, "Actionexecutor type already registered [{0}]"),
     E0160(XLog.OPS, "Could not read admin users file [{0}], {1}"),
 
     E0300(XLog.STD, "Invalid content-type [{0}]"),
@@ -152,6 +151,7 @@ public enum ErrorCode {
     E0742(XLog.STD, "No Fork for Join [{0}] to pair with"),
     E0743(XLog.STD, "Multiple \"ok to\" transitions to the same node, [{0}], are not allowed"),
     E0744(XLog.STD, "A fork, [{0}], is not allowed to have multiple transitions to the same node, [{1}]"),
+    E0755(XLog.STD, "Workflow Job Rerun Error: {0}"),
 
     E0800(XLog.STD, "Action it is not running its in [{1}] state, action [{0}]"),
     E0801(XLog.STD, "Workflow already running, workflow [{0}]"),
@@ -174,6 +174,8 @@ public enum ErrorCode {
     E0818(XLog.STD, "Action [{0}] status is running but WF Job [{1}] status is [{2}]. Expected status is RUNNING or SUSPENDED."),
     E0819(XLog.STD, "Unable to delete the temp dir of job WF Job [{0}]."),
     E0820(XLog.STD, "Action user retry max [{0}] is over system defined max [{1}], re-assign to use system max."),
+    E0821(XLog.STD, "Received early callback for action still in PREP state; will wait [{0}]ms and requeue up to [{1}] more times"),
+    E0822(XLog.STD, "Received early callback for action [{0}] while still in PREP state and exhausted all requeues"),
 
     E0900(XLog.OPS, "JobTracker [{0}] not allowed, not in Oozie's whitelist. Allowed values are: {1}"),
     E0901(XLog.OPS, "NameNode [{0}] not allowed, not in Oozie's whitelist. Allowed values are: {1}"),
@@ -209,6 +211,8 @@ public enum ErrorCode {
     E1023(XLog.STD, "Coord Job update Error: [{0}]"),
     E1024(XLog.STD, "Cannot run ignore command: [{0}]"),
     E1025(XLog.STD, "Coord status transit error: [{0}]"),
+    E1026(XLog.STD, "SLA alert update command failed: {0}"),
+    E1027(XLog.STD, "SLA change command failed. {0}"),
 
 
     E1100(XLog.STD, "Command precondition does not hold before execution, [{0}]"),

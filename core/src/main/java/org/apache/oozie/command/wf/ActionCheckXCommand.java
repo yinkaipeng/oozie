@@ -166,11 +166,6 @@ public class ActionCheckXCommand extends ActionXCommand<Void> {
     @Override
     protected Void execute() throws CommandException {
         LOG.debug("STARTED ActionCheckXCommand for wf actionId=" + actionId + " priority =" + getPriority());
-
-        long retryInterval = Services.get().getConf().getLong(ActionCheckerService.CONF_ACTION_CHECK_INTERVAL, executor
-                .getRetryInterval());
-        executor.setRetryInterval(retryInterval);
-
         ActionExecutorContext context = null;
         boolean execSynchronous = false;
         try {
@@ -213,12 +208,14 @@ public class ActionCheckXCommand extends ActionXCommand<Void> {
 
             wfAction.setErrorInfo(ex.getErrorCode(), ex.getMessage());
             switch (ex.getErrorType()) {
+                case ERROR:
+                    // If allowed to retry, this will handle it; otherwise, we should fall through to FAILED
+                    if (handleUserRetry(wfAction)) {
+                        break;
+                    }
                 case FAILED:
                     failJob(context, wfAction);
                     generateEvent = true;
-                    break;
-                case ERROR:
-                    handleUserRetry(wfAction);
                     break;
                 case TRANSIENT:                 // retry N times, then suspend workflow
                     if (!handleTransient(context, executor, WorkflowAction.Status.RUNNING)) {
