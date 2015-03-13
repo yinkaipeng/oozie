@@ -45,7 +45,7 @@
     </organization>
 
     <properties>
-        <targetJavaVersion>1.6</targetJavaVersion>
+        <targetJavaVersion>1.7</targetJavaVersion>
 
         <distMgmtSnapshotsName>Apache Development Snapshot Repository</distMgmtSnapshotsName>
         <distMgmtSnapshotsUrl>https://repository.apache.org/content/repositories/snapshots</distMgmtSnapshotsUrl>
@@ -76,10 +76,11 @@
         <oozie.test.config.file>${oozie.test.default.config.file}</oozie.test.config.file>
 
         <hadoop.version>1.2.1</hadoop.version>
-        <hadoop.majorversion>1</hadoop.majorversion>
-        <hadooplib.version>hadoop-${hadoop.majorversion}-${project.version}</hadooplib.version>
+        <hadoop.majorversion>2</hadoop.majorversion>
+        <hadooplib.version>${hadoop.version}.oozie-${project.version}</hadooplib.version>
         <oozie.hadoop-utils.version>hadoop-${hadoop.majorversion}-${project.version}</oozie.hadoop-utils.version>
         <hbase.version>0.94.2</hbase.version>
+        <hbaselib.version>${hbase.version}.oozie-${project.version}</hbaselib.version>
 
         <clover.license>/home/jenkins/tools/clover/latest/lib/clover.license</clover.license>
 
@@ -281,13 +282,22 @@
                  <groupId>org.apache.hadoop</groupId>
                  <artifactId>hadoop-common</artifactId>
                  <version>${hadoop.version}</version>
+                 <exclusions>
+                     <exclusion>
+                         <artifactId>jasper-runtime</artifactId>
+                         <groupId>tomcat</groupId>
+                     </exclusion>
+                     <exclusion>
+                         <artifactId>jasper-compiler</artifactId>
+                         <groupId>tomcat</groupId>
+                     </exclusion>
+                     <exclusion>
+                         <artifactId>jsp-api</artifactId>
+                         <groupId>javax.servlet.jsp</groupId>
+                     </exclusion>
+                 </exclusions>
              </dependency>
 
-             <dependency>
-                 <groupId>org.apache.hadoop</groupId>
-                 <artifactId>hadoop-common</artifactId>
-                 <version>${hadoop.version}</version>
-             </dependency>
 
             <dependency>
                 <groupId>com.googlecode.json-simple</groupId>
@@ -557,7 +567,7 @@
 
             <dependency>
                 <groupId>org.apache.hbase</groupId>
-                <artifactId>hbase</artifactId>
+                <artifactId>hbase-client</artifactId>
                 <version>${hbase.version}</version>
                 <scope>provided</scope>
                 <exclusions>
@@ -1460,7 +1470,7 @@
             <dependency>
                 <groupId>org.apache.oozie</groupId>
                 <artifactId>oozie-hadoop-utils</artifactId>
-                <version>${oozie.hadoop-utils.version}</version>
+                <version>${hadooplib.version}</version>
             </dependency>
 
             <dependency>
@@ -1657,7 +1667,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <source>1.6</source>
+                    <source>1.7</source>
                     <target>${targetJavaVersion}</target>
                 </configuration>
             </plugin>

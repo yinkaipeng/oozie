@@ -31,7 +31,7 @@ import java.util.Set;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.conf.HiveConf;
-import org.apache.hadoop.hive.shims.ShimLoader;
+import org.apache.hadoop.hive.shims.Utils;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hive.hcatalog.api.ConnectionFailureException;
 import org.apache.hive.hcatalog.api.HCatClient;
@@ -270,7 +270,7 @@ public class HCatURIHandler implements URIHandler {
                     delegationToken = tokenClient.getDelegationToken(user, UserGroupInformation.getLoginUser()
                             .getUserName());
                     // Store Delegation token in the UGI
-                    ShimLoader.getHadoopShims().setTokenStr(ugi, delegationToken,
+                    Utils.setTokenStr(ugi, delegationToken,
                             hiveConf.get("hive.metastore.token.signature"));
                 }
                 finally {
