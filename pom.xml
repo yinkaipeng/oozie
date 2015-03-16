@@ -77,7 +77,7 @@
 
         <hadoop.version>1.2.1</hadoop.version>
         <hadoop.majorversion>2</hadoop.majorversion>
-        <hadooplib.version>${hadoop.version}.oozie-${project.version}</hadooplib.version>
+        <hadooplib.version>hadoop-${hadoop.majorversion}-${project.version}</hadooplib.version>
         <oozie.hadoop-utils.version>hadoop-${hadoop.majorversion}-${project.version}</oozie.hadoop-utils.version>
         <hbase.version>0.94.2</hbase.version>
         <hbaselib.version>${hbase.version}.oozie-${project.version}</hbaselib.version>
