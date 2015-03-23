@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-//import org.apache.commons.io.output.TeeOutputStream;
+import org.apache.commons.io.output.TeeOutputStream;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hive.beeline.BeeLine;
@@ -232,7 +232,7 @@ public class Hive2Main extends LauncherMain {
     private void runBeeline(String[] args, String logFile) throws Exception {
         // We do this instead of calling BeeLine.main so we can duplicate the error stream for harvesting Hadoop child job IDs
         BeeLine beeLine = new BeeLine();
-//        beeLine.setErrorStream(new PrintStream(new TeeOutputStream(System.err, new FileOutputStream(logFile))));
+        beeLine.setErrorStream(new PrintStream(new TeeOutputStream(System.err, new FileOutputStream(logFile))));
         int status = beeLine.begin(args, null);
         if (status != 0) {
             System.exit(status);
