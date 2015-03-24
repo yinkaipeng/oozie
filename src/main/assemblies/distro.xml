@@ -60,6 +60,13 @@
             </includes>
             <fileMode>0755</fileMode>
         </fileSet>
+        <fileSet>
+            <directory>${basedir}/../client/target/oozie-client-${project.version}-client/oozie-client-${project.version}/lib</directory>
+            <outputDirectory>/lib</outputDirectory>
+            <includes>
+                <include>*</include>
+            </includes>
+        </fileSet>
         <!-- Tools -->
         <fileSet>
             <directory>${basedir}/../tools/target/oozie-tools-${project.version}-tools/oozie-tools-${project.version}/bin</directory>

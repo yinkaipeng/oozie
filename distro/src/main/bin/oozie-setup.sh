@@ -133,15 +133,6 @@ do
     OOZIE_OPTS="${OOZIE_OPTS} -Doozie.data.dir=${OOZIE_DATA}";
     OOZIE_OPTS="${OOZIE_OPTS} -Dderby.stream.error.file=${OOZIE_LOG}/derby.log"
 
-    #Create lib directory from war if lib doesn't exist
-    if [ ! -d "${BASEDIR}/lib" ]; then
-      mkdir ${BASEDIR}/lib
-      unzip ${BASEDIR}/oozie.war WEB-INF/lib/*.jar -d ${BASEDIR}/lib > /dev/null
-      mv ${BASEDIR}/lib/WEB-INF/lib/*.jar ${BASEDIR}/lib/
-      rmdir ${BASEDIR}/lib/WEB-INF/lib
-      rmdir ${BASEDIR}/lib/WEB-INF
-    fi
-
     OOZIECPPATH=""
     OOZIECPPATH=${BASEDIR}/lib/'*':${BASEDIR}/libtools/'*':${BASEDIR}/libext/'*'
 
