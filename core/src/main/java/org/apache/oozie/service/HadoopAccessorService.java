@@ -42,6 +42,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.net.InetAddress;
 import java.net.URISyntaxException;
 import java.security.PrivilegedExceptionAction;
 import java.util.HashMap;
@@ -164,7 +165,9 @@ public class HadoopAccessorService implements Service {
                 if (keytabFile.length() == 0) {
                     throw new ServiceException(ErrorCode.E0026, KERBEROS_KEYTAB);
                 }
-                String principal = ConfigurationService.get(serviceConf, KERBEROS_PRINCIPAL);
+                String principal = SecurityUtil.getServerPrincipal(
+                         serviceConf.get(KERBEROS_PRINCIPAL, "oozie/localhost@LOCALHOST"),
+                         InetAddress.getLocalHost().getCanonicalHostName());
                 if (principal.length() == 0) {
                     throw new ServiceException(ErrorCode.E0026, KERBEROS_PRINCIPAL);
                 }
