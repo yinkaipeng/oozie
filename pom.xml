@@ -1755,6 +1755,37 @@
                     </excludes>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>com.google.code.maven-replacer-plugin</groupId>
+                <artifactId>replacer</artifactId>
+                <version>1.5.2</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>replace</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <includes>
+                        <include>winpkg/src/Scripts/*</include>
+                        <include>win-distro/src/Service/*</include>
+                    </includes>
+                    <excludes>
+                        <exclude>win-distro/src/Service/*.exe</exclude>
+                    </excludes>
+                    <replacements>
+                        <replacement>
+                            <token>@oozie.version@</token>
+                            <value>${project.version}</value>
+                        </replacement>
+                        <replacement>
+                            <token>@hadoop.version@</token>
+                            <value>${hadoop.version}</value>
+                        </replacement>
+                    </replacements>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 
