@@ -125,7 +125,7 @@
     </modules>
 
     <distributionManagement>
-       <repository>
+	<repository>
          <id>${repoid}</id>
          <name>${reponame}</name>
          <url>${repourl}</url>
