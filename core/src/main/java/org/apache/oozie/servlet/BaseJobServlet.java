@@ -170,8 +170,17 @@ public abstract class BaseJobServlet extends JsonRestServlet {
                 conf.set(OozieClient.USER_NAME, requestUser);
             }
             if (conf.get(OozieClient.COORDINATOR_APP_PATH) != null) {
+                //If coord is submitted from bundle, user may want to update individual coord job with bundle properties
+                //If COORDINATOR_APP_PATH is set, we should check only COORDINATOR_APP_PATH path permission
+                String bundlePath = conf.get(OozieClient.BUNDLE_APP_PATH);
+                if (bundlePath != null) {
+                    conf.unset(OozieClient.BUNDLE_APP_PATH);
+                }
                 BaseJobServlet.checkAuthorizationForApp(conf);
                 JobUtils.normalizeAppPath(conf.get(OozieClient.USER_NAME), conf.get(OozieClient.GROUP_NAME), conf);
+                if (bundlePath != null) {
+                    conf.set(OozieClient.BUNDLE_APP_PATH, bundlePath);
+                }
             }
             JSONObject json = updateJob(request, response, conf);
             startCron();
@@ -320,6 +329,11 @@ public abstract class BaseJobServlet extends JsonRestServlet {
             response.setContentType(TEXT_UTF8);
             streamJobErrorLog(request, response);
         }
+        else if (show.equals(RestConstants.JOB_SHOW_AUDIT_LOG)) {
+            response.setContentType(TEXT_UTF8);
+            streamJobAuditLog(request, response);
+        }
+
         else if (show.equals(RestConstants.JOB_SHOW_DEFINITION)) {
             stopCron();
             response.setContentType(XML_UTF8);
@@ -461,6 +475,9 @@ public abstract class BaseJobServlet extends JsonRestServlet {
     abstract void streamJobErrorLog(HttpServletRequest request, HttpServletResponse response) throws XServletException,
     IOException;
 
+
+    abstract void streamJobAuditLog(HttpServletRequest request, HttpServletResponse response) throws XServletException,
+            IOException;
 
     /**
      * abstract method to create and stream image for runtime DAG -- workflow only
