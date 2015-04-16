@@ -116,6 +116,8 @@ public class PigMain extends LauncherMain {
             System.out.println("Non-kerberoes execution");
         }
 
+        pigProperties.setProperty("pig.use.overriden.hadoop.configs","true");
+
         OutputStream os = new FileOutputStream("pig.properties");
         pigProperties.store(os, "");
         os.close();
