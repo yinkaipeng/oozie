@@ -165,13 +165,6 @@ do
   shift
 done
 
-if [ -e "${CATALINA_PID}" ]; then
-  echo
-  echo "ERROR: Stop Oozie first"
-  echo
-  exit -1
-fi
-
 echo
 
 if [ "${prepareWar}" == "" ]; then
