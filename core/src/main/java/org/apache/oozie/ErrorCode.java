@@ -57,6 +57,7 @@ public enum ErrorCode {
     E0140(XLog.OPS, "Could not access database, {0}"),
     E0141(XLog.OPS, "Could not create DataSource connection pool, {0}"),
     E0160(XLog.OPS, "Could not read admin users file [{0}], {1}"),
+    E0170(XLog.OPS, "Could not execute query [{0}], {1}"),
 
     E0300(XLog.STD, "Invalid content-type [{0}]"),
     E0301(XLog.STD, "Invalid resource [{0}]"),

@@ -2305,6 +2305,34 @@
         </description>
     </property>
 
+    <!-- Log HA configuration -->
+   <property>
+       <name>oozie.service.XLogCopyService.interval</name>
+        <value>300</value>
+        <description>
+            The interval at which XLogCopyService runs. The service will copy contents in oozie.log onto hdfs by batch
+        </description>
+   </property>
+
+    <property>
+        <name>oozie.service.XLogCopyService.hdfs.log.dir</name>
+        <value>/user/${user.name}/oozie-logs</value>
+        <description>
+            the default dir on hdfs where oozie.log will be copied to.
+        </description>
+    </property>
+
+    <property>
+        <name>oozie.service.XLogCopyService.purge.enable</name>
+        <value>false</value>
+        <description>
+            if true, a command will run alongside with PurgeService to delete jobs logs in hdfs that are older than
+            a configured interval.
+            That means, if true,  the bundle, coordinator, or workflow jobs that are going to be purged from the
+                database will also see their corresponding logs in hdfs being deleted.
+            </description>
+    </property>
+
     <!-- Sharelib Configuration -->
     <property>
         <name>oozie.service.ShareLibService.mapping.file</name>
