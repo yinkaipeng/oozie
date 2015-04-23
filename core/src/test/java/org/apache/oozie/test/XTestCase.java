@@ -265,7 +265,8 @@ public abstract class XTestCase extends TestCase {
     /**
      * Minimal set of require Services for cleaning up the database ({@link JPAService} and {@link StoreService})
      */
-    private static final String MINIMAL_SERVICES_FOR_DB_CLEANUP = JPAService.class.getName() + "," + StoreService.class.getName();
+    private static final String MINIMAL_SERVICES_FOR_DB_CLEANUP = HadoopAccessorService.class.getName() + "," +
+            JPAService.class.getName() + "," + StoreService.class.getName();
 
     /**
      * Initialize the test working directory. <p/> If it does not exist it creates it, if it already exists it deletes
