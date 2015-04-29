@@ -47,6 +47,9 @@ import org.apache.oozie.util.XmlUtils;
 
 public class TestCoordMaterializeTriggerService extends XDataTestCase {
     private Services services;
+    private String[] excludedServices = {"org.apache.oozie.service.StatusTransitService",
+            "org.apache.oozie.service.CoordMaterializeTriggerService",
+            "org.apache.oozie.service.RecoveryService" };
 
     @Override
     protected void setUp() throws Exception {
@@ -114,6 +117,7 @@ public class TestCoordMaterializeTriggerService extends XDataTestCase {
         Services.get().destroy();
         setSystemProperty(CoordMaterializeTriggerService.CONF_MATERIALIZATION_SYSTEM_LIMIT, "1");
         services = new Services();
+        setClassesToBeExcluded(services.getConf(), excludedServices);
         services.init();
 
         Date start = new Date();
