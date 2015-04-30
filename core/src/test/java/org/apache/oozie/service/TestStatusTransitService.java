@@ -1628,6 +1628,7 @@ public class TestStatusTransitService extends XDataTestCase {
     public void testBundleStatusCoordSubmitFails() throws Exception {
         setSystemProperty(StatusTransitService.CONF_BACKWARD_SUPPORT_FOR_STATES_WITHOUT_ERROR, "false");
         services = new Services();
+        setClassesToBeExcluded(services.getConf(), excludedServices);
         services.init();
         BundleJobBean bundleJob = this.addRecordToBundleJobTable(Job.Status.RUNNING, false);
 
