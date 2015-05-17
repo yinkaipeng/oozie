@@ -273,17 +273,19 @@
                 <version>2.4.0</version>
             </dependency>
 
-            <!-- client -->
+            <!-- client 
             <dependency>
                 <groupId>org.apache.oozie</groupId>
                 <artifactId>oozie-hadoop-auth</artifactId>
                 <version>${hadooplib.version}</version>
             </dependency>
+            -->
 
              <dependency>
                  <groupId>org.apache.hadoop</groupId>
                  <artifactId>hadoop-common</artifactId>
                  <version>${hadoop.version}</version>
+                 <scope>compile</scope>
                  <exclusions>
                      <exclusion>
                          <artifactId>jasper-runtime</artifactId>
@@ -349,7 +351,7 @@
                 <groupId>org.apache.hadoop</groupId>
                 <artifactId>hadoop-client</artifactId>
                 <version>${hadoop.version}</version>
-                <scope>provided</scope>
+                <scope>compile</scope>
                 <exclusions>
                     <exclusion>
                         <groupId>org.apache.curator</groupId>
@@ -375,7 +377,7 @@
                 <groupId>org.apache.oozie</groupId>
                 <artifactId>oozie-hadoop-auth</artifactId>
                 <version>${hadooplib.version}</version>
-                <scope>provided</scope>
+                <scope>compile</scope>
             </dependency>
 
             <dependency>
@@ -518,14 +520,14 @@
                 <groupId>org.apache.oozie</groupId>
                 <artifactId>oozie-hadoop-distcp</artifactId>
                 <version>${hadooplib.version}</version>
-                <scope>provided</scope>
+                <scope>compile</scope>
             </dependency>
 
             <dependency>
                 <groupId>org.apache.hive.hcatalog</groupId>
                 <artifactId>hive-webhcat-java-client</artifactId>
                 <version>${hive.version}</version>
-                <scope>provided</scope>
+                <scope>compile</scope>
                 <exclusions>
                     <exclusion>
                         <groupId>org.apache.hive</groupId>
@@ -863,6 +865,7 @@
                 <artifactId>pig</artifactId>
                 <version>${pig.version}</version>
                 <classifier>${pig.classifier}</classifier>
+                <scope>compile</scope>
                 <exclusions>
                     <exclusion>
                         <groupId>org.apache.hadoop</groupId>
