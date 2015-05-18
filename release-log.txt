@@ -1,5 +1,4 @@
--- Oozie 4.3.0 release (trunk - unreleased)
-
+<<<<<<< HEAD
 -- Oozie 4.2.0 release (unreleased)
 
 OOZIE-2236 Need to package hive-hcatalog-server-extensions.jar in the hcatalog sharelib (venkatnrangan via bzhang)
