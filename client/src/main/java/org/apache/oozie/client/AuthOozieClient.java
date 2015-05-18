@@ -117,16 +117,19 @@ public class AuthOozieClient extends XOozieClient {
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("OPTIONS");
             AuthenticatedURL.injectToken(conn, currentToken);
-            if (conn.getResponseCode() == HttpURLConnection.HTTP_UNAUTHORIZED) {
-                AUTH_TOKEN_CACHE_FILE.delete();
-                currentToken = new AuthenticatedURL.Token();
-            }
+            AUTH_TOKEN_CACHE_FILE.delete();
+            currentToken = new AuthenticatedURL.Token();
         }
 
         if (!currentToken.isSet()) {
             Authenticator authenticator = getAuthenticator();
             try {
                 new AuthenticatedURL(authenticator).openConnection(url, currentToken);
+                HttpURLConnection conn = new AuthenticatedURL(authenticator).openConnection(url, currentToken);
+                if (conn.getRequestProperty("Cookie") == null) {
+                    authOption = "SIMPLE";
+                    new AuthenticatedURL(getAuthenticator()).openConnection(url, currentToken);
+                }
             }
             catch (AuthenticationException ex) {
                 AUTH_TOKEN_CACHE_FILE.delete();
