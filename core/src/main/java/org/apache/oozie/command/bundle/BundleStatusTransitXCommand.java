@@ -232,6 +232,7 @@ public class BundleStatusTransitXCommand extends StatusTransitXCommand {
             bundleJob.resetPending();
             LOG.info("Bundle job [" + jobId + "] Pending set to FALSE");
         }
+        bundleJob.setLastModifiedTime(new Date());
         BundleJobQueryExecutor.getInstance().executeUpdate(BundleJobQuery.UPDATE_BUNDLE_JOB_STATUS_PENDING_MODTIME,
                 bundleJob);
     }
