@@ -178,16 +178,8 @@ public class ReRunXCommand extends WorkflowXCommand<Void> {
             // necessary to ensure propagation of Oozie properties to Hadoop calls downstream
             conf = ((XConfiguration) conf).resolve();
 
-            // Prepare the action endtimes map
-            Map<String, Date> actionEndTimes = new HashMap<String, Date>();
-            for (WorkflowActionBean action : actions) {
-                if (action.getEndTime() != null) {
-                    actionEndTimes.put(action.getName(), action.getEndTime());
-                }
-            }
-
             try {
-                newWfInstance = workflowLib.createInstance(app, conf, jobId, actionEndTimes);
+                newWfInstance = workflowLib.createInstance(app, conf, jobId);
             }
             catch (WorkflowException e) {
                 throw new CommandException(e);
@@ -345,7 +337,7 @@ public class ReRunXCommand extends WorkflowXCommand<Void> {
         // through conf.
         if (wfBean.getParentId() != null && !conf.getBoolean(SubWorkflowActionExecutor.SUBWORKFLOW_RERUN, false)
                 && ConfigurationService.getBoolean(DISABLE_CHILD_RERUN)) {
-            throw new PreconditionException(ErrorCode.E0755, " Rerun is not allowed through child workflow, please" +
+            throw new CommandException(ErrorCode.E0755, " Rerun is not allowed through child workflow, please" +
                     " re-run through the parent " + wfBean.getParentId());
         }
 
