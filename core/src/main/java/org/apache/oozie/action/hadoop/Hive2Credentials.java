@@ -60,6 +60,7 @@ public class Hive2Credentials extends Credentials {
                         HIVE2_SERVER_PRINCIPAL + " is required to get hive server 2 credential");
             }
             url = url + ";principal=" + principal;
+            XLog.getLog(getClass()).info("connecting to jdbcUrl: " + url);
             Connection con = DriverManager.getConnection(url);
             XLog.getLog(getClass()).debug("Connected successfully to " + url);
             // get delegation token for the given proxy user
