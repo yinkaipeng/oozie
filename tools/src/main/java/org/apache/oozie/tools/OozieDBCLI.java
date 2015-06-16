@@ -249,8 +249,8 @@ public class OozieDBCLI {
     }
 
     private void upgradeDBto50(String sqlFile, boolean run, String startingVersion) throws Exception {
-        upgradeOozieDBVersion(sqlFile, run, DB_VERSION_FOR_5_0);
         ddlTweaksFor50(sqlFile, run, startingVersion);
+        upgradeOozieDBVersion(sqlFile, run, DB_VERSION_FOR_5_0);
     }
 
     private final static String UPDATE_OOZIE_VERSION =
