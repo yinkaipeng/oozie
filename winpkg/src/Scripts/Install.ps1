@@ -134,25 +134,17 @@ function Main( $scriptDir )
         $dbdriver = "org.apache.derby.jdbc.EmbeddedDriver"
     }
 	$config = @{
-        "oozie.authentication.kerberos.name.rules"="RULE:[2:$1@$0]([jt]t@.*TODO-KERBEROS-DOMAIN)s/.*/TODO-MAPREDUSER/
-            RULE:[2:$1@$0]([nd]n@.*TODO-KERBEROS-DOMAIN)s/.*/TODO-HDFSUSER/
-            RULE:[2:$1@$0](hm@.*TODO-KERBEROS-DOMAIN)s/.*/TODO-HBASE-USER/
-            RULE:[2:$1@$0](rs@.*TODO-KERBEROS-DOMAIN)s/.*/TODO-HBASE-USER/
-            DEFAULT";
-        "oozie.authentication.type"="simple";
-        "oozie.base.url"="$ENV:OOZIE_SERVER_HOST:11000";
-        "oozie.credentials.credentialclasses"="hcat=org.apache.oozie.action.hadoop.HCatCredentials,hive2=org.apache.oozie.action.hadoop.Hive2Credentials";
-        "oozie.service.AuthorizationService.authorization.enabled"="true";
-        "oozie.service.HadoopAccessorService.hadoop.configurations"="*=/hadoop-conf";
-        "oozie.service.HadoopAccessorService.kerberos.enabled"="false";
-        "oozie.service.URIHandlerService.uri.handlers"="org.apache.oozie.dependency.FSURIHandler,org.apache.oozie.dependency.HCatURIHandler";
-        "oozie.services.ext"="org.apache.oozie.service.JMSAccessorService,org.apache.oozie.service.PartitionDependencyManagerService,org.apache.oozie.service.HCatAccessorService";
-        "oozie.authentication.simple.anonymous.allowed"="false";
-        "oozie.db.schema.name"="oozie";
         "oozie.service.JPAService.jdbc.url" = "$dburl";
         "oozie.service.JPAService.jdbc.driver" = "$dbdriver";
         "oozie.service.JPAService.jdbc.username" = "$dbuser";
-        "oozie.service.JPAService.jdbc.password" = "$dbpasswd"}
+        "oozie.service.JPAService.jdbc.password" = "$dbpasswd";
+        "oozie.services.ext" = "org.apache.oozie.service.PartitionDependencyManagerService,org.apache.oozie.service.HCatAccessorService";
+        "oozie.credentials.credentialclasses" = "hcat=org.apache.oozie.action.hadoop.HCatCredentials";
+        "oozie.service.URIHandlerService.uri.handlers" = "org.apache.oozie.dependency.FSURIHandler,org.apache.oozie.dependency.HCatURIHandler";
+        "oozie.service.coord.push.check.requeue.interval" = "30000";
+        "oozie.service.HadoopAccessorService.hadoop.configurations" = "*=$ENV:HADOOP_CONF_DIR";
+        "oozie.service.HadoopAccessorService.supported.filesystems" = "hdfs, webhdfs, swebhdfs, hftp, hsftp, wasb, s3n";
+		"oozie.service.AuthorizationService.security.enabled" = "true"}
 		Configure "oozie" $NodeInstallRoot $ServiceCredential $config
         if ($ENV:IS_OOZIE_SERVER -eq "yes")
         {
