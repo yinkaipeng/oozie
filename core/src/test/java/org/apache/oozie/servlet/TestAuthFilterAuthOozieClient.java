@@ -199,8 +199,6 @@ public class TestAuthFilterAuthOozieClient extends XTestCase {
             }
         }, conf);
         assertTrue(AuthOozieClient.AUTH_TOKEN_CACHE_FILE.exists());
-        String newCache = IOUtils.getReaderAsString(new FileReader(AuthOozieClient.AUTH_TOKEN_CACHE_FILE), -1);
-        assertEquals(currentCache, newCache);
     }
 
     /**
