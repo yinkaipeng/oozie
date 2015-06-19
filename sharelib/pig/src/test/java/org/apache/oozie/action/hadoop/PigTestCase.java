@@ -109,7 +109,7 @@ public abstract class PigTestCase extends XFsTestCase implements Callable<Void> 
             //Ignore exception
         }
         String hadoopIdsFile = System.getProperty("oozie.action.externalChildIDs");
-        assertFalse(new File(hadoopIdsFile).exists());
+        assertTrue(new File(hadoopIdsFile).exists());
 
     }
 
