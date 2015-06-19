@@ -146,7 +146,7 @@ function Main( $scriptDir )
         "oozie.service.HadoopAccessorService.hadoop.configurations"="*=/hadoop-conf";
         "oozie.service.HadoopAccessorService.kerberos.enabled"="false";
         "oozie.service.URIHandlerService.uri.handlers"="org.apache.oozie.dependency.FSURIHandler,org.apache.oozie.dependency.HCatURIHandler";
-        "oozie.services.ext"="rg.apache.oozie.service.JMSAccessorService,org.apache.oozie.service.PartitionDependencyManagerService,org.apache.oozie.service.HCatAccessorService";
+        "oozie.services.ext"="org.apache.oozie.service.JMSAccessorService,org.apache.oozie.service.PartitionDependencyManagerService,org.apache.oozie.service.HCatAccessorService";
         "oozie.authentication.simple.anonymous.allowed"="false";
         "oozie.db.schema.name"="oozie";
         "oozie.service.JPAService.jdbc.url" = "$dburl";
