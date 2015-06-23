@@ -148,6 +148,7 @@ public class TestCoordMaterializeTriggerService extends XDataTestCase {
         Services.get().destroy();
         setSystemProperty(CoordMaterializeTriggerService.CONF_MATERIALIZATION_SYSTEM_LIMIT, "10");
         services = new Services();
+        setClassesToBeExcluded(services.getConf(), excludedServices);
         services.init();
 
         Date start = new Date();
