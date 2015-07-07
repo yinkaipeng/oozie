@@ -17,19 +17,100 @@
  */
 package org.apache.oozie.action.hadoop;
 
+import java.io.IOException;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import org.apache.hadoop.conf.Configuration;
-
+import org.apache.hadoop.yarn.api.ApplicationClientProtocol;
+import org.apache.hadoop.yarn.api.protocolrecords.ApplicationsRequestScope;
+import org.apache.hadoop.yarn.api.protocolrecords.GetApplicationsRequest;
+import org.apache.hadoop.yarn.api.protocolrecords.GetApplicationsResponse;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.hadoop.yarn.api.records.ApplicationReport;
+import org.apache.hadoop.yarn.client.ClientRMProxy;
+import org.apache.hadoop.yarn.client.api.YarnClient;
+import org.apache.hadoop.yarn.exceptions.YarnException;
+import org.apache.hadoop.mapreduce.TypeConverter;
 
 public class LauncherMainHadoopUtils {
 
     private LauncherMainHadoopUtils() {
     }
 
+    private static Set<ApplicationId> getChildYarnJobs(Configuration actionConf) {
+        Set<ApplicationId> childYarnJobs = new HashSet<ApplicationId>();
+        long startTime = 0L;
+        try {
+            String launchTimeStr = System.getProperty("oozie.job.launch.time");
+            System.out.println("Launch time = " + launchTimeStr);
+            if (launchTimeStr != null && launchTimeStr.length() > 0) {
+                startTime = Long.parseLong(launchTimeStr);
+            }
+        } catch(NumberFormatException nfe) {
+            throw new RuntimeException("Could not find Oozie job launch time", nfe);
+        }
+        String tag = actionConf.get("mapreduce.job.tags");
+        if (tag == null || tag.length() == 0 || startTime == 0L) {
+            System.out.println("Oozie start time or job tags not found - cannot determine previously running jobs");
+            return childYarnJobs;
+            // throw new RuntimeException("Could not find Yarn tags property (mapreduce.job.tags)");
+        }
+        System.out.println("Job launch time = " + startTime + " mapreduce.job.tags = " + tag);
+
+        GetApplicationsRequest gar = GetApplicationsRequest.newInstance();
+        gar.setScope(ApplicationsRequestScope.OWN);
+        gar.setStartRange(startTime, System.currentTimeMillis());
+        gar.setApplicationTags(Collections.singleton(tag));
+        try {
+            ApplicationClientProtocol proxy = ClientRMProxy.createRMProxy(actionConf, ApplicationClientProtocol.class);
+            GetApplicationsResponse apps = proxy.getApplications(gar);
+            List<ApplicationReport> appsList = apps.getApplicationList();
+            for(ApplicationReport appReport : appsList) {
+                childYarnJobs.add(appReport.getApplicationId());
+            }
+        } catch (IOException ioe) {
+            throw new RuntimeException("Exception occurred while finding child jobs", ioe);
+        } catch (YarnException ye) {
+            throw new RuntimeException("Exception occurred while finding child jobs", ye);
+        }
+        return childYarnJobs;
+    }
+
     public static String getYarnJobForMapReduceAction(Configuration actionConf) {
-        return null;
+        Set<ApplicationId> childYarnJobs = getChildYarnJobs(actionConf);
+        String childJobId = null;
+        if (!childYarnJobs.isEmpty()) {
+            ApplicationId childJobYarnId = childYarnJobs.iterator().next();
+            System.out.println("Found Map-Reduce job [" + childJobYarnId + "] already running");
+            // Need the JobID version for Oozie
+            childJobId = TypeConverter.fromYarn(childJobYarnId).toString();
+        }
+        return childJobId;
     }
 
     public static void killChildYarnJobs(Configuration actionConf) {
-        // no-op
+        try {
+            Set<ApplicationId> childYarnJobs = getChildYarnJobs(actionConf);
+            if (!childYarnJobs.isEmpty()) {
+                System.out.println();
+                System.out.println("Found [" + childYarnJobs.size() + "] Map-Reduce jobs from this launcher");
+                System.out.println("Killing existing jobs and starting over:");
+                YarnClient yarnClient = YarnClient.createYarnClient();
+                yarnClient.init(actionConf);
+                yarnClient.start();
+                for (ApplicationId app : childYarnJobs) {
+                    System.out.print("Killing job [" + app + "] ... ");
+                    yarnClient.killApplication(app);
+                    System.out.println("Done");
+                }
+                System.out.println();
+            }
+        } catch (YarnException ye) {
+            throw new RuntimeException("Exception occurred while killing child job(s)", ye);
+        } catch (IOException ioe) {
+            throw new RuntimeException("Exception occurred while killing child job(s)", ioe);
+        }
     }
 }
