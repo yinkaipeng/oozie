@@ -1520,6 +1520,11 @@
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-source-plugin</artifactId>
+                    <version>2.4</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>2.12.2</version>
                 </plugin>
@@ -1602,6 +1607,20 @@
         </pluginManagement>
 
         <plugins>
+            <plugin>
+            	<groupId>org.apache.maven.plugins</groupId>
+            	<artifactId>maven-source-plugin</artifactId>
+            	<executions>
+              	<execution>
+                	<id>attach-sources</id>
+                	<phase>verify</phase>
+                	<goals>
+                  		<goal>jar-no-fork</goal>
+                  		<goal>test-jar-no-fork</goal>
+                	</goals>
+              	</execution>
+            	</executions>
+            </plugin> 
             <plugin>
                 <groupId>com.atlassian.maven.plugins</groupId>
                 <artifactId>maven-clover2-plugin</artifactId>
