@@ -15,12 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.service;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.oozie.util.ConfigUtils;
 import org.apache.oozie.util.Instrumentable;
 import org.apache.oozie.util.Instrumentation;
@@ -70,7 +72,19 @@ public class JobsConcurrencyService implements Service, Instrumentable {
      */
     @Override
     public void instrument(Instrumentation instr) {
-        // nothing to instrument
+        instr.addVariable("oozie", "servers", new Instrumentation.Variable<String>() {
+            @Override
+            public String getValue() {
+                String str;
+                Map<String, String> serverUrls = getServerUrls();
+                if (serverUrls.isEmpty()) {
+                    str = "(unavailable)";
+                } else {
+                    str = StringUtils.join(serverUrls.entrySet(), ",");
+                }
+                return str;
+            }
+        });
     }
 
     /**

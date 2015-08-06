@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.command.coord;
 
 import org.apache.oozie.client.CoordinatorAction;
@@ -86,7 +87,7 @@ public class CoordKillXCommand extends KillTransitionXCommand {
                 //Get actions which are not succeeded, failed, timed out or killed
                 this.actionList = jpaService.execute(new CoordJobGetActionsNotCompletedJPAExecutor(jobId));
                 prevStatus = coordJob.getStatus();
-                LogUtils.setLogInfo(coordJob, logInfo);
+                LogUtils.setLogInfo(coordJob);
             }
             else {
                 throw new CommandException(ErrorCode.E0610);

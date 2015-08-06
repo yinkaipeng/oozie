@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.cli;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -36,7 +37,11 @@ import org.apache.oozie.client.OozieClientException;
 import org.apache.oozie.client.WorkflowAction;
 import org.apache.oozie.client.WorkflowJob;
 import org.apache.oozie.client.XOozieClient;
+import org.apache.oozie.client.rest.JsonTags;
+import org.apache.oozie.client.rest.JsonToBean;
 import org.apache.oozie.client.rest.RestConstants;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -67,6 +72,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.TimeZone;
+import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -110,6 +116,9 @@ public class OozieCLI {
     public static final String RERUN_OPTION = "rerun";
     public static final String INFO_OPTION = "info";
     public static final String LOG_OPTION = "log";
+    public static final String ERROR_LOG_OPTION = "errorlog";
+    public static final String AUDIT_LOG_OPTION = "auditlog";
+
     public static final String ACTION_OPTION = "action";
     public static final String DEFINITION_OPTION = "definition";
     public static final String CONFIG_CONTENT_OPTION = "configcontent";
@@ -117,6 +126,9 @@ public class OozieCLI {
     public static final String SHOWDIFF_OPTION = "diff";
     public static final String UPDATE_OPTION = "update";
     public static final String IGNORE_OPTION = "ignore";
+    public static final String POLL_OPTION = "poll";
+    public static final String TIMEOUT_OPTION = "timeout";
+    public static final String INTERVAL_OPTION = "interval";
 
     public static final String DO_AS_OPTION = "doas";
 
@@ -129,17 +141,27 @@ public class OozieCLI {
     public static final String LOCAL_TIME_OPTION = "localtime";
     public static final String TIME_ZONE_OPTION = "timezone";
     public static final String QUEUE_DUMP_OPTION = "queuedump";
-    public static final String RERUN_COORD_OPTION = "coordinator";
     public static final String DATE_OPTION = "date";
     public static final String RERUN_REFRESH_OPTION = "refresh";
     public static final String RERUN_NOCLEANUP_OPTION = "nocleanup";
+    public static final String RERUN_FAILED_OPTION = "failed";
     public static final String ORDER_OPTION = "order";
+    public static final String COORD_OPTION = "coordinator";
 
     public static final String UPDATE_SHARELIB_OPTION = "sharelibupdate";
 
     public static final String LIST_SHARELIB_LIB_OPTION = "shareliblist";
 
+    public static final String SLA_DISABLE_ALERT = "sladisable";
+    public static final String SLA_ENABLE_ALERT = "slaenable";
+    public static final String SLA_CHANGE = "slachange";
 
+    public static final String SERVER_CONFIGURATION_OPTION = "configuration";
+    public static final String SERVER_OS_ENV_OPTION = "osenv";
+    public static final String SERVER_JAVA_SYSTEM_PROPERTIES_OPTION = "javasysprops";
+
+    public static final String METRICS_OPTION = "metrics";
+    public static final String INSTRUMENTATION_OPTION = "instrumentation";
 
     public static final String AUTH_OPTION = "auth";
 
@@ -244,6 +266,11 @@ public class OozieCLI {
         Option availServers = new Option(AVAILABLE_SERVERS_OPTION, false, "list available Oozie servers"
                 + " (more than one only if HA is enabled)");
         Option sharelibUpdate = new Option(UPDATE_SHARELIB_OPTION, false, "Update server to use a newer version of sharelib");
+        Option serverConfiguration = new Option(SERVER_CONFIGURATION_OPTION, false, "show Oozie system configuration");
+        Option osEnv = new Option(SERVER_OS_ENV_OPTION, false, "show Oozie system OS environment");
+        Option javaSysProps = new Option(SERVER_JAVA_SYSTEM_PROPERTIES_OPTION, false, "show Oozie Java system properties");
+        Option metrics = new Option(METRICS_OPTION, false, "show Oozie system metrics");
+        Option instrumentation = new Option(INSTRUMENTATION_OPTION, false, "show Oozie system instrumentation");
 
         Option sharelib = new Option(LIST_SHARELIB_LIB_OPTION, false,
                 "List available sharelib that can be specified in a workflow action");
@@ -260,6 +287,11 @@ public class OozieCLI {
         group.addOption(availServers);
         group.addOption(sharelibUpdate);
         group.addOption(sharelib);
+        group.addOption(serverConfiguration);
+        group.addOption(osEnv);
+        group.addOption(javaSysProps);
+        group.addOption(metrics);
+        group.addOption(instrumentation);
         adminOptions.addOptionGroup(group);
         addAuthOptions(adminOptions);
         return adminOptions;
@@ -286,10 +318,11 @@ public class OozieCLI {
         Option suspend = new Option(SUSPEND_OPTION, true, "suspend a job");
         Option resume = new Option(RESUME_OPTION, true, "resume a job");
         Option kill = new Option(KILL_OPTION, true, "kill a job (coordinator can mention -action or -date)");
-        Option change = new Option(CHANGE_OPTION, true, "change a coordinator job");
+        Option change = new Option(CHANGE_OPTION, true, "change a coordinator or bundle job");
         Option changeValue = new Option(CHANGE_VALUE_OPTION, true,
                 "new endtime/concurrency/pausetime value for changing a coordinator job");
         Option info = new Option(INFO_OPTION, true, "info of a job");
+        Option poll = new Option(POLL_OPTION, true, "poll Oozie until a job reaches a terminal state or a timeout occurs");
         Option offset = new Option(OFFSET_OPTION, true, "job info offset of actions (default '1', requires -info)");
         Option len = new Option(LEN_OPTION, true, "number of actions (default TOTAL ACTIONS, requires -info)");
         Option filter = new Option(FILTER_OPTION, true,
@@ -306,6 +339,8 @@ public class OozieCLI {
         Option timezone = new Option(TIME_ZONE_OPTION, true,
                 "use time zone with the specified ID (default GMT).\nSee 'oozie info -timezones' for a list");
         Option log = new Option(LOG_OPTION, true, "job log");
+        Option errorlog = new Option(ERROR_LOG_OPTION, true, "job error log");
+        Option auditlog = new Option(AUDIT_LOG_OPTION, true, "job audit log");
         Option logFilter = new Option(
                 RestConstants.LOG_FILTER_OPTION, true,
                 "job log search parameter. Can be specified as -logfilter opt1=val1;opt2=val1;opt3=val1. "
@@ -314,14 +349,17 @@ public class OozieCLI {
         Option config_content = new Option(CONFIG_CONTENT_OPTION, true, "job configuration");
         Option verbose = new Option(VERBOSE_OPTION, false, "verbose mode");
         Option action = new Option(ACTION_OPTION, true,
-                "coordinator rerun on action ids (requires -rerun); coordinator log retrieval on action ids (requires -log)");
+                "coordinator rerun/kill on action ids (requires -rerun/-kill); coordinator log retrieval on action ids"
+                        + "(requires -log)");
         Option date = new Option(DATE_OPTION, true,
                 "coordinator/bundle rerun on action dates (requires -rerun); coordinator log retrieval on action dates (requires -log)");
-        Option rerun_coord = new Option(RERUN_COORD_OPTION, true, "bundle rerun on coordinator names (requires -rerun)");
+        Option rerun_coord = new Option(COORD_OPTION, true, "bundle rerun on coordinator names (requires -rerun)");
         Option rerun_refresh = new Option(RERUN_REFRESH_OPTION, false,
                 "re-materialize the coordinator rerun actions (requires -rerun)");
         Option rerun_nocleanup = new Option(RERUN_NOCLEANUP_OPTION, false,
                 "do not clean up output-events of the coordiantor rerun actions (requires -rerun)");
+        Option rerun_failed = new Option(RERUN_FAILED_OPTION, false,
+                "runs the failed workflow actions of the coordinator actions (requires -rerun)");
         Option property = OptionBuilder.withArgName("property=value").hasArgs(2).withValueSeparator().withDescription(
                 "set/override value for given property").create("D");
         Option getAllWorkflows = new Option(ALL_WORKFLOWS_FOR_COORD_ACTION, false,
@@ -329,6 +367,19 @@ public class OozieCLI {
         Option ignore = new Option(IGNORE_OPTION, true,
                 "change status of a coordinator job or action to IGNORED"
                 + " (-action required to ignore coord actions)");
+        Option timeout = new Option(TIMEOUT_OPTION, true, "timeout in minutes (default is 30, negative values indicate no "
+                + "timeout, requires -poll)");
+        timeout.setType(Integer.class);
+        Option interval = new Option(INTERVAL_OPTION, true, "polling interval in minutes (default is 5, requires -poll)");
+        interval.setType(Integer.class);
+
+        Option slaDisableAlert = new Option(SLA_DISABLE_ALERT, true,
+                "disables sla alerts for the job and its children");
+        Option slaEnableAlert = new Option(SLA_ENABLE_ALERT, true,
+                "enables sla alerts for the job and its children");
+        Option slaChange = new Option(SLA_CHANGE, true,
+                "Update sla param for jobs, supported param are should-start, should-end, nominal-time and max-duration");
+
 
         Option doAs = new Option(DO_AS_OPTION, true, "doAs user, impersonates as the specified user");
 
@@ -345,9 +396,16 @@ public class OozieCLI {
         actions.addOption(info);
         actions.addOption(rerun);
         actions.addOption(log);
+        actions.addOption(errorlog);
+        actions.addOption(auditlog);
         actions.addOption(definition);
         actions.addOption(config_content);
         actions.addOption(ignore);
+        actions.addOption(poll);
+        actions.addOption(slaDisableAlert);
+        actions.addOption(slaEnableAlert);
+        actions.addOption(slaChange);
+
         actions.setRequired(true);
         Options jobOptions = new Options();
         jobOptions.addOption(oozie);
@@ -368,9 +426,12 @@ public class OozieCLI {
         jobOptions.addOption(rerun_coord);
         jobOptions.addOption(rerun_refresh);
         jobOptions.addOption(rerun_nocleanup);
+        jobOptions.addOption(rerun_failed);
         jobOptions.addOption(getAllWorkflows);
         jobOptions.addOptionGroup(actions);
         jobOptions.addOption(logFilter);
+        jobOptions.addOption(timeout);
+        jobOptions.addOption(interval);
         addAuthOptions(jobOptions);
         jobOptions.addOption(showdiff);
 
@@ -378,6 +439,7 @@ public class OozieCLI {
         OptionGroup updateOption = new OptionGroup();
         updateOption.addOption(dryrun);
         jobOptions.addOptionGroup(updateOption);
+
         return jobOptions;
     }
 
@@ -391,10 +453,16 @@ public class OozieCLI {
         Option jobtype = new Option(JOBTYPE_OPTION, true,
                 "job type ('Supported in Oozie-2.0 or later versions ONLY - 'coordinator' or 'bundle' or 'wf'(default))");
         Option len = new Option(LEN_OPTION, true, "number of jobs (default '100')");
-        Option filter = new Option(FILTER_OPTION, true, "user=<U>\\;name=<N>\\;group=<G>\\;status=<S>\\;frequency=<F>\\;unit=<M> " +
-                        "(Valid unit values are 'months', 'days', 'hours' or 'minutes'.)");
+        Option filter = new Option(FILTER_OPTION, true,
+                "user=<U>\\;name=<N>\\;group=<G>\\;status=<S>\\;frequency=<F>\\;unit=<M>" +
+                        "\\;startcreatedtime=<SC>\\;endcreatedtime=<EC> " +
+                        "(valid unit values are 'months', 'days', 'hours' or 'minutes'. " +
+                        "startcreatedtime, endcreatedtime: time of format yyyy-MM-dd'T'HH:mm'Z')");
         Option localtime = new Option(LOCAL_TIME_OPTION, false, "use local time (same as passing your time zone to -" +
                 TIME_ZONE_OPTION + "). Overrides -" + TIME_ZONE_OPTION + " option");
+        Option kill = new Option(KILL_OPTION, false, "bulk kill operation");
+        Option suspend = new Option(SUSPEND_OPTION, false, "bulk suspend operation");
+        Option resume = new Option(RESUME_OPTION, false, "bulk resume operation");
         Option timezone = new Option(TIME_ZONE_OPTION, true,
                 "use time zone with the specified ID (default GMT).\nSee 'oozie info -timezones' for a list");
         Option verbose = new Option(VERBOSE_OPTION, false, "verbose mode");
@@ -409,6 +477,9 @@ public class OozieCLI {
         jobsOptions.addOption(oozie);
         jobsOptions.addOption(doAs);
         jobsOptions.addOption(localtime);
+        jobsOptions.addOption(kill);
+        jobsOptions.addOption(suspend);
+        jobsOptions.addOption(resume);
         jobsOptions.addOption(timezone);
         jobsOptions.addOption(start);
         jobsOptions.addOption(len);
@@ -988,8 +1059,8 @@ public class OozieCLI {
                         dateScope = commandLine.getOptionValue(DATE_OPTION);
                     }
 
-                    if (options.contains(RERUN_COORD_OPTION)) {
-                        coordScope = commandLine.getOptionValue(RERUN_COORD_OPTION);
+                    if (options.contains(COORD_OPTION)) {
+                        coordScope = commandLine.getOptionValue(COORD_OPTION);
                     }
 
                     if (options.contains(RERUN_REFRESH_OPTION)) {
@@ -1014,6 +1085,7 @@ public class OozieCLI {
                     String rerunType = null;
                     boolean refresh = false;
                     boolean noCleanup = false;
+                    boolean failed = false;
                     if (options.contains(DATE_OPTION) && options.contains(ACTION_OPTION)) {
                         throw new OozieCLIException("Invalid options provided for rerun: either" + DATE_OPTION + " or "
                                 + ACTION_OPTION + " expected. Don't use both at the same time.");
@@ -1036,7 +1108,17 @@ public class OozieCLI {
                     if (options.contains(RERUN_NOCLEANUP_OPTION)) {
                         noCleanup = true;
                     }
-                    printCoordActions(wc.reRunCoord(coordJobId, rerunType, scope, refresh, noCleanup));
+
+                    Properties props = null;
+                    if(isConfigurationSpecified(wc, commandLine)) {
+                        props = getConfiguration(wc, commandLine);
+                    }
+
+                    if (options.contains(RERUN_FAILED_OPTION)) {
+                        failed = true;
+                    }
+
+                    printCoordActions(wc.reRunCoord(coordJobId, rerunType, scope, refresh, noCleanup, failed, props));
                 }
             }
             else if (options.contains(INFO_OPTION)) {
@@ -1130,6 +1212,24 @@ public class OozieCLI {
                     }
                 }
             }
+            else if (options.contains(ERROR_LOG_OPTION)) {
+                PrintStream ps = System.out;
+                try {
+                    wc.getJobErrorLog(commandLine.getOptionValue(ERROR_LOG_OPTION), ps);
+                }
+                finally {
+                    ps.close();
+                }
+            }
+            else if (options.contains(AUDIT_LOG_OPTION)) {
+                PrintStream ps = System.out;
+                try {
+                    wc.getJobAuditLog(commandLine.getOptionValue(AUDIT_LOG_OPTION), ps);
+                }
+                finally {
+                    ps.close();
+                }
+            }
             else if (options.contains(DEFINITION_OPTION)) {
                 System.out.println(wc.getJobDefinition(commandLine.getOptionValue(DEFINITION_OPTION)));
             }
@@ -1171,6 +1271,30 @@ public class OozieCLI {
                 else {
                     System.out.println(wc.updateCoord(coordJobId, conf, dryrun, showdiff));
                 }
+            }
+            else if (options.contains(POLL_OPTION)) {
+                String jobId = commandLine.getOptionValue(POLL_OPTION);
+                int timeout = 30;
+                int interval = 5;
+                String timeoutS = commandLine.getOptionValue(TIMEOUT_OPTION);
+                if (timeoutS != null) {
+                    timeout = Integer.parseInt(timeoutS);
+                }
+                String intervalS = commandLine.getOptionValue(INTERVAL_OPTION);
+                if (intervalS != null) {
+                    interval = Integer.parseInt(intervalS);
+                }
+                boolean verbose = commandLine.hasOption(VERBOSE_OPTION);
+                wc.pollJob(jobId, timeout, interval, verbose);
+            }
+            else if (options.contains(SLA_ENABLE_ALERT)) {
+                slaAlertCommand(commandLine.getOptionValue(SLA_ENABLE_ALERT), wc, commandLine, options);
+            }
+            else if (options.contains(SLA_DISABLE_ALERT)) {
+                slaAlertCommand(commandLine.getOptionValue(SLA_DISABLE_ALERT), wc, commandLine, options);
+            }
+            else if (options.contains(SLA_CHANGE)) {
+                slaAlertCommand(commandLine.getOptionValue(SLA_CHANGE), wc, commandLine, options);
             }
         }
         catch (OozieClientException ex) {
@@ -1419,6 +1543,11 @@ public class OozieCLI {
     private void jobsCommand(CommandLine commandLine) throws IOException, OozieCLIException {
         XOozieClient wc = createXOozieClient(commandLine);
 
+        List<String> options = new ArrayList<String>();
+        for (Option option : commandLine.getOptions()) {
+            options.add(option.getOpt());
+        }
+
         String filter = commandLine.getOptionValue(FILTER_OPTION);
         String s = commandLine.getOptionValue(OFFSET_OPTION);
         int start = Integer.parseInt((s != null) ? s : "0");
@@ -1430,7 +1559,16 @@ public class OozieCLI {
         String bulkFilterString = commandLine.getOptionValue(BULK_OPTION);
 
         try {
-            if (bulkFilterString != null) {
+            if (options.contains(KILL_OPTION)) {
+                printBulkModifiedJobs(wc.killJobs(filter, jobtype, start, len), timeZoneId, "killed");
+            }
+            else if (options.contains(SUSPEND_OPTION)) {
+                printBulkModifiedJobs(wc.suspendJobs(filter, jobtype, start, len), timeZoneId, "suspended");
+            }
+            else if (options.contains(RESUME_OPTION)) {
+                printBulkModifiedJobs(wc.resumeJobs(filter, jobtype, start, len), timeZoneId, "resumed");
+            }
+            else if (bulkFilterString != null) {
                 printBulkJobs(wc.getBulkInfo(bulkFilterString, start, len), timeZoneId, commandLine.hasOption(VERBOSE_OPTION));
             }
             else if (jobtype.toLowerCase().contains("wf")) {
@@ -1446,6 +1584,52 @@ public class OozieCLI {
         }
         catch (OozieClientException ex) {
             throw new OozieCLIException(ex.toString(), ex);
+        }
+    }
+
+    @VisibleForTesting
+    void printBulkModifiedJobs(JSONObject json, String timeZoneId, String action) throws IOException {
+        if (json.containsKey(JsonTags.WORKFLOWS_JOBS)) {
+            JSONArray workflows = (JSONArray) json.get(JsonTags.WORKFLOWS_JOBS);
+            if (workflows == null) {
+                workflows = new JSONArray();
+            }
+            List<WorkflowJob> wfs = JsonToBean.createWorkflowJobList(workflows);
+            if (wfs.isEmpty()) {
+                System.out.println("bulk modify command did not modify any jobs");
+            }
+            else {
+                System.out.println("the following jobs have been " + action);
+                printJobs(wfs, timeZoneId, false);
+            }
+        }
+        else if (json.containsKey(JsonTags.COORDINATOR_JOBS)) {
+            JSONArray coordinators = (JSONArray) json.get(JsonTags.COORDINATOR_JOBS);
+            if (coordinators == null) {
+                coordinators = new JSONArray();
+            }
+            List<CoordinatorJob> coords = JsonToBean.createCoordinatorJobList(coordinators);
+            if (coords.isEmpty()) {
+                System.out.println("bulk modify command did not modify any jobs");
+            }
+            else {
+                System.out.println("the following jobs have been " + action);
+                printCoordJobs(coords, timeZoneId, false);
+            }
+        }
+        else {
+            JSONArray bundles = (JSONArray) json.get(JsonTags.BUNDLE_JOBS);
+            if (bundles == null) {
+                bundles = new JSONArray();
+            }
+            List<BundleJob> bundleJobs = JsonToBean.createBundleJobList(bundles);
+            if (bundleJobs.isEmpty()) {
+                System.out.println("bulk modify command did not modify any jobs");
+            }
+            else {
+                System.out.println("the following jobs have been " + action);
+                printBundleJobs(bundleJobs, timeZoneId, false);
+            }
         }
     }
 
@@ -1658,9 +1842,38 @@ public class OozieCLI {
                 }
             }
             else if (options.contains(AVAILABLE_SERVERS_OPTION)) {
-                Map<String, String> availableOozieServers = wc.getAvailableOozieServers();
-                for (String key : availableOozieServers.keySet()) {
-                    System.out.println(key + " : " + availableOozieServers.get(key));
+                Map<String, String> availableOozieServers = new TreeMap<String, String>(wc.getAvailableOozieServers());
+                for (Map.Entry<String, String> ent : availableOozieServers.entrySet()) {
+                    System.out.println(ent.getKey() + " : " + ent.getValue());
+                }
+            } else if (options.contains(SERVER_CONFIGURATION_OPTION)) {
+                Map<String, String> serverConfig = new TreeMap<String, String>(wc.getServerConfiguration());
+                for (Map.Entry<String, String> ent : serverConfig.entrySet()) {
+                    System.out.println(ent.getKey() + " : " + ent.getValue());
+                }
+            } else if (options.contains(SERVER_OS_ENV_OPTION)) {
+                Map<String, String> osEnv = new TreeMap<String, String>(wc.getOSEnv());
+                for (Map.Entry<String, String> ent : osEnv.entrySet()) {
+                    System.out.println(ent.getKey() + " : " + ent.getValue());
+                }
+            } else if (options.contains(SERVER_JAVA_SYSTEM_PROPERTIES_OPTION)) {
+                Map<String, String> javaSysProps = new TreeMap<String, String>(wc.getJavaSystemProperties());
+                for (Map.Entry<String, String> ent : javaSysProps.entrySet()) {
+                    System.out.println(ent.getKey() + " : " + ent.getValue());
+                }
+            } else if (options.contains(METRICS_OPTION)) {
+                OozieClient.Metrics metrics = wc.getMetrics();
+                if (metrics == null) {
+                    System.out.println("Metrics are unavailable.  Try Instrumentation (-" + INSTRUMENTATION_OPTION + ") instead");
+                } else {
+                    printMetrics(metrics);
+                }
+            } else if (options.contains(INSTRUMENTATION_OPTION)) {
+                OozieClient.Instrumentation instrumentation = wc.getInstrumentation();
+                if (instrumentation == null) {
+                    System.out.println("Instrumentation is unavailable.  Try Metrics (-" + METRICS_OPTION + ") instead");
+                } else {
+                    printInstrumentation(instrumentation);
                 }
             }
         }
@@ -1838,6 +2051,10 @@ public class OozieCLI {
                         "ssh-action-0.1.xsd")));
                 sources.add(new StreamSource(Thread.currentThread().getContextClassLoader().getResourceAsStream(
                         "ssh-action-0.2.xsd")));
+                sources.add(new StreamSource(Thread.currentThread().getContextClassLoader().getResourceAsStream(
+                        "hive2-action-0.1.xsd")));
+                sources.add(new StreamSource(Thread.currentThread().getContextClassLoader()
+                        .getResourceAsStream("spark-action-0.1.xsd")));
                 SchemaFactory factory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
                 Schema schema = factory.newSchema(sources.toArray(new StreamSource[sources.size()]));
                 Validator validator = schema.newValidator();
@@ -1993,4 +2210,93 @@ public class OozieCLI {
         return allDeps.toString();
     }
 
+    private void slaAlertCommand(String jobIds, OozieClient wc, CommandLine commandLine, List<String> options)
+            throws OozieCLIException, OozieClientException {
+        String actions = null, coordinators = null, dates = null;
+
+        if (options.contains(ACTION_OPTION)) {
+            actions = commandLine.getOptionValue(ACTION_OPTION);
+        }
+
+        if (options.contains(DATE_OPTION)) {
+            dates = commandLine.getOptionValue(DATE_OPTION);
+        }
+
+        if (options.contains(COORD_OPTION)) {
+            coordinators = commandLine.getOptionValue(COORD_OPTION);
+            if (coordinators == null) {
+                throw new OozieCLIException("No value specified for -coordinator option");
+            }
+        }
+
+        if (options.contains(SLA_ENABLE_ALERT)) {
+            wc.slaEnableAlert(jobIds, actions, dates, coordinators);
+        }
+        else if (options.contains(SLA_DISABLE_ALERT)) {
+            wc.slaDisableAlert(jobIds, actions, dates, coordinators);
+        }
+        else if (options.contains(SLA_CHANGE)) {
+            String newSlaParams = commandLine.getOptionValue(CHANGE_VALUE_OPTION);
+            wc.slaChange(jobIds, actions, dates, coordinators, newSlaParams);
+        }
+    }
+
+    private void printMetrics(OozieClient.Metrics metrics) {
+        System.out.println("COUNTERS");
+        System.out.println("--------");
+        Map<String, Long> counters = new TreeMap<String, Long>(metrics.getCounters());
+        for (Map.Entry<String, Long> ent : counters.entrySet()) {
+            System.out.println(ent.getKey() + " : " + ent.getValue());
+        }
+        System.out.println("\nGAUGES");
+        System.out.println("------");
+        Map<String, Object> gauges = new TreeMap<String, Object>(metrics.getGauges());
+        for (Map.Entry<String, Object> ent : gauges.entrySet()) {
+            System.out.println(ent.getKey() + " : " + ent.getValue());
+        }
+        System.out.println("\nTIMERS");
+        System.out.println("------");
+        Map<String, OozieClient.Metrics.Timer> timers = new TreeMap<String, OozieClient.Metrics.Timer>(metrics.getTimers());
+        for (Map.Entry<String, OozieClient.Metrics.Timer> ent : timers.entrySet()) {
+            System.out.println(ent.getKey());
+            System.out.println(ent.getValue());
+        }
+        System.out.println("\nHISTOGRAMS");
+        System.out.println("----------");
+        Map<String, OozieClient.Metrics.Histogram> histograms =
+                new TreeMap<String, OozieClient.Metrics.Histogram>(metrics.getHistograms());
+        for (Map.Entry<String, OozieClient.Metrics.Histogram> ent : histograms.entrySet()) {
+            System.out.println(ent.getKey());
+            System.out.println(ent.getValue());
+        }
+    }
+
+    private void printInstrumentation(OozieClient.Instrumentation instrumentation) {
+        System.out.println("COUNTERS");
+        System.out.println("--------");
+        Map<String, Long> counters = new TreeMap<String, Long>(instrumentation.getCounters());
+        for (Map.Entry<String, Long> ent : counters.entrySet()) {
+            System.out.println(ent.getKey() + " : " + ent.getValue());
+        }
+        System.out.println("\nVARIABLES");
+        System.out.println("---------");
+        Map<String, Object> variables = new TreeMap<String, Object>(instrumentation.getVariables());
+        for (Map.Entry<String, Object> ent : variables.entrySet()) {
+            System.out.println(ent.getKey() + " : " + ent.getValue());
+        }
+        System.out.println("\nSAMPLERS");
+        System.out.println("---------");
+        Map<String, Double> samplers = new TreeMap<String, Double>(instrumentation.getSamplers());
+        for (Map.Entry<String, Double> ent : samplers.entrySet()) {
+            System.out.println(ent.getKey() + " : " + ent.getValue());
+        }
+        System.out.println("\nTIMERS");
+        System.out.println("---------");
+        Map<String, OozieClient.Instrumentation.Timer> timers =
+                new TreeMap<String, OozieClient.Instrumentation.Timer>(instrumentation.getTimers());
+        for (Map.Entry<String, OozieClient.Instrumentation.Timer> ent : timers.entrySet()) {
+            System.out.println(ent.getKey());
+            System.out.println(ent.getValue());
+        }
+    }
 }

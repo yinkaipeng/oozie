@@ -6,15 +6,16 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.service;
 
 import org.apache.oozie.util.Instrumentation;
@@ -50,7 +51,7 @@ public class InstrumentationService implements Service {
     @Override
     public void init(Services services) throws ServiceException {
         final Instrumentation instr = new Instrumentation();
-        int interval = services.getConf().getInt(CONF_LOGGING_INTERVAL, 60);
+        int interval = ConfigurationService.getInt(services.getConf(), CONF_LOGGING_INTERVAL);
         initLogging(services, instr, interval);
         instr.addVariable(JVM_INSTRUMENTATION_GROUP, "free.memory", new Instrumentation.Variable<Long>() {
             @Override
@@ -105,12 +106,7 @@ public class InstrumentationService implements Service {
         String E = System.getProperty("line.separator");
         StringBuilder sb = new StringBuilder();
         for (Map.Entry<String, String> entry : map.entrySet()) {
-            if (entry.getKey().equals("oozie.https.keystore.pass")) {
-                sb.append("    ").append(entry.getKey()).append(" = ").append("*****").append(E);
-            }
-            else {
-                sb.append("    ").append(entry.getKey()).append(" = ").append(entry.getValue()).append(E);
-            }
+            sb.append("    ").append(entry.getKey()).append(" = ").append(entry.getValue()).append(E);
         }
         return sb.toString();
     }

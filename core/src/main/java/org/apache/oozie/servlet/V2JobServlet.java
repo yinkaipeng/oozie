@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.servlet;
 
 import java.io.IOException;
@@ -26,6 +27,9 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.oozie.BaseEngine;
+import org.apache.oozie.BaseEngineException;
+import org.apache.oozie.BundleEngine;
 import org.apache.oozie.CoordinatorActionBean;
 import org.apache.oozie.CoordinatorActionInfo;
 import org.apache.oozie.CoordinatorEngine;
@@ -38,6 +42,7 @@ import org.apache.oozie.client.rest.JsonBean;
 import org.apache.oozie.client.rest.JsonTags;
 import org.apache.oozie.client.rest.RestConstants;
 import org.apache.oozie.command.CommandException;
+import org.apache.oozie.service.BundleEngineService;
 import org.apache.oozie.service.CoordinatorEngineService;
 import org.apache.oozie.service.DagEngineService;
 import org.apache.oozie.service.Services;
@@ -144,6 +149,53 @@ public class V2JobServlet extends V1JobServlet {
 
     }
 
+    @Override
+    protected void slaEnableAlert(HttpServletRequest request, HttpServletResponse response) throws XServletException,
+            IOException {
+        String jobId = getResourceName(request);
+        String actions = request.getParameter(RestConstants.JOB_COORD_SCOPE_ACTION_LIST);
+        String dates = request.getParameter(RestConstants.JOB_COORD_SCOPE_DATE);
+        String childIds = request.getParameter(RestConstants.COORDINATORS_PARAM);
+        try {
+            getBaseEngine(jobId, getUser(request)).enableSLAAlert(jobId, actions, dates, childIds);
+        }
+        catch (BaseEngineException e) {
+            throw new XServletException(HttpServletResponse.SC_BAD_REQUEST, e);
+        }
+
+    }
+
+    @Override
+    protected void slaDisableAlert(HttpServletRequest request, HttpServletResponse response) throws XServletException,
+            IOException {
+        String jobId = getResourceName(request);
+        String actions = request.getParameter(RestConstants.JOB_COORD_SCOPE_ACTION_LIST);
+        String dates = request.getParameter(RestConstants.JOB_COORD_SCOPE_DATE);
+        String childIds = request.getParameter(RestConstants.COORDINATORS_PARAM);
+        try {
+            getBaseEngine(jobId, getUser(request)).disableSLAAlert(jobId, actions, dates, childIds);
+        }
+        catch (BaseEngineException e) {
+            throw new XServletException(HttpServletResponse.SC_BAD_REQUEST, e);
+        }
+    }
+
+    @Override
+    protected void slaChange(HttpServletRequest request, HttpServletResponse response) throws XServletException, IOException {
+        String jobId = getResourceName(request);
+        String actions = request.getParameter(RestConstants.JOB_COORD_SCOPE_ACTION_LIST);
+        String dates = request.getParameter(RestConstants.JOB_COORD_SCOPE_DATE);
+        String newParams = request.getParameter(RestConstants.JOB_CHANGE_VALUE);
+        String coords = request.getParameter(RestConstants.COORDINATORS_PARAM);
+
+        try {
+            getBaseEngine(jobId, getUser(request)).changeSLA(jobId, actions, dates, coords, newParams);
+        }
+        catch (BaseEngineException e) {
+            throw new XServletException(HttpServletResponse.SC_BAD_REQUEST, e);
+        }
+    }
+
     /**
      * Ignore a coordinator job/action
      *
@@ -186,4 +238,87 @@ public class V2JobServlet extends V1JobServlet {
             throw new XServletException(HttpServletResponse.SC_BAD_REQUEST, ex);
         }
     }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected String getJobStatus(HttpServletRequest request, HttpServletResponse response) throws XServletException,
+            IOException {
+        String status;
+        String jobId = getResourceName(request);
+        try {
+            if (jobId.endsWith("-B") || jobId.endsWith("-W")) {
+                status = getBaseEngine(jobId, getUser(request)).getJobStatus(jobId);
+            }
+            else if (jobId.contains("C@")) {
+                CoordinatorEngine engine = Services.get().get(CoordinatorEngineService.class)
+                        .getCoordinatorEngine(getUser(request));
+                status = engine.getActionStatus(jobId);
+            }
+            else {
+                status = getBaseEngine(jobId, getUser(request)).getJobStatus(jobId);
+            }
+
+        } catch (BaseEngineException ex) {
+            throw new XServletException(HttpServletResponse.SC_BAD_REQUEST, ex);
+        }
+        return status;
+    }
+    @SuppressWarnings("unchecked")
+    @Override
+    protected void streamJobErrorLog(HttpServletRequest request, HttpServletResponse response) throws XServletException,
+            IOException {
+
+        String jobId = getResourceName(request);
+        try {
+            getBaseEngine(jobId, getUser(request)).streamErrorLog(jobId, response.getWriter(), request.getParameterMap());
+        }
+        catch (DagEngineException ex) {
+            throw new XServletException(HttpServletResponse.SC_BAD_REQUEST, ex);
+        }
+        catch (BaseEngineException e) {
+            throw new XServletException(HttpServletResponse.SC_BAD_REQUEST, e);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    protected void streamJobAuditLog(HttpServletRequest request, HttpServletResponse response) throws XServletException,
+            IOException {
+
+        String jobId = getResourceName(request);
+        try {
+            getBaseEngine(jobId, getUser(request)).streamAuditLog(jobId, response.getWriter(), request.getParameterMap());
+        }
+        catch (DagEngineException ex) {
+            throw new XServletException(HttpServletResponse.SC_BAD_REQUEST, ex);
+        }
+        catch (BaseEngineException e) {
+            throw new XServletException(HttpServletResponse.SC_BAD_REQUEST, e);
+        }
+
+    }
+
+
+    /**
+     * Gets the base engine based on jobId.
+     *
+     * @param jobId the jobId
+     * @param user the user
+     * @return the baseEngine
+     */
+    final public BaseEngine getBaseEngine(String jobId, String user) {
+        if (jobId.endsWith("-W")) {
+            return Services.get().get(DagEngineService.class).getDagEngine(user);
+        }
+        else if (jobId.endsWith("-B")) {
+            return Services.get().get(BundleEngineService.class).getBundleEngine(user);
+        }
+        else if (jobId.contains("-C")) {
+            return Services.get().get(CoordinatorEngineService.class).getCoordinatorEngine(user);
+        }
+        else {
+            throw new RuntimeException("Unknown job Type");
+        }
+    }
+
 }

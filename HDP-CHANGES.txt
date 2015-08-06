@@ -1,0 +1,4 @@
+Patches in hdp 2.3, but not in apache oozie-4.2.0
+OOZIE-2291 Hive2 workflow.xml.security should have "cred" in action tag instead of "hive2" tag
+OOZIE-2289 hive-jdbc dependency in core/pom.xml should be compile
+OOZIE-2290 Oozie db version update should happen after all DDL tweak

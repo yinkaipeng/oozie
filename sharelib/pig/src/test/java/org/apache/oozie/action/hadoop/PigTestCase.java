@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.action.hadoop;
 
 import java.io.File;
@@ -108,7 +109,7 @@ public abstract class PigTestCase extends XFsTestCase implements Callable<Void> 
             //Ignore exception
         }
         String hadoopIdsFile = System.getProperty("oozie.action.externalChildIDs");
-//        assertFalse(new File(hadoopIdsFile).exists());
+        assertTrue(new File(hadoopIdsFile).exists());
 
     }
 

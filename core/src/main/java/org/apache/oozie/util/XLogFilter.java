@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 
+
 package org.apache.oozie.util;
 
 import java.io.IOException;
@@ -28,8 +29,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.oozie.service.Services;
-
+import org.apache.oozie.service.ConfigurationService;
 import com.google.common.annotations.VisibleForTesting;
 
 /**
@@ -190,7 +190,6 @@ public class XLogFilter {
         parameters.clear();
     }
 
-    @VisibleForTesting
     public final Map<String, String> getFilterParams() {
         return filterParams;
     }
@@ -241,9 +240,11 @@ public class XLogFilter {
         this.isActionList = isActionList;
     }
 
+
     public static Pattern getSplitterPattern() {
         return SPLITTER_PATTERN;
     }
+
     private void calculateScanDate(Date jobStartTime, Date jobEndTime) throws IOException {
 
         if (userLogFilter.getStartDate() != null) {
@@ -309,7 +310,7 @@ public class XLogFilter {
         }
         long diffHours = (endDate.getTime() - startDate.getTime()) / (60 * 60 * 1000);
         if (isActionList) {
-            int actionLogDuration = Services.get().getConf().getInt(MAX_ACTIONLIST_SCAN_DURATION, -1);
+            int actionLogDuration = ConfigurationService.getInt(MAX_ACTIONLIST_SCAN_DURATION);
             if (actionLogDuration == -1) {
                 return;
             }
@@ -321,7 +322,7 @@ public class XLogFilter {
             }
         }
         else {
-            int logDuration = Services.get().getConf().getInt(MAX_SCAN_DURATION, -1);
+            int logDuration = ConfigurationService.getInt(MAX_SCAN_DURATION);
             if (logDuration == -1) {
                 return;
             }
@@ -344,6 +345,10 @@ public class XLogFilter {
      */
     public Date adjustOffset(Date date, int offset) throws IOException {
         return org.apache.commons.lang.time.DateUtils.addMinutes(date, offset);
+    }
+
+    public void setFilterPattern(Pattern filterPattern) {
+        this.filterPattern = filterPattern;
     }
 
 }

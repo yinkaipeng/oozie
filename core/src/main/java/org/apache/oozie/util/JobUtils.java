@@ -6,15 +6,16 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.util;
 
 import java.io.IOException;
@@ -151,7 +152,7 @@ public class JobUtils {
         fs = file.getFileSystem(defaultConf);
       }
       // Hadoop 0.20/1.x.
-      if (defaultConf.get("yarn.resourcemanager.address") == null) {
+      if (defaultConf.get("yarn.resourcemanager.webapp.address") == null) {
           // Duplicate hadoop 1.x code to workaround MAPREDUCE-2361 in Hadoop 0.20
           // Refer OOZIE-1806.
           String filepath = file.toUri().getPath();

@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.service;
 
 import java.util.ArrayList;
@@ -25,6 +26,7 @@ import java.util.Map;
 import org.apache.oozie.client.rest.RestConstants;
 import org.apache.oozie.test.XTestCase;
 import org.apache.oozie.util.ConfigUtils;
+import org.apache.oozie.util.Instrumentation;
 
 public class TestJobsConcurrencyService extends XTestCase {
 
@@ -111,4 +113,16 @@ public class TestJobsConcurrencyService extends XTestCase {
         }
     }
 
+    public void testInstrumentation() throws Exception {
+        JobsConcurrencyService jcs = new JobsConcurrencyService();
+        Instrumentation instr = new Instrumentation();
+        try {
+            jcs.init(Services.get());
+            jcs.instrument(instr);
+            String servers = ConfigurationService.get("oozie.instance.id") + "=" + ConfigUtils.getOozieEffectiveUrl();
+            assertEquals(servers, instr.getVariables().get("oozie").get("servers").getValue());
+        } finally {
+            jcs.destroy();
+        }
+    }
 }

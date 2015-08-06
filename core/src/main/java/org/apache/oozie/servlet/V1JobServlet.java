@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.servlet;
 
 import java.io.IOException;
@@ -32,6 +33,7 @@ import org.apache.oozie.client.rest.*;
 import org.apache.oozie.command.CommandException;
 import org.apache.oozie.coord.CoordUtils;
 import org.apache.oozie.service.BundleEngineService;
+import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.CoordinatorEngineService;
 import org.apache.oozie.service.DagEngineService;
 import org.apache.oozie.service.Services;
@@ -661,6 +663,7 @@ public class V1JobServlet extends BaseJobServlet {
         String scope = request.getParameter(RestConstants.JOB_COORD_SCOPE_PARAM);
         String refresh = request.getParameter(RestConstants.JOB_COORD_RERUN_REFRESH_PARAM);
         String noCleanup = request.getParameter(RestConstants.JOB_COORD_RERUN_NOCLEANUP_PARAM);
+        String failed = request.getParameter(RestConstants.JOB_COORD_RERUN_FAILED_PARAM);
 
         XLog.getLog(getClass()).info(
                 "Rerun coordinator for jobId=" + jobId + ", rerunType=" + rerunType + ",scope=" + scope + ",refresh="
@@ -672,7 +675,7 @@ public class V1JobServlet extends BaseJobServlet {
                 throw new CommandException(ErrorCode.E1018, "date or action expected.");
             }
             CoordinatorActionInfo coordInfo = coordEngine.reRun(jobId, rerunType, scope, Boolean.valueOf(refresh),
-                    Boolean.valueOf(noCleanup));
+                    Boolean.valueOf(noCleanup), Boolean.valueOf(failed), conf);
             List<CoordinatorActionBean> coordActions;
             if (coordInfo != null) {
                 coordActions = coordInfo.getCoordActions();
@@ -823,7 +826,7 @@ public class V1JobServlet extends BaseJobServlet {
         int offset = (startStr != null) ? Integer.parseInt(startStr) : 1;
         offset = (offset < 1) ? 1 : offset;
         // Get default number of coordinator actions to be retrieved
-        int defaultLen = Services.get().getConf().getInt(COORD_ACTIONS_DEFAULT_LENGTH, 1000);
+        int defaultLen = ConfigurationService.getInt(COORD_ACTIONS_DEFAULT_LENGTH);
         int len = (lenStr != null) ? Integer.parseInt(lenStr) : 0;
         len = getCoordinatorJobLength(defaultLen, len);
         try {
@@ -1086,6 +1089,38 @@ public class V1JobServlet extends BaseJobServlet {
     @Override
     protected JSONObject updateJob(HttpServletRequest request, HttpServletResponse response, Configuration conf)
             throws XServletException, IOException {
+        throw new XServletException(HttpServletResponse.SC_BAD_REQUEST, ErrorCode.E0302, "Not supported in v1");
+    }
+
+    @Override
+    protected String getJobStatus(HttpServletRequest request, HttpServletResponse response) throws XServletException,
+            IOException {
+        throw new XServletException(HttpServletResponse.SC_BAD_REQUEST, ErrorCode.E0302, "Not supported in v1");
+    }
+
+    @Override
+    protected void streamJobErrorLog(HttpServletRequest request, HttpServletResponse response) throws XServletException,
+            IOException {
+        throw new XServletException(HttpServletResponse.SC_BAD_REQUEST, ErrorCode.E0302, "Not supported in v1");
+    }
+    @Override
+    protected void streamJobAuditLog(HttpServletRequest request, HttpServletResponse response) throws XServletException,
+            IOException {
+        throw new XServletException(HttpServletResponse.SC_BAD_REQUEST, ErrorCode.E0302, "Not supported in v1");
+    }
+    @Override
+    void slaEnableAlert(HttpServletRequest request, HttpServletResponse response) throws XServletException, IOException {
+        throw new XServletException(HttpServletResponse.SC_BAD_REQUEST, ErrorCode.E0302, "Not supported in v1");
+    }
+
+    @Override
+    void slaDisableAlert(HttpServletRequest request, HttpServletResponse response) throws XServletException,
+            IOException {
+        throw new XServletException(HttpServletResponse.SC_BAD_REQUEST, ErrorCode.E0302, "Not supported in v1");
+    }
+
+    @Override
+    void slaChange(HttpServletRequest request, HttpServletResponse response) throws XServletException, IOException {
         throw new XServletException(HttpServletResponse.SC_BAD_REQUEST, ErrorCode.E0302, "Not supported in v1");
     }
 }

@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.service;
 
 import org.apache.hadoop.io.Text;
@@ -43,8 +44,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.URI;
+import java.net.InetAddress;
 import java.net.URISyntaxException;
 import java.security.PrivilegedExceptionAction;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -65,6 +69,7 @@ public class HadoopAccessorService implements Service {
     public static final String NAME_NODE_WHITELIST = CONF_PREFIX + "nameNode.whitelist";
     public static final String HADOOP_CONFS = CONF_PREFIX + "hadoop.configurations";
     public static final String ACTION_CONFS = CONF_PREFIX + "action.configurations";
+    public static final String ACTION_CONFS_LOAD_DEFAULT_RESOURCES = ACTION_CONFS + ".load.default.resources";
     public static final String KERBEROS_AUTH_ENABLED = CONF_PREFIX + "kerberos.enabled";
     public static final String KERBEROS_KEYTAB = CONF_PREFIX + "keytab.file";
     public static final String KERBEROS_PRINCIPAL = CONF_PREFIX + "kerberos.principal";
@@ -80,6 +85,8 @@ public class HadoopAccessorService implements Service {
     protected static final String HADOOP_YARN_RM = "yarn.resourcemanager.address";
     private static final Map<String, Text> mrTokenRenewers = new HashMap<String, Text>();
 
+    private static final String DEFAULT_ACTIONNAME = "default";
+
     private Set<String> jobTrackerWhitelist = new HashSet<String>();
     private Set<String> nameNodeWhitelist = new HashSet<String>();
     private Map<String, Configuration> hadoopConfigs = new HashMap<String, Configuration>();
@@ -92,7 +99,6 @@ public class HadoopAccessorService implements Service {
      * Supported filesystem schemes for namespace federation
      */
     public static final String SUPPORTED_FILESYSTEMS = CONF_PREFIX + "supported.filesystems";
-    public static final String[] DEFAULT_SUPPORTED_SCHEMES = new String[]{"hdfs","hftp","webhdfs"};
     private Set<String> supportedSchemes;
     private boolean allSchemesSupported;
 
@@ -103,29 +109,29 @@ public class HadoopAccessorService implements Service {
 
     //for testing purposes, see XFsTestCase
     public void init(Configuration conf) throws ServiceException {
-        for (String name : conf.getStringCollection(JOB_TRACKER_WHITELIST)) {
+        for (String name : ConfigurationService.getStrings(conf, JOB_TRACKER_WHITELIST)) {
             String tmp = name.toLowerCase().trim();
             if (tmp.length() == 0) {
                 continue;
             }
             jobTrackerWhitelist.add(tmp);
         }
-        XLog.getLog(getClass()).info(
-                "JOB_TRACKER_WHITELIST :" + conf.getStringCollection(JOB_TRACKER_WHITELIST)
+        LOG.info(
+                "JOB_TRACKER_WHITELIST :" + jobTrackerWhitelist.toString()
                         + ", Total entries :" + jobTrackerWhitelist.size());
-        for (String name : conf.getStringCollection(NAME_NODE_WHITELIST)) {
+        for (String name : ConfigurationService.getStrings(conf, NAME_NODE_WHITELIST)) {
             String tmp = name.toLowerCase().trim();
             if (tmp.length() == 0) {
                 continue;
             }
             nameNodeWhitelist.add(tmp);
         }
-        XLog.getLog(getClass()).info(
-                "NAME_NODE_WHITELIST :" + conf.getStringCollection(NAME_NODE_WHITELIST)
+        LOG.info(
+                "NAME_NODE_WHITELIST :" + nameNodeWhitelist.toString()
                         + ", Total entries :" + nameNodeWhitelist.size());
 
-        boolean kerberosAuthOn = conf.getBoolean(KERBEROS_AUTH_ENABLED, true);
-        XLog.getLog(getClass()).info("Oozie Kerberos Authentication [{0}]", (kerberosAuthOn) ? "enabled" : "disabled");
+        boolean kerberosAuthOn = ConfigurationService.getBoolean(conf, KERBEROS_AUTH_ENABLED);
+        LOG.info("Oozie Kerberos Authentication [{0}]", (kerberosAuthOn) ? "enabled" : "disabled");
         if (kerberosAuthOn) {
             kerberosInit(conf);
         }
@@ -143,7 +149,7 @@ public class HadoopAccessorService implements Service {
         preLoadActionConfigs(conf);
 
         supportedSchemes = new HashSet<String>();
-        String[] schemesFromConf = conf.getStrings(SUPPORTED_FILESYSTEMS, DEFAULT_SUPPORTED_SCHEMES);
+        String[] schemesFromConf = ConfigurationService.getStrings(conf, SUPPORTED_FILESYSTEMS);
         if(schemesFromConf != null) {
             for (String scheme: schemesFromConf) {
                 scheme = scheme.trim();
@@ -162,8 +168,7 @@ public class HadoopAccessorService implements Service {
 
     private void kerberosInit(Configuration serviceConf) throws ServiceException {
             try {
-                String keytabFile = serviceConf.get(KERBEROS_KEYTAB,
-                                                    System.getProperty("user.home") + "/oozie.keytab").trim();
+                String keytabFile = ConfigurationService.get(serviceConf, KERBEROS_KEYTAB).trim();
                 if (keytabFile.length() == 0) {
                     throw new ServiceException(ErrorCode.E0026, KERBEROS_KEYTAB);
                 }
@@ -177,8 +182,8 @@ public class HadoopAccessorService implements Service {
                 conf.set("hadoop.security.authentication", "kerberos");
                 UserGroupInformation.setConfiguration(conf);
                 UserGroupInformation.loginUserFromKeytab(principal, keytabFile);
-                XLog.getLog(getClass()).info("Got Kerberos ticket, keytab [{0}], Oozie principal principal [{1}]",
-                                             keytabFile, principal);
+                LOG.info("Got Kerberos ticket, keytab [{0}], Oozie principal principal [{1}]",
+                        keytabFile, principal);
             }
             catch (ServiceException ex) {
                 throw ex;
@@ -239,7 +244,8 @@ public class HadoopAccessorService implements Service {
 
     private void loadHadoopConfigs(Configuration serviceConf) throws ServiceException {
         try {
-            Map<String, File> map = parseConfigDirs(serviceConf.getStrings(HADOOP_CONFS, "*=hadoop-conf"), "hadoop");
+            Map<String, File> map = parseConfigDirs(ConfigurationService.getStrings(serviceConf, HADOOP_CONFS),
+                    "hadoop");
             for (Map.Entry<String, File> entry : map.entrySet()) {
                 hadoopConfigs.put(entry.getKey(), loadHadoopConf(entry.getValue()));
             }
@@ -254,7 +260,7 @@ public class HadoopAccessorService implements Service {
 
     private void preLoadActionConfigs(Configuration serviceConf) throws ServiceException {
         try {
-            actionConfigDirs = parseConfigDirs(serviceConf.getStrings(ACTION_CONFS, "*=hadoop-conf"), "action");
+            actionConfigDirs = parseConfigDirs(ConfigurationService.getStrings(serviceConf, ACTION_CONFS), "action");
             for (String hostport : actionConfigDirs.keySet()) {
                 actionConfigs.put(hostport, new ConcurrentHashMap<String, XConfiguration>());
             }
@@ -299,23 +305,12 @@ public class HadoopAccessorService implements Service {
         File dir = actionConfigDirs.get(hostPort);
         XConfiguration actionConf = new XConfiguration();
         if (dir != null) {
-            File actionConfFile = new File(dir, action + ".xml");
-            if (actionConfFile.exists()) {
-                try {
-                    actionConf = new XConfiguration(new FileInputStream(actionConfFile));
-                }
-                catch (IOException ex) {
-                    XLog.getLog(getClass()).warn("Could not read file [{0}] for action [{1}] configuration for hostPort [{2}]",
-                                                 actionConfFile.getAbsolutePath(), action, hostPort);
-                }
-            }
-
             // See if a dir with the action name exists.   If so, load all the xml files in the dir
             File actionConfDir = new File(dir, action);
 
             if (actionConfDir.exists() && actionConfDir.isDirectory()) {
-                XLog.getLog(getClass()).info("Processing configuration files under [{0}]"
-                        + " for action [{1}] and hostPort [{2}]",
+                LOG.info("Processing configuration files under [{0}]"
+                                + " for action [{1}] and hostPort [{2}]",
                         actionConfDir.getAbsolutePath(), action, hostPort);
                 File[] xmlFiles = actionConfDir.listFiles(
                         new FilenameFilter() {
@@ -323,9 +318,15 @@ public class HadoopAccessorService implements Service {
                             public boolean accept(File dir, String name) {
                                 return name.endsWith(".xml");
                             }});
+                Arrays.sort(xmlFiles, new Comparator<File>() {
+                    @Override
+                    public int compare(File o1, File o2) {
+                        return o1.getName().compareTo(o2.getName());
+                    }
+                });
                 for (File f : xmlFiles) {
                     if (f.isFile() && f.canRead()) {
-                        XLog.getLog(getClass()).info("Processing configuration file [{0}]", f.getName());
+                        LOG.info("Processing configuration file [{0}]", f.getName());
                         FileInputStream fis = null;
                         try {
                             fis = new FileInputStream(f);
@@ -333,9 +334,9 @@ public class HadoopAccessorService implements Service {
                             XConfiguration.copy(conf, actionConf);
                         }
                         catch (IOException ex) {
-                            XLog.getLog(getClass())
+                            LOG
                                 .warn("Could not read file [{0}] for action [{1}] configuration and hostPort [{2}]",
-                                    f.getAbsolutePath(), action, hostPort);
+                                        f.getAbsolutePath(), action, hostPort);
                         }
                         finally {
                             if (fis != null) {
@@ -346,6 +347,21 @@ public class HadoopAccessorService implements Service {
                 }
             }
         }
+
+        // Now check for <action.xml>   This way <action.xml> has priority over <action-dir>/*.xml
+
+        File actionConfFile = new File(dir, action + ".xml");
+        if (actionConfFile.exists()) {
+            try {
+                XConfiguration conf = new XConfiguration(new FileInputStream(actionConfFile));
+                XConfiguration.copy(conf, actionConf);
+            }
+            catch (IOException ex) {
+                LOG.warn("Could not read file [{0}] for action [{1}] configuration for hostPort [{2}]",
+                        actionConfFile.getAbsolutePath(), action, hostPort);
+            }
+        }
+
         return actionConf;
     }
 
@@ -371,7 +387,17 @@ public class HadoopAccessorService implements Service {
             // doing lazy loading as we don't know upfront all actions, no need to synchronize
             // as it is a read operation an in case of a race condition loading and inserting
             // into the Map is idempotent and the action-config Map is a ConcurrentHashMap
-            actionConf = loadActionConf(hostPort, action);
+
+            // We first load a action of type default
+            // This allows for global configuration for all actions - for example
+            // all launchers in one queue and actions in another queue
+            // Are some configuration that applies to multiple actions - like
+            // config libraries path etc
+            actionConf = loadActionConf(hostPort, DEFAULT_ACTIONNAME);
+
+            // Action specific default configuration will override the default action config
+
+            XConfiguration.copy(loadActionConf(hostPort, action), actionConf);
             hostPortActionConfigs.put(action, actionConf);
         }
         return new XConfiguration(actionConf.toProperties());
@@ -394,11 +420,12 @@ public class HadoopAccessorService implements Service {
         Configuration hadoopConf = getConfiguration("*");
         String password = "";
         LOG.info("password key is " + propName);
+        LOG.info("credential provider path is " + hadoopConf.get("hadoop.security.credential.provider.path"));
         char[] passChar = null;
         try{
             passChar = hadoopConf.getPassword(propName);
             LOG.info("password is " + passChar);
-        }
+            }
         catch (IOException ex) {
 
         }
@@ -409,7 +436,6 @@ public class HadoopAccessorService implements Service {
             password = new String(passChar);
         }
 
-        LOG.info("final password is " + password);
         return password;
     }
 
@@ -518,7 +544,7 @@ public class HadoopAccessorService implements Service {
         if (uri != null) {
             uri = uri.toLowerCase().trim();
             if (whitelist.size() > 0 && !whitelist.contains(uri)) {
-                throw new HadoopAccessorException(error, uri);
+                throw new HadoopAccessorException(error, uri, whitelist);
             }
         }
     }
@@ -596,7 +622,7 @@ public class HadoopAccessorService implements Service {
         String uriScheme = uri.getScheme();
         if (uriScheme != null) {    // skip the check if no scheme is given
             if(!supportedSchemes.isEmpty()) {
-                XLog.getLog(this.getClass()).debug("Checking if filesystem " + uriScheme + " is supported");
+                LOG.debug("Checking if filesystem " + uriScheme + " is supported");
                 if (!supportedSchemes.contains(uriScheme)) {
                     throw new HadoopAccessorException(ErrorCode.E0904, uriScheme, uri.toString());
                 }

@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.command.coord;
 
 import java.io.IOException;
@@ -27,6 +28,7 @@ import java.util.Date;
 import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.security.AccessControlException;
 import org.apache.oozie.CoordinatorActionBean;
 import org.apache.oozie.CoordinatorJobBean;
 import org.apache.oozie.ErrorCode;
@@ -47,6 +49,7 @@ import org.apache.oozie.executor.jpa.CoordJobQueryExecutor;
 import org.apache.oozie.executor.jpa.CoordJobQueryExecutor.CoordJobQuery;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
 import org.apache.oozie.service.CallableQueueService;
+import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.EventHandlerService;
 import org.apache.oozie.service.JPAService;
 import org.apache.oozie.service.Service;
@@ -67,6 +70,8 @@ import org.jdom.Element;
  */
 public class CoordActionInputCheckXCommand extends CoordinatorXCommand<Void> {
 
+    public static final String COORD_EXECUTION_NONE_TOLERANCE = "oozie.coord.execution.none.tolerance";
+
     private final String actionId;
     /**
      * Property name of command re-queue interval for coordinator action input check in
@@ -74,11 +79,6 @@ public class CoordActionInputCheckXCommand extends CoordinatorXCommand<Void> {
      */
     public static final String CONF_COORD_INPUT_CHECK_REQUEUE_INTERVAL = Service.CONF_PREFIX
             + "coord.input.check.requeue.interval";
-    /**
-     * Default re-queue interval in ms. It is applied when no value defined in
-     * the oozie configuration.
-     */
-    private final int DEFAULT_COMMAND_REQUEUE_INTERVAL = 60000; // 1 minute
     private CoordinatorActionBean coordAction = null;
     private CoordinatorJobBean coordJob = null;
     private JPAService jpaService = null;
@@ -88,6 +88,11 @@ public class CoordActionInputCheckXCommand extends CoordinatorXCommand<Void> {
         super("coord_action_input", "coord_action_input", 1);
         this.actionId = ParamChecker.notEmpty(actionId, "actionId");
         this.jobId = jobId;
+    }
+
+    @Override
+    protected void setLogInfo() {
+        LogUtils.setLogInfo(actionId);
     }
 
     /**
@@ -172,7 +177,7 @@ public class CoordActionInputCheckXCommand extends CoordinatorXCommand<Void> {
                 // should be started; so set it to SKIPPED
                 Calendar cal = Calendar.getInstance(DateUtils.getTimeZone(coordJob.getTimeZone()));
                 cal.setTime(nominalTime);
-                cal.add(Calendar.MINUTE, Services.get().getConf().getInt("oozie.coord.execution.none.tolerance", 1));
+                cal.add(Calendar.MINUTE, ConfigurationService.getInt(COORD_EXECUTION_NONE_TOLERANCE));
                 nominalTime = cal.getTime();
                 if (now.after(nominalTime)) {
                     LOG.info("NONE execution: Preparing to skip action [{0}] because the current time [{1}] is later than "
@@ -247,6 +252,22 @@ public class CoordActionInputCheckXCommand extends CoordinatorXCommand<Void> {
                 updateCoordAction(coordAction, isChangeInDependency);
             }
         }
+        catch (AccessControlException e) {
+            LOG.error("Permission error in ActionInputCheck", e);
+            if (isTimeout(currentTime)) {
+                LOG.debug("Queueing timeout command");
+                Services.get().get(CallableQueueService.class)
+                        .queue(new CoordActionTimeOutXCommand(coordAction, coordJob.getUser(), coordJob.getAppName()));
+            }
+            else {
+                // Requeue InputCheckCommand for permission denied error with longer interval
+                Services.get()
+                        .get(CallableQueueService.class)
+                        .queue(new CoordActionInputCheckXCommand(coordAction.getId(), coordAction.getJobId()),
+                                2 * getCoordInputCheckRequeueInterval());
+            }
+            updateCoordAction(coordAction, isChangeInDependency);
+        }
         catch (Exception e) {
             if (isTimeout(currentTime)) {
                 LOG.debug("Queueing timeout command");
@@ -310,8 +331,7 @@ public class CoordActionInputCheckXCommand extends CoordinatorXCommand<Void> {
      * @return re-queue interval in ms
      */
     public long getCoordInputCheckRequeueInterval() {
-        long requeueInterval = Services.get().getConf().getLong(CONF_COORD_INPUT_CHECK_REQUEUE_INTERVAL,
-                DEFAULT_COMMAND_REQUEUE_INTERVAL);
+        long requeueInterval = ConfigurationService.getLong(CONF_COORD_INPUT_CHECK_REQUEUE_INTERVAL);
         return requeueInterval;
     }
 
@@ -561,8 +581,14 @@ public class CoordActionInputCheckXCommand extends CoordinatorXCommand<Void> {
         catch (URIHandlerException e) {
             coordAction.setErrorCode(e.getErrorCode().toString());
             coordAction.setErrorMessage(e.getMessage());
-            throw new IOException(e);
-        } catch (URISyntaxException e) {
+            if (e.getCause() != null && e.getCause() instanceof AccessControlException) {
+                throw (AccessControlException) e.getCause();
+            }
+            else {
+                throw new IOException(e);
+            }
+        }
+        catch (URISyntaxException e) {
             coordAction.setErrorCode(ErrorCode.E0906.toString());
             coordAction.setErrorMessage(e.getMessage());
             throw new IOException(e);
@@ -648,7 +674,7 @@ public class CoordActionInputCheckXCommand extends CoordinatorXCommand<Void> {
         catch (JPAExecutorException je) {
             throw new CommandException(je);
         }
-        LogUtils.setLogInfo(coordAction, logInfo);
+        LogUtils.setLogInfo(coordAction);
     }
 
     @Override

@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.action.hadoop;
 
 import org.apache.pig.Main;
@@ -94,11 +95,13 @@ public class PigMain extends LauncherMain {
         }
 
         actionConf.addResource(new Path("file:///", actionXml));
+        setYarnTag(actionConf);
 
         Properties pigProperties = new Properties();
         for (Map.Entry<String, String> entry : actionConf) {
             pigProperties.setProperty(entry.getKey(), entry.getValue());
         }
+
         // propagate delegation related props from launcher job to Pig job
         String jobTokenFile = getFilePathFromEnv("HADOOP_TOKEN_FILE_LOCATION");
         if (jobTokenFile != null) {
@@ -235,10 +238,7 @@ public class PigMain extends LauncherMain {
         // So retrieving hadoop Ids here
         File file = new File(System.getProperty(EXTERNAL_CHILD_IDS));
         if (!file.exists()) {
-            Properties props = getHadoopJobIds(logFile, PIG_JOB_IDS_PATTERNS);
-            writeExternalData(props.getProperty(HADOOP_JOBS), file);
-            System.out.println(" Hadoop Job IDs executed by Pig: " + props.getProperty(HADOOP_JOBS));
-            System.out.println();
+            writeExternalChildIDs(logFile, PIG_JOB_IDS_PATTERNS, "Pig");
         }
     }
 

@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.test;
 
 import java.io.File;
@@ -37,6 +38,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.persistence.EntityManager;
+import javax.persistence.FlushModeType;
 import javax.persistence.Query;
 
 import junit.framework.TestCase;
@@ -49,6 +51,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
+import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.MiniMRCluster;
 import org.apache.hadoop.security.authorize.ProxyUsers;
@@ -76,9 +79,9 @@ import org.apache.oozie.service.StoreService;
 import org.apache.oozie.service.URIHandlerService;
 import org.apache.oozie.sla.SLARegistrationBean;
 import org.apache.oozie.sla.SLASummaryBean;
-import org.apache.oozie.store.CoordinatorStore;
 import org.apache.oozie.store.StoreException;
 import org.apache.oozie.test.MiniHCatServer.RUNMODE;
+import org.apache.oozie.test.hive.MiniHS2;
 import org.apache.oozie.util.IOUtils;
 import org.apache.oozie.util.ParamChecker;
 import org.apache.oozie.util.XConfiguration;
@@ -110,7 +113,7 @@ public abstract class XTestCase extends TestCase {
     protected static File OOZIE_SRC_DIR = null;
     private static final String OOZIE_TEST_PROPERTIES = "oozie.test.properties";
 
-    public static float WAITFOR_RATIO = Float.parseFloat(System.getProperty("oozie.test.waitfor.ratio", "1"));
+    public static float WAITFOR_RATIO = Float.parseFloat(System.getProperty("oozie.test.waitfor.ratio", "10"));
     protected static final String localActiveMQBroker = "vm://localhost?broker.persistent=false";
     protected static final String ActiveMQConnFactory = "org.apache.activemq.jndi.ActiveMQInitialContextFactory";
 
@@ -262,7 +265,8 @@ public abstract class XTestCase extends TestCase {
     /**
      * Minimal set of require Services for cleaning up the database ({@link JPAService} and {@link StoreService})
      */
-    private static final String MINIMAL_SERVICES_FOR_DB_CLEANUP = JPAService.class.getName() + "," + StoreService.class.getName();
+    private static final String MINIMAL_SERVICES_FOR_DB_CLEANUP = HadoopAccessorService.class.getName() + "," +
+            JPAService.class.getName() + "," + StoreService.class.getName();
 
     /**
      * Initialize the test working directory. <p/> If it does not exist it creates it, if it already exists it deletes
@@ -411,6 +415,10 @@ public abstract class XTestCase extends TestCase {
      */
     @Override
     protected void tearDown() throws Exception {
+        if (hiveserver2 != null && hiveserver2.isStarted()) {
+            hiveserver2.stop();
+            hiveserver2 = null;
+        }
         resetSystemProperties();
         sysProps = null;
         testCaseDir = null;
@@ -787,9 +795,9 @@ public abstract class XTestCase extends TestCase {
     }
 
     private void cleanUpDBTablesInternal() throws StoreException {
-        CoordinatorStore store = new CoordinatorStore(false);
-        EntityManager entityManager = store.getEntityManager();
-        store.beginTrx();
+        EntityManager entityManager = Services.get().get(JPAService.class).getEntityManager();
+        entityManager.setFlushMode(FlushModeType.COMMIT);
+        entityManager.getTransaction().begin();
 
         Query q = entityManager.createNamedQuery("GET_WORKFLOWS");
         List<WorkflowJobBean> wfjBeans = q.getResultList();
@@ -854,8 +862,8 @@ public abstract class XTestCase extends TestCase {
             entityManager.remove(w);
         }
 
-        store.commitTrx();
-        store.closeTrx();
+        entityManager.getTransaction().commit();
+        entityManager.close();
         log.info(wfjSize + " entries in WF_JOBS removed from DB!");
         log.info(wfaSize + " entries in WF_ACTIONS removed from DB!");
         log.info(cojSize + " entries in COORD_JOBS removed from DB!");
@@ -872,6 +880,7 @@ public abstract class XTestCase extends TestCase {
     private static MiniDFSCluster dfsCluster2 = null;
     private static MiniMRCluster mrCluster = null;
     private static MiniHCatServer hcatServer = null;
+    private static MiniHS2 hiveserver2 = null;
 
     private void setUpEmbeddedHadoop(String testCaseDir) throws Exception {
         if (dfsCluster == null && mrCluster == null) {
@@ -890,10 +899,6 @@ public abstract class XTestCase extends TestCase {
 
             try {
                 dfsCluster = new MiniDFSCluster(conf, dataNodes, true, null);
-
-		 dfsCluster.waitClusterUp();
-		 dfsCluster.waitActive();
-
                 FileSystem fileSystem = dfsCluster.getFileSystem();
                 fileSystem.mkdirs(new Path("target/test-data"));
                 fileSystem.mkdirs(new Path("target/test-data"+"/minicluster/mapred"));
@@ -936,10 +941,6 @@ public abstract class XTestCase extends TestCase {
                 System.setProperty("test.build.data", FilenameUtils.concat(testBuildDataSaved, "2"));
                 // Only DFS cluster is created based upon current need
                 dfsCluster2 = new MiniDFSCluster(createDFSConfig(), 2, true, null);
-
-		 dfsCluster2.waitClusterUp();
-		 dfsCluster2.waitActive();
-
                 FileSystem fileSystem = dfsCluster2.getFileSystem();
                 fileSystem.mkdirs(new Path("target/test-data"));
                 fileSystem.mkdirs(new Path("/user"));
@@ -996,6 +997,28 @@ public abstract class XTestCase extends TestCase {
             hcatServer.start();
             log.info("Metastore server started at " + hcatServer.getMetastoreURI());
         }
+    }
+
+    protected void setupHiveServer2() throws Exception {
+        if (hiveserver2 == null) {
+            setSystemProperty("test.tmp.dir", getTestCaseDir());
+            // Make HS2 use our Mini cluster by copying all configs to HiveConf; also had to hack MiniHS2
+            HiveConf hconf = new HiveConf();
+            Configuration jobConf = createJobConf();
+            for (Map.Entry<String, String> pair: jobConf) {
+                hconf.set(pair.getKey(), pair.getValue());
+            }
+            hiveserver2 = new MiniHS2(hconf, dfsCluster.getFileSystem());
+            hiveserver2.start(new HashMap<String, String>());
+        }
+    }
+
+    protected String getHiveServer2JdbcURL() {
+        return hiveserver2.getJdbcURL();
+    }
+
+    protected String getHiveServer2JdbcURL(String dbName) {
+        return hiveserver2.getJdbcURL(dbName);
     }
 
     private static void shutdownMiniCluster() {

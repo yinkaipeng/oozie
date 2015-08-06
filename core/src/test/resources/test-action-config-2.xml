@@ -29,4 +29,9 @@
         <value>action.carcar</value>
     </property>
 
+    <property>
+        <name>action.testprop</name>
+        <value>2</value>
+    </property>
+
 </configuration>

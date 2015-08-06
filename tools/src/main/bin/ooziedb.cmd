@@ -5,9 +5,9 @@
 @rem to you under the Apache License, Version 2.0 (the
 @rem "License"); you may not use this file except in compliance
 @rem with the License.  You may obtain a copy of the License at
-@rem 
+@rem
 @rem      http://www.apache.org/licenses/LICENSE-2.0
-@rem 
+@rem
 @rem Unless required by applicable law or agreed to in writing, software
 @rem distributed under the License is distributed on an "AS IS" BASIS,
 @rem WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -38,10 +38,10 @@ if not exist %OOZIE_CONFIG%\NUL (
 @rem Check if oozie-env.cmd is provided under \bin and import user defined
 @rem settings defined in it if it exists
 if exist "%OOZIE_HOME%\bin\oozie-env.cmd" (
-  call "%OOZIE_HOME%\bin\oozie-env.cmd" 
+  call "%OOZIE_HOME%\bin\oozie-env.cmd"
 )
 if exist "%OOZIE_CONFIG%\oozie-env.cmd" (
-  call "%OOZIE_CONFIG%\oozie-env.cmd" 
+  call "%OOZIE_CONFIG%\oozie-env.cmd"
 )
 
 @rem Set Oozie Options
@@ -55,6 +55,8 @@ set OOZIECPPATH=.
 
 @rem Add libtools to the classpath
 set OOZIECPPATH=%OOZIECPPATH%;%BASEDIR%\libtools\*
+@rem Add lib to the classpath
+set OOZIECPPATH=%OOZIECPPATH%;%BASEDIR%\lib\*
 @rem Add extra_libs to the classpath
 set OOZIECPPATH=%OOZIECPPATH%;%BASEDIR%\..\extra_libs\*
 

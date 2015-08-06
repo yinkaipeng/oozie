@@ -69,10 +69,10 @@ public class TestZKUUIDService extends ZKXTestCase {
             uuid.init(Services.get());
             String id = uuid.generateId(ApplicationType.WORKFLOW);
             assertTrue(id.startsWith("0000000-"));
-            for (int i = 0; i < 100; i++) {
+            for (int i = 0; i < 1000; i++) {
                 id = uuid.generateId(ApplicationType.WORKFLOW);
             }
-            assertTrue(id.startsWith("0000100-"));
+            assertTrue(id.startsWith("0001000-"));
         }
         finally {
             uuid.destroy();

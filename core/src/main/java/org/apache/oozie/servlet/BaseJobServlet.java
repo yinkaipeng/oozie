@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.servlet;
 
 import java.io.IOException;
@@ -169,12 +170,42 @@ public abstract class BaseJobServlet extends JsonRestServlet {
                 conf.set(OozieClient.USER_NAME, requestUser);
             }
             if (conf.get(OozieClient.COORDINATOR_APP_PATH) != null) {
+                //If coord is submitted from bundle, user may want to update individual coord job with bundle properties
+                //If COORDINATOR_APP_PATH is set, we should check only COORDINATOR_APP_PATH path permission
+                String bundlePath = conf.get(OozieClient.BUNDLE_APP_PATH);
+                if (bundlePath != null) {
+                    conf.unset(OozieClient.BUNDLE_APP_PATH);
+                }
                 BaseJobServlet.checkAuthorizationForApp(conf);
                 JobUtils.normalizeAppPath(conf.get(OozieClient.USER_NAME), conf.get(OozieClient.GROUP_NAME), conf);
+                if (bundlePath != null) {
+                    conf.set(OozieClient.BUNDLE_APP_PATH, bundlePath);
+                }
             }
             JSONObject json = updateJob(request, response, conf);
             startCron();
             sendJsonResponse(response, HttpServletResponse.SC_OK, json);
+        }
+        else if (action.equals(RestConstants.SLA_ENABLE_ALERT)) {
+            validateContentType(request, RestConstants.XML_CONTENT_TYPE);
+            stopCron();
+            slaEnableAlert(request, response);
+            startCron();
+            response.setStatus(HttpServletResponse.SC_OK);
+        }
+        else if (action.equals(RestConstants.SLA_DISABLE_ALERT)) {
+            validateContentType(request, RestConstants.XML_CONTENT_TYPE);
+            stopCron();
+            slaDisableAlert(request, response);
+            startCron();
+            response.setStatus(HttpServletResponse.SC_OK);
+        }
+        else if (action.equals(RestConstants.SLA_CHANGE)) {
+            validateContentType(request, RestConstants.XML_CONTENT_TYPE);
+            stopCron();
+            slaChange(request, response);
+            startCron();
+            response.setStatus(HttpServletResponse.SC_OK);
         }
         else {
             throw new XServletException(HttpServletResponse.SC_BAD_REQUEST, ErrorCode.E0303,
@@ -245,6 +276,7 @@ public abstract class BaseJobServlet extends JsonRestServlet {
      * Return information about jobs.
      */
     @Override
+    @SuppressWarnings("unchecked")
     public void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         String jobId = getResourceName(request);
         String show = request.getParameter(RestConstants.JOB_SHOW_PARAM);
@@ -293,6 +325,15 @@ public abstract class BaseJobServlet extends JsonRestServlet {
             response.setContentType(TEXT_UTF8);
             streamJobLog(request, response);
         }
+        else if (show.equals(RestConstants.JOB_SHOW_ERROR_LOG)) {
+            response.setContentType(TEXT_UTF8);
+            streamJobErrorLog(request, response);
+        }
+        else if (show.equals(RestConstants.JOB_SHOW_AUDIT_LOG)) {
+            response.setContentType(TEXT_UTF8);
+            streamJobAuditLog(request, response);
+        }
+
         else if (show.equals(RestConstants.JOB_SHOW_DEFINITION)) {
             stopCron();
             response.setContentType(XML_UTF8);
@@ -305,6 +346,13 @@ public abstract class BaseJobServlet extends JsonRestServlet {
             stopCron();
             streamJobGraph(request, response);
             startCron(); // -- should happen before you stream anything in response?
+        } else if (show.equals(RestConstants.JOB_SHOW_STATUS)) {
+            stopCron();
+            String status = getJobStatus(request, response);
+            JSONObject json = new JSONObject();
+            json.put(JsonTags.STATUS, status);
+            startCron();
+            sendJsonResponse(response, HttpServletResponse.SC_OK, json);
         }
         else {
             throw new XServletException(HttpServletResponse.SC_BAD_REQUEST, ErrorCode.E0303,
@@ -417,6 +465,21 @@ public abstract class BaseJobServlet extends JsonRestServlet {
             IOException;
 
     /**
+     * abstract method to get and stream error log information of job, either workflow, coordinator or bundle
+     *
+     * @param request
+     * @param response
+     * @throws XServletException
+     * @throws IOException
+     */
+    abstract void streamJobErrorLog(HttpServletRequest request, HttpServletResponse response) throws XServletException,
+    IOException;
+
+
+    abstract void streamJobAuditLog(HttpServletRequest request, HttpServletResponse response) throws XServletException,
+            IOException;
+
+    /**
      * abstract method to create and stream image for runtime DAG -- workflow only
      *
      * @param request
@@ -461,5 +524,50 @@ public abstract class BaseJobServlet extends JsonRestServlet {
      */
     abstract JSONObject updateJob(HttpServletRequest request, HttpServletResponse response, Configuration conf)
             throws XServletException, IOException;
-}
 
+    /**
+     * Abstract method to get status for a job
+     *
+     * @param request the request
+     * @param response the response
+     * @return the JSON object
+     * @throws XServletException the x servlet exception
+     * @throws IOException Signals that an I/O exception has occurred.
+     */
+    abstract String getJobStatus(HttpServletRequest request, HttpServletResponse response)
+            throws XServletException, IOException;
+
+    /**
+     * Abstract method to enable SLA alert.
+     *
+     * @param request the request
+     * @param response the response
+     * @throws XServletException the x servlet exception
+     * @throws IOException Signals that an I/O exception has occurred.
+     */
+    abstract void slaEnableAlert(HttpServletRequest request, HttpServletResponse response) throws XServletException,
+            IOException;
+
+    /**
+     * Abstract method to disable SLA alert.
+     *
+     * @param request the request
+     * @param response the response
+     * @throws XServletException the x servlet exception
+     * @throws IOException Signals that an I/O exception has occurred.
+     */
+    abstract void slaDisableAlert(HttpServletRequest request, HttpServletResponse response) throws XServletException,
+            IOException;
+
+    /**
+     * Abstract method to change SLA definition.
+     *
+     * @param request the request
+     * @param response the response
+     * @throws XServletException the x servlet exception
+     * @throws IOException Signals that an I/O exception has occurred.
+     */
+    abstract void slaChange(HttpServletRequest request, HttpServletResponse response) throws XServletException,
+            IOException;
+
+}

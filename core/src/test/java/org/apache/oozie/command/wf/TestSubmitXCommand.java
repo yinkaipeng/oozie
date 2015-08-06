@@ -6,15 +6,16 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.command.wf;
 
 import java.io.File;
@@ -264,8 +265,12 @@ public class TestSubmitXCommand extends XDataTestCase {
         });
         WorkflowJobBean wf = WorkflowJobQueryExecutor.getInstance().get(WorkflowJobQuery.GET_WORKFLOW, jobId);
         XConfiguration protoConf = new XConfiguration(new StringReader(wf.getProtoActionConf()));
-        //username, libpath, apppath
-        assertEquals(protoConf.size(), 3);
+        // Hadoop 2 adds "mapreduce.job.user.name" in addition to "user.name"
+        if (protoConf.get("mapreduce.job.user.name") != null) {
+            assertEquals(3, protoConf.size());
+        } else {
+            assertEquals(2, protoConf.size());
+        }
         assertNull(protoConf.get(WorkflowAppService.APP_LIB_PATH_LIST));
 
         new File(getTestCaseDir() + "/lib").mkdirs();
@@ -283,7 +288,12 @@ public class TestSubmitXCommand extends XDataTestCase {
         });
         wf = WorkflowJobQueryExecutor.getInstance().get(WorkflowJobQuery.GET_WORKFLOW, jobId1);
         protoConf = new XConfiguration(new StringReader(wf.getProtoActionConf()));
-        assertEquals(protoConf.size(), 4);
+        // Hadoop 2 adds "mapreduce.job.user.name" in addition to "user.name"
+        if (protoConf.get("mapreduce.job.user.name") != null) {
+            assertEquals(4, protoConf.size());
+        } else {
+            assertEquals(3, protoConf.size());
+        }
         assertNotNull(protoConf.get(WorkflowAppService.APP_LIB_PATH_LIST));
     }
 

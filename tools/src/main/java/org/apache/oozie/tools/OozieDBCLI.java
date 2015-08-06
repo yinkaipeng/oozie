@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.tools;
 
 import org.apache.commons.cli.CommandLine;
@@ -169,6 +170,7 @@ public class OozieDBCLI {
         String url = conf.get(JPAService.CONF_URL);
         jdbcConf.put("url", url);
         jdbcConf.put("user", conf.get(JPAService.CONF_USERNAME));
+        jdbcConf.put("password", conf.get(JPAService.CONF_PASSWORD));
         services.getConf().set(Services.CONF_SERVICE_CLASSES,
                 "org.apache.oozie.service.HadoopAccessorService");
         services.getConf().set(Services.CONF_SERVICE_EXT_CLASSES, "");
@@ -186,7 +188,10 @@ public class OozieDBCLI {
 
     private void createDB(String sqlFile, boolean run) throws Exception {
         validateConnection();
-        validateDBSchema(false);
+        if (checkDBExists()) {
+            return;
+        }
+
         verifyOozieSysTable(false);
         createUpgradeDB(sqlFile, run, true);
         createOozieSysTable(sqlFile, run, DB_VERSION_FOR_5_0);
@@ -200,7 +205,9 @@ public class OozieDBCLI {
 
     private void upgradeDB(String sqlFile, boolean run) throws Exception {
         validateConnection();
-        validateDBSchema(true);
+        if (!checkDBExists()) {
+            throw new Exception("Oozie DB doesn't exist");
+        }
         String version = BuildInfo.getBuildInfo().getProperty(BuildInfo.BUILD_VERSION);
 
         if (!verifyOozieSysTable(false, false)) { // If OOZIE_SYS table doesn't
@@ -221,7 +228,7 @@ public class OozieDBCLI {
                 upgradeDBTo40(sqlFile, run);
                 ver = run ? getOozieDBVersion().trim() : DB_VERSION_FOR_4_0;
             }
-            else if (ver.equals(DB_VERSION_FOR_4_0) || ver.equals((DB_VERSION_FOR_4_5))) {
+            else if (ver.equals(DB_VERSION_FOR_4_0) || ver.equals(DB_VERSION_FOR_4_5)) {
                 System.out.println("Upgrading to db schema for Oozie " + version);
                 upgradeDBto50(sqlFile, run, startingVersion);
                 ver = run ? getOozieDBVersion().trim() : DB_VERSION_FOR_5_0;
@@ -242,8 +249,8 @@ public class OozieDBCLI {
     }
 
     private void upgradeDBto50(String sqlFile, boolean run, String startingVersion) throws Exception {
-        upgradeOozieDBVersion(sqlFile, run, DB_VERSION_FOR_5_0);
         ddlTweaksFor50(sqlFile, run, startingVersion);
+        upgradeOozieDBVersion(sqlFile, run, DB_VERSION_FOR_5_0);
     }
 
     private final static String UPDATE_OOZIE_VERSION =
@@ -289,7 +296,9 @@ public class OozieDBCLI {
 
     private void postUpgradeDBTo40(String sqlFile, boolean run) throws Exception {
         validateConnection();
-        validateDBSchema(true);
+        if (!checkDBExists()) {
+            throw new Exception("Oozie DB doesn't exist");
+        }
         verifyOozieSysTable(true);
         verifyDBState();
         postUpgradeTasks(sqlFile, run, true);
@@ -510,7 +519,7 @@ public class OozieDBCLI {
             while (rs.next()) {
                 for (int i = 0; i < columnNames.size(); i++) {
                     Clob srcClob = rs.getClob(columnNames.get(i));
-                    if (srcClob == null) {
+                    if (srcClob == null || srcClob.length() < 1) {
                         continue;
                     }
                     tempBlobCall.execute();
@@ -589,6 +598,7 @@ public class OozieDBCLI {
             "ALTER TABLE SLA_EVENTS ALTER COLUMN notification_msg NVARCHAR(max)",
             "ALTER TABLE SLA_EVENTS ALTER COLUMN upstream_apps NVARCHAR(max)"
     };
+
     private void executeSqlServerAlter(String sqlFile, boolean run) throws Exception {
         PrintWriter writer = new PrintWriter(new FileWriter(sqlFile, true));
         writer.println();
@@ -626,7 +636,7 @@ public class OozieDBCLI {
                 if (statement != null) {
                     statement.executeUpdate("ALTER TABLE " + tableName + " ADD " + column + "_temp varbinary(max)");
                     statement.executeUpdate("UPDATE " + tableName + " SET " + column + "_temp = CONVERT(varbinary(max), "
-                        + column + ")");
+                            + column + ")");
                     statement.executeUpdate("ALTER TABLE " + tableName + " DROP column " + column);
                     statement.executeUpdate("sp_RENAME '" + tableName + "." + column + "_temp' , '" + column + "' , 'column'");
                 }
@@ -949,8 +959,7 @@ public class OozieDBCLI {
     private static final String WORKFLOW_STATUS_QUERY =
         "select count(*) from WF_JOBS where status IN ('RUNNING', 'SUSPENDED')";
 
-    private void validateDBSchema(boolean exists) throws Exception {
-        System.out.println((exists) ? "Check DB schema exists" : "Check DB schema does not exist");
+    private boolean checkDBExists() throws Exception {
         boolean schemaExists;
         Connection conn = createConnection();
         try {
@@ -967,10 +976,8 @@ public class OozieDBCLI {
         finally {
             conn.close();
         }
-        if (schemaExists != exists) {
-            throw new Exception("DB schema " + ((exists) ? "does not exist" : "exists"));
-        }
-        System.out.println("DONE");
+        System.out.println("DB schema " + ((schemaExists) ? "exists" : "does not exist"));
+        return schemaExists;
     }
 
     private final static String OOZIE_SYS_EXISTS = "select count(*) from OOZIE_SYS";
@@ -1180,7 +1187,10 @@ public class OozieDBCLI {
                            + BuildInfo.getBuildInfo().getProperty(BuildInfo.BUILD_VERSION));
         System.out.println();
         validateConnection();
-        validateDBSchema(true);
+        if (!checkDBExists()) {
+            throw new Exception("Oozie DB doesn't exist");
+        }
+
         try {
             verifyOozieSysTable(true);
         }

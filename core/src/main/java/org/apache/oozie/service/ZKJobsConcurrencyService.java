@@ -25,9 +25,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.curator.framework.recipes.leader.LeaderLatch;
+import org.apache.curator.framework.state.ConnectionState;
 import org.apache.curator.x.discovery.ServiceInstance;
 import org.apache.oozie.ErrorCode;
 import org.apache.oozie.client.rest.RestConstants;
+import org.apache.oozie.event.listener.ZKConnectionListener;
 import org.apache.oozie.util.IOUtils;
 import org.apache.oozie.util.Instrumentable;
 import org.apache.oozie.util.Instrumentation;
@@ -81,7 +83,7 @@ public class ZKJobsConcurrencyService extends JobsConcurrencyService implements 
      */
     @Override
     public void destroy() {
-        if (leaderLatch != null) {
+        if (leaderLatch != null && ZKConnectionListener.getZKConnectionState() != ConnectionState.LOST) {
             IOUtils.closeSafely(leaderLatch);
         }
         if (zk != null) {
@@ -92,7 +94,7 @@ public class ZKJobsConcurrencyService extends JobsConcurrencyService implements 
     }
 
     /**
-     * Instruments the memory locks service.
+     * Instruments the zk jobs concurrency service.
      *
      * @param instr instance to instrument the zookeeper jobs concurrency service to.
      */

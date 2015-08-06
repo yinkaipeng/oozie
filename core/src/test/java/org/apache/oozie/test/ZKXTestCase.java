@@ -34,6 +34,7 @@ import org.apache.curator.x.discovery.ServiceDiscovery;
 import org.apache.curator.x.discovery.ServiceDiscoveryBuilder;
 import org.apache.curator.x.discovery.ServiceInstance;
 import org.apache.curator.x.discovery.details.InstanceSerializer;
+import org.apache.oozie.event.listener.ZKConnectionListener;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.util.FixedJsonInstanceSerializer;
 import org.apache.oozie.util.ZKUtils;
@@ -88,6 +89,7 @@ public abstract class ZKXTestCase extends XDataTestCase {
         zkServer = setupZKServer();
         Services.get().getConf().set("oozie.zookeeper.connection.string", zkServer.getConnectString());
         Services.get().getConf().set("oozie.instance.id", ZK_ID);
+        Services.get().getConf().setBoolean(ZKConnectionListener.CONF_SHUTDOWN_ON_TIMEOUT, false);
         createClient();
         createServiceDiscovery();
     }

@@ -18,10 +18,16 @@
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <parent>
+        <groupId>org.apache</groupId>
+        <artifactId>apache</artifactId>
+        <version>16</version>
+    </parent>
+
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.apache.oozie</groupId>
     <artifactId>oozie-main</artifactId>
-    <version>4.1.0</version>
+    <version>4.2.0</version>
     <description>Apache Oozie Main</description>
     <name>Apache Oozie Main</name>
     <packaging>pom</packaging>
@@ -39,16 +45,11 @@
     </organization>
 
     <properties>
-        <targetJavaVersion>1.6</targetJavaVersion>
+        <targetJavaVersion>1.7</targetJavaVersion>
 
         <distMgmtSnapshotsName>Apache Development Snapshot Repository</distMgmtSnapshotsName>
         <distMgmtSnapshotsUrl>https://repository.apache.org/content/repositories/snapshots</distMgmtSnapshotsUrl>
-        
-        <distMgmtReleaseName>Apache Release Distribution Repository</distMgmtReleaseName>
-        <distMgmtReleaseUrl>https://repository.apache.org/service/local/staging/deploy/maven2</distMgmtReleaseUrl>
-        <mavenStagingId>apache.staging.https</mavenStagingId>
-        <mavenSnapshotId>apache.snapshots.https</mavenSnapshotId>
-        
+
         <!-- to be able to run a single test case from the main project -->
         <failIfNoTests>false</failIfNoTests>
 
@@ -65,6 +66,8 @@
         <oozie.test.forkMode>once</oozie.test.forkMode>
 
         <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
+        <maven.test.java.opts>-Xmx1024m -da -XX:MaxPermSize=512m</maven.test.java.opts>
+        <maven.javadoc.opts></maven.javadoc.opts>
 
         <oozie.data.dir>${oozie.test.dir}</oozie.data.dir>
         <oozie.test.db.host>localhost</oozie.test.db.host>
@@ -73,25 +76,14 @@
         </oozie.test.default.config.file>
         <oozie.test.config.file>${oozie.test.default.config.file}</oozie.test.config.file>
 
-        <hadoop.version>1.1.1</hadoop.version>
-        <hbase.version>0.95.2</hbase.version>
-
-        <hcatalog.version>0.13.1</hcatalog.version>
-        <hadoopOne.version>1.1.1</hadoopOne.version>
-        <hadoopTwo.version>2.4.0</hadoopTwo.version>
-        <hadoopThree.version>3.0.0-SNAPSHOT</hadoopThree.version> 
-        
-
-        <hadooplib.version>${hadoop.version}.oozie-${project.version}</hadooplib.version>
+        <hadoop.version>1.2.1</hadoop.version>
+        <hadoop.majorversion>2</hadoop.majorversion>
+        <hadooplib.version>hadoop-${hadoop.majorversion}-${project.version}</hadooplib.version>
+        <oozie.hadoop-utils.version>hadoop-${hadoop.majorversion}-${project.version}</oozie.hadoop-utils.version>
+        <hbase.version>0.94.2</hbase.version>
         <hbaselib.version>${hbase.version}.oozie-${project.version}</hbaselib.version>
-        <hcataloglib.version>${hcatalog.version}.oozie-${project.version}</hcataloglib.version>
 
         <clover.license>/home/jenkins/tools/clover/latest/lib/clover.license</clover.license>
-        <!--
-        This is required while we support a a pre 0.23 version of Hadoop which does not have
-        the hadoop-auth artifact. After we phase-out pre 0.23 we can get rid of this property.
-        -->
-        <hadoop.auth.version>2.4.0</hadoop.auth.version>
 
          <!-- Sharelib component versions -->
          <hive.version>0.13.1</hive.version>
@@ -99,12 +91,15 @@
          <pig.version>0.10.1</pig.version>
          <pig.classifier>h2</pig.classifier>
          <sqoop.version>1.4.3</sqoop.version>
+         <spark.version>1.1.0</spark.version>
+         <spark.guava.version>14.0.1</spark.guava.version>
          <sqoop.classifier>hadoop100</sqoop.classifier>
          <streaming.version>${hadoop.version}</streaming.version>
-         <distcp.version>${hadooplib.version}</distcp.version>
+         <distcp.version>${hadoop.version}</distcp.version>
+         <hadoop.auth.version>${hadoop.version}</hadoop.auth.version>
 
          <!-- Tomcat version -->
-         <tomcat.version>6.0.41</tomcat.version>
+         <tomcat.version>6.0.44</tomcat.version>
 
          <openjpa.version>2.2.2</openjpa.version>
          <xerces.version>2.10.0</xerces.version>
@@ -112,18 +107,17 @@
 
         <!-- Native libraries path -->
         <hadoop.library.path></hadoop.library.path>
+         <jackson.version>1.8.8</jackson.version>
     </properties>
 
     <modules>
-        <module>client</module>
         <module>hadooplibs</module>
-        <module>hbaselibs</module>
-        <module>hcataloglibs</module>
+        <module>client</module>
         <module>core</module>
+        <module>sharelib</module>
         <module>webapp</module>
         <module>examples</module>
         <module>docs</module>
-        <module>sharelib</module>
         <module>tools</module>
         <module>minitest</module>
         <module>distro</module>
@@ -131,13 +125,13 @@
     </modules>
 
     <distributionManagement>
-       <repository>
+	<repository>
          <id>${repoid}</id>
          <name>${reponame}</name>
          <url>${repourl}</url>
        </repository>
         <snapshotRepository>
-          <id>${mavenSnapshotId}</id>
+          <id>apache.snapshots.https</id>
           <name>${distMgmtSnapshotsName}</name>
           <url>${distMgmtSnapshotsUrl}</url>
         </snapshotRepository>
@@ -251,6 +245,16 @@
                 <version>${project.version}</version>
             </dependency>
             <dependency>
+                 <groupId>org.apache.oozie</groupId>
+                <artifactId>oozie-sharelib-hive2</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.oozie</groupId>
+                <artifactId>oozie-sharelib-spark</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.apache.oozie</groupId>
                 <artifactId>oozie-docs</artifactId>
                 <version>${project.version}</version>
@@ -262,36 +266,26 @@
                 <version>${project.version}</version>
                 <type>war</type>
             </dependency>
-            <dependency>
-                <groupId>org.apache.oozie</groupId>
-                <artifactId>oozie-distro</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.oozie</groupId>
-                <artifactId>oozie-win-distro</artifactId>
-                <version>${project.version}</version>
-                <type>war</type>
-            </dependency>
 
             <dependency>
                 <groupId>org.apache.hadoop</groupId>
                 <artifactId>hadoop-minikdc</artifactId>
-                <!-- TODO: Replace version once MiniKdc is in a released version of Hadoop -->
-                <version>${hadoop.version}</version>
+                <version>2.4.0</version>
             </dependency>
 
-            <!-- client -->
+            <!-- client 
             <dependency>
-                <groupId>org.apache.hadoop</groupId>
-                <artifactId>hadoop-auth</artifactId>
-                <version>${hadoop.auth.version}</version>
+                <groupId>org.apache.oozie</groupId>
+                <artifactId>oozie-hadoop-auth</artifactId>
+                <version>${hadooplib.version}</version>
             </dependency>
+            -->
 
              <dependency>
                  <groupId>org.apache.hadoop</groupId>
                  <artifactId>hadoop-common</artifactId>
                  <version>${hadoop.version}</version>
+                 <scope>compile</scope>
                  <exclusions>
                      <exclusion>
                          <artifactId>jasper-runtime</artifactId>
@@ -307,12 +301,7 @@
                      </exclusion>
                  </exclusions>
              </dependency>
-             
-             <dependency>
-	       <groupId>org.apache.hadoop</groupId>
-	       <artifactId>hadoop-azure</artifactId>
-	       <version>${hadoop.version}</version>
-             </dependency>
+
 
             <dependency>
                 <groupId>com.googlecode.json-simple</groupId>
@@ -329,7 +318,8 @@
             <dependency>
                 <groupId>junit</groupId>
                 <artifactId>junit</artifactId>
-                <version>4.11</version>
+                <version>4.10</version>
+                <scope>test</scope>
             </dependency>
 
             <dependency>
@@ -347,38 +337,473 @@
             <dependency>
                 <groupId>org.codehaus.jackson</groupId>
                 <artifactId>jackson-mapper-asl</artifactId>
-                <version>1.9.13</version>
+                <version>${jackson.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>org.codehaus.jackson</groupId>
                 <artifactId>jackson-core-asl</artifactId>
-                <version>1.9.13</version>
+                <version>${jackson.version}</version>
             </dependency>
 
             <!-- core -->
             <dependency>
-                <groupId>org.apache.oozie</groupId>
-                <artifactId>oozie-hcatalog</artifactId>
-                <version>${hcataloglib.version}</version>
+                <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-client</artifactId>
+                <version>${hadoop.version}</version>
+                <scope>compile</scope>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.apache.curator</groupId>
+                        <artifactId>curator-client</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-minicluster</artifactId>
+                <version>${hadoop.version}</version>
+                <scope>test</scope>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.apache.curator</groupId>
+                        <artifactId>curator-client</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
 
             <dependency>
                 <groupId>org.apache.oozie</groupId>
-                <artifactId>oozie-hbase</artifactId>
-                <version>${hbaselib.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.apache.oozie</groupId>
-                <artifactId>oozie-hadoop</artifactId>
+                <artifactId>oozie-hadoop-auth</artifactId>
                 <version>${hadooplib.version}</version>
+                <scope>compile</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-auth</artifactId>
+                <version>${hadoop.auth.version}</version>
+                <scope>compile</scope>
+                <exclusions>
+                    <exclusion>
+                        <groupId>log4j</groupId>
+                        <artifactId>log4j</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>slf4j-log4j12</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-core</artifactId>
+                <version>${hadoop.auth.version}</version>
+                <scope>compile</scope>
+                <exclusions>
+                    <exclusion>
+                        <groupId>commons-cli</groupId>
+                        <artifactId>commons-cli</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>xmlenc</groupId>
+                        <artifactId>xmlenc</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.sun.jersey</groupId>
+                        <artifactId>jersey-core</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.sun.jersey</groupId>
+                        <artifactId>jersey-json</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.sun.jersey</groupId>
+                        <artifactId>jersey-server</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>commons-io</groupId>
+                        <artifactId>commons-io</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>commons-httpclient</groupId>
+                        <artifactId>commons-httpclient</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.commons</groupId>
+                        <artifactId>commons-math</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>commons-net</groupId>
+                        <artifactId>commons-net</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>commons-el</groupId>
+                        <artifactId>commons-el</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.mortbay.jetty</groupId>
+                        <artifactId>jetty</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.mortbay.jetty</groupId>
+                        <artifactId>jetty-util</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.mortbay.jetty</groupId>
+                        <artifactId>jsp-api-2.1</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.mortbay.jetty</groupId>
+                        <artifactId>jsp-2.1</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>tomcat</groupId>
+                        <artifactId>jasper-runtime</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>tomcat</groupId>
+                        <artifactId>jasper-compiler</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>net.java.dev.jets3t</groupId>
+                        <artifactId>jets3t</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>hsqldb</groupId>
+                        <artifactId>hsqldb</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>oro</groupId>
+                        <artifactId>oro</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.eclipse.jdt</groupId>
+                        <artifactId>core</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.codehaus.jackson</groupId>
+                        <artifactId>jackson-mapper-asl</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-distcp</artifactId>
+                <version>${distcp.version}</version>
+                <scope>compile</scope>
+                <exclusions>
+                    <exclusion>
+                        <artifactId>hadoop-core</artifactId>
+                        <groupId>org.apache.hadoop</groupId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-tools</artifactId>
+                <version>${distcp.version}</version>
+                <scope>compile</scope>
+                <exclusions>
+                    <exclusion>
+                        <artifactId>hadoop-core</artifactId>
+                        <groupId>org.apache.hadoop</groupId>
+                    </exclusion>
+                </exclusions>
             </dependency>
 
             <dependency>
                 <groupId>org.apache.oozie</groupId>
-                <artifactId>oozie-hadoop-test</artifactId>
+                <artifactId>oozie-hadoop-distcp</artifactId>
                 <version>${hadooplib.version}</version>
+                <scope>compile</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.hive.hcatalog</groupId>
+                <artifactId>hive-webhcat-java-client</artifactId>
+                <version>${hive.version}</version>
+                <scope>compile</scope>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.apache.hive</groupId>
+                        <artifactId>hive-cli</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.hive.hcatalog</groupId>
+                <artifactId>hive-hcatalog-server-extensions</artifactId>
+                <version>${hive.version}</version>
+                <scope>provided</scope>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.apache.hadoop</groupId>
+                        <artifactId>hadoop-core</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.activemq</groupId>
+                        <artifactId>activemq-core</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.activemq</groupId>
+                        <artifactId>kahadb</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.activemq</groupId>
+                        <artifactId>activeio-core</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.activemq.protobuf</groupId>
+                        <artifactId>activemq-protobuf</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.geronimo.specs</groupId>
+                        <artifactId>geronimo-jms_1.1_spec</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.geronimo.specs</groupId>
+                        <artifactId>geronimo-j2ee-management_1.1_spec</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.osgi</groupId>
+                        <artifactId>org.osgi.core</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>javax.jms</groupId>
+                        <artifactId>jms</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.hbase</groupId>
+                <artifactId>hbase-client</artifactId>
+                <version>${hbase.version}</version>
+                <scope>provided</scope>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.codehaus.jackson</groupId>
+                        <artifactId>jackson-core-asl</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.codehaus.jackson</groupId>
+                        <artifactId>jackson-mapper-asl</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>commons-cli</groupId>
+                        <artifactId>commons-cli</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>commons-httpclient</groupId>
+                        <artifactId>commons-httpclient</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>commons-lang</groupId>
+                        <artifactId>commons-lang</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>commons-logging</groupId>
+                        <artifactId>commons-logging</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.yammer.metrics</groupId>
+                        <artifactId>metrics-core</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>log4j</groupId>
+                        <artifactId>log4j</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.thrift</groupId>
+                        <artifactId>thrift</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>slf4j-api</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>slf4j-log4j12</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.mortbay.jetty</groupId>
+                        <artifactId>jetty</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.mortbay.jetty</groupId>
+                        <artifactId>jetty-util</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.mortbay.jetty</groupId>
+                        <artifactId>servlet-api-2.5</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>tomcat</groupId>
+                        <artifactId>jasper-runtime</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>tomcat</groupId>
+                        <artifactId>jasper-compiler</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.mortbay.jetty</groupId>
+                        <artifactId>jsp-api-2.1</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.mortbay.jetty</groupId>
+                        <artifactId>jsp-2.1</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.jruby</groupId>
+                        <artifactId>jruby-complete</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.sun.jersey</groupId>
+                        <artifactId>jersey-core</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>javax.ws.rs</groupId>
+                        <artifactId>jsr311-api</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.sun.jersey</groupId>
+                        <artifactId>jersey-json</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>stax</groupId>
+                        <artifactId>stax-api</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>javax.xml.bind</groupId>
+                        <artifactId>jaxb-api</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.sun.jersey</groupId>
+                        <artifactId>jersey-server</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.avro</groupId>
+                        <artifactId>avro</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>xmlenc</groupId>
+                        <artifactId>xmlenc</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>commons-codec</groupId>
+                        <artifactId>commons-codec</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>commons-net</groupId>
+                        <artifactId>commons-net</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>oro</groupId>
+                        <artifactId>oro</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>commons-el</groupId>
+                        <artifactId>commons-el</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>net.java.dev.jets3t</groupId>
+                        <artifactId>jets3t</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>net.sf.kosmosfs</groupId>
+                        <artifactId>kfs</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>hsqldb</groupId>
+                        <artifactId>hsqldb</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.eclipse.jdt</groupId>
+                        <artifactId>core</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>jline</groupId>
+                        <artifactId>jline</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.code.findbugs</groupId>
+                        <artifactId>jsr305</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.github.stephenc.high-scale-lib</groupId>
+                        <artifactId>high-scale-lib</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>commons-io</groupId>
+                        <artifactId>commons-io</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>commons-digester</groupId>
+                        <artifactId>commons-digester</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>commons-collections</groupId>
+                        <artifactId>commons-collections</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>commons-beanutils</groupId>
+                        <artifactId>commons-beanutils-core</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>commons-beanutils</groupId>
+                        <artifactId>commons-beanutils</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.velocity</groupId>
+                        <artifactId>velocity</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.xerial.snappy</groupId>
+                        <artifactId>snappy-java</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.jboss.netty</groupId>
+                        <artifactId>netty</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.jamon</groupId>
+                        <artifactId>jamon-runtime</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.codehaus.jackson</groupId>
+                        <artifactId>jackson-xc</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.thrift</groupId>
+                        <artifactId>libthrift</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.codehaus.jackson</groupId>
+                        <artifactId>jackson-jaxrs</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.httpcomponents</groupId>
+                        <artifactId>httpcore</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.httpcomponents</groupId>
+                        <artifactId>httpclient</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.avro</groupId>
+                        <artifactId>avro-ipc</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.protobuf</groupId>
+                        <artifactId>protobuf-java</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
 
             <dependency>
@@ -436,16 +861,11 @@
             </dependency>
 
             <dependency>
-                <groupId>org.apache.oozie</groupId>
-                <artifactId>oozie-hadoop-distcp</artifactId>
-                <version>${distcp.version}</version>
-            </dependency>
-
-            <dependency>
                 <groupId>org.apache.pig</groupId>
                 <artifactId>pig</artifactId>
                 <version>${pig.version}</version>
                 <classifier>${pig.classifier}</classifier>
+                <scope>compile</scope>
                 <exclusions>
                     <exclusion>
                         <groupId>org.apache.hadoop</groupId>
@@ -503,13 +923,17 @@
                         <groupId>oro</groupId>
                         <artifactId>oro</artifactId>
                     </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.hadoop</groupId>
+                        <artifactId>avro</artifactId>
+                    </exclusion>
                 </exclusions>
             </dependency>
 
             <dependency>
                 <groupId>jline</groupId>
                 <artifactId>jline</artifactId>
-                <version>0.9.94</version>
+                <version>2.12</version>
                 <exclusions>
                     <exclusion>
                         <groupId>junit</groupId>
@@ -535,6 +959,7 @@
                     </exclusion>
                 </exclusions>
             </dependency>
+
             <dependency>
                 <groupId>org.apache.hive</groupId>
                 <artifactId>hive-contrib</artifactId>
@@ -543,6 +968,214 @@
                     <exclusion>
                         <groupId>hadoop</groupId>
                         <artifactId>core</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.hive</groupId>
+                <artifactId>hive-beeline</artifactId>
+                <version>${hive.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <artifactId>asm</artifactId>
+                        <groupId>asm</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>avro-ipc</artifactId>
+                        <groupId>org.apache.avro</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>avro-mapred</artifactId>
+                        <groupId>org.apache.avro</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>avro</artifactId>
+                        <groupId>org.apache.avro</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>bonecp</artifactId>
+                        <groupId>com.jolbox</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>commons-cli</artifactId>
+                        <groupId>commons-cli</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>commons-codec</artifactId>
+                        <groupId>commons-codec</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>commons-compress</artifactId>
+                        <groupId>org.apache.commons</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>commons-dbcp</artifactId>
+                        <groupId>commons-dbcp</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>commons-io</artifactId>
+                        <groupId>commons-io</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>commons-lang</artifactId>
+                        <groupId>commons-lang</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>commons-logging-api</artifactId>
+                        <groupId>commons-logging</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>commons-pool</artifactId>
+                        <groupId>commons-pool</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>derby</artifactId>
+                        <groupId>org.apache.derby</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>guava</artifactId>
+                        <groupId>com.google.guava</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>hive-builtins</artifactId>
+                        <groupId>org.apache.hive</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>hive-common</artifactId>
+                        <groupId>org.apache.hive</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>hive-serde</artifactId>
+                        <groupId>org.apache.hive</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>jackson-core-asl</artifactId>
+                        <groupId>org.codehaus.jackson</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>jackson-mapper-asl</artifactId>
+                        <groupId>org.codehaus.jackson</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>jetty</artifactId>
+                        <groupId>org.mortbay.jetty</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>log4j</artifactId>
+                        <groupId>log4j</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>slf4j-api</artifactId>
+                        <groupId>org.slf4j</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>slf4j-log4j12</artifactId>
+                        <groupId>org.slf4j</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>zookeeper</artifactId>
+                        <groupId>org.apache.zookeeper</groupId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.hive</groupId>
+                <artifactId>hive-jdbc</artifactId>
+                <version>${hive.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <artifactId>JavaEWAH</artifactId>
+                        <groupId>com.googlecode.javaewah</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>ant</artifactId>
+                        <groupId>org.apache.ant</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>avro-ipc</artifactId>
+                        <groupId>org.apache.avro</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>avro-mapred</artifactId>
+                        <groupId>org.apache.avro</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>avro</artifactId>
+                        <groupId>org.apache.avro</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>commons-beanutils-core</artifactId>
+                        <groupId>commons-beanutils</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>commons-beanutils</artifactId>
+                        <groupId>commons-beanutils</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>commons-collections</artifactId>
+                        <groupId>commons-collections</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>commons-compress</artifactId>
+                        <groupId>org.apache.commons</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>commons-configuration</artifactId>
+                        <groupId>commons-configuration</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>commons-logging-api</artifactId>
+                        <groupId>commons-logging</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>groovy-all</artifactId>
+                        <groupId>org.codehaus.groovy</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>guava</artifactId>
+                        <groupId>com.google.guava</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>haivvreo</artifactId>
+                        <groupId>com.linkedin</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>hive-ant</artifactId>
+                        <groupId>org.apache.hive</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>hive-common</artifactId>
+                        <groupId>org.apache.hive</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>hive-contrib</artifactId>
+                        <groupId>org.apache.hive</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>jetty-util</artifactId>
+                        <groupId>org.mortbay.jetty</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>jetty</artifactId>
+                        <groupId>org.mortbay.jetty</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>parquet-hadoop-bundle</artifactId>
+                        <groupId>com.twitter</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>sqlline</artifactId>
+                        <groupId>sqlline</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>stax-api</artifactId>
+                        <groupId>stax</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>zookeeper</artifactId>
+                        <groupId>org.apache.zookeeper</groupId>
                     </exclusion>
                 </exclusions>
             </dependency>
@@ -625,9 +1258,9 @@
             </dependency>
 
             <dependency>
-		<groupId>log4j</groupId>
-		<artifactId>apache-log4j-extras</artifactId>
-		<version>1.1</version>
+                <groupId>log4j</groupId>
+                <artifactId>apache-log4j-extras</artifactId>
+                <version>1.1</version>
             </dependency>
 
             <dependency>
@@ -675,7 +1308,7 @@
             <dependency>
                 <groupId>hsqldb</groupId>
                 <artifactId>hsqldb</artifactId>
-                <version>1.8.0.10</version>
+                <version>1.8.0.7</version>
             </dependency>
 
             <dependency>
@@ -743,7 +1376,7 @@
             <dependency>
                 <groupId>commons-io</groupId>
                 <artifactId>commons-io</artifactId>
-                <version>2.1</version>
+                <version>2.4</version>
             </dependency>
 
             <dependency>
@@ -888,7 +1521,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
-                    <version>2.12</version>
+                    <version>2.12.2</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -904,6 +1537,9 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-javadoc-plugin</artifactId>
                     <version>2.7</version>
+                    <configuration>
+                            <additionalparam>${maven.javadoc.opts}</additionalparam>
+                    </configuration>
                 </plugin>
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
@@ -930,7 +1566,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-war-plugin</artifactId>
-                    <version>2.1</version>
+                    <version>2.4</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.rat</groupId>
@@ -1003,6 +1639,7 @@
                             <consoleOutput>true</consoleOutput>
                             <includeTestSourceDirectory>true</includeTestSourceDirectory>
                             <configLocation>src/main/resources/checkstyle.xml</configLocation>
+                            <headerLocation>src/main/resources/checkstyle-header.txt</headerLocation>
                         </configuration>
                     </execution>
                 </executions>
@@ -1050,7 +1687,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <source>1.6</source>
+                    <source>1.7</source>
                     <target>${targetJavaVersion}</target>
                 </configuration>
             </plugin>
@@ -1060,7 +1697,7 @@
                 <configuration>
                     <forkMode>${oozie.test.forkMode}</forkMode>
                     <forkedProcessTimeoutInSeconds>${test.timeout}</forkedProcessTimeoutInSeconds>
-                    <argLine>-Xmx4096m -da -XX:MaxPermSize=1280m -Djava.library.path=${hadoop.library.path} -XX:+UseConcMarkSweepGC </argLine>
+                    <argLine>${maven.test.java.opts}</argLine>
                     <systemPropertyVariables>
                         <oozie.test.db.host>${oozie.test.db.host}</oozie.test.db.host>
                         <oozie.test.config.file>${oozie.test.config.file}</oozie.test.config.file>
@@ -1074,20 +1711,6 @@
                              to test the SSH action
                         -->
                         <exclude>**/TestSsh*.java</exclude>
-
-                        <!-- See 'testSqoop' profile in core/pom.xml and the Building doc-->
-                        <exclude>**/TestSqoop*.java</exclude>
-
-                        <!-- Explictly use -Dtest=TestMapReduceActionExecutorUberJar to test the uber jar functionality.
-                             Requires at least Hadoop 1.2.0 or 2.2.0.
-                        -->
-                        <exclude>**/TestMapReduceActionExecutorUberJar.java</exclude>
-
-                        <!-- Explictly use -Dtest=TestZKUtilsWithSecurity to test the ZKUtils with security.
-                         It can conflict with other non-secure tests that use zookeeper
-                        -->
-                        <exclude>**/TestZKUtilsWithSecurity.java</exclude>
-
                     </excludes>
                     <!-- DO NOT CHANGE THIS VALUES, TESTCASES CANNOT RUN IN PARALLEL -->
                     <parallel>classes</parallel>
@@ -1130,6 +1753,8 @@
                         <exclude>**/build/**</exclude>
                         <exclude>.git/**</exclude>
                         <exclude>test-patch/**</exclude>
+                        <exclude>**/.idea/**</exclude>
+                        <exclude>*.patch</exclude>
                     </excludes>
                 </configuration>
             </plugin>
@@ -1163,7 +1788,7 @@
                         </replacement>
                     </replacements>
                 </configuration>
-            </plugin>	
+            </plugin>
         </plugins>
     </build>
 
@@ -1208,15 +1833,27 @@
             </build>
         </profile>
         <profile>
-            <id>hadoop-23</id>
+            <id>hadoop-1</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <hadoop.version>1.2.1</hadoop.version>
+                <hadoop.majorversion>1</hadoop.majorversion>
+                <pig.classifier></pig.classifier>
+                <sqoop.classifier>hadoop100</sqoop.classifier>
+            </properties>
+        </profile>
+        <profile>
+            <id>hadoop-0.23</id>
             <activation>
                 <activeByDefault>false</activeByDefault>
             </activation>
             <properties>
-               <hadoop.version>0.23.5</hadoop.version>
-               <hadoop.auth.version>0.23.5</hadoop.auth.version>
-               <pig.classifier>h2</pig.classifier>
-               <sqoop.classifier>hadoop23</sqoop.classifier>
+                <hadoop.version>0.23.5</hadoop.version>
+                <hadoop.majorversion>0.23</hadoop.majorversion>
+                <pig.classifier>h2</pig.classifier>
+                <sqoop.classifier>hadoop23</sqoop.classifier>
             </properties>
         </profile>
         <profile>
@@ -1225,10 +1862,11 @@
                 <activeByDefault>false</activeByDefault>
             </activation>
             <properties>
-               <hadoop.version>${hadoopTwo.version}</hadoop.version>
-               <hadoop.auth.version>${hadoopTwo.version}</hadoop.auth.version>
-               <pig.classifier>h2</pig.classifier>
-               <sqoop.classifier>hadoop200</sqoop.classifier>
+                <hadoop.version>2.4.0</hadoop.version>
+                <hadoop.majorversion>2</hadoop.majorversion>
+                <pig.classifier>h2</pig.classifier>
+                <sqoop.classifier>hadoop200</sqoop.classifier>
+                <jackson.version>1.9.13</jackson.version>
             </properties>
         </profile>
         <profile>
@@ -1237,10 +1875,11 @@
                 <activeByDefault>false</activeByDefault>
             </activation>
             <properties>
-               <hadoop.version>3.0.0-SNAPSHOT</hadoop.version>
-               <hadoop.auth.version>3.0.0-SNAPSHOT</hadoop.auth.version>
-               <pig.classifier>h2</pig.classifier>
-               <sqoop.classifier>hadoop200</sqoop.classifier>
+                <hadoop.version>3.0.0-SNAPSHOT</hadoop.version>
+                <hadoop.majorversion>3</hadoop.majorversion>
+                <pig.classifier>h2</pig.classifier>
+                <sqoop.classifier>hadoop200</sqoop.classifier>
+                <jackson.version>1.9.13</jackson.version>
             </properties>
         </profile>
         <profile>

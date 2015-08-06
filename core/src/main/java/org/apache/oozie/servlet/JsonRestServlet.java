@@ -6,15 +6,16 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.servlet;
 
 import org.apache.oozie.client.OozieClient.SYSTEM_MODE;
@@ -26,6 +27,7 @@ import org.apache.oozie.service.ProxyUserService;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.service.XLogService;
 import org.apache.oozie.util.Instrumentation;
+import org.apache.oozie.util.LogUtils;
 import org.apache.oozie.util.ParamChecker;
 import org.apache.oozie.util.XLog;
 import org.apache.oozie.ErrorCode;
@@ -37,6 +39,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import java.io.IOException;
 import java.security.AccessControlException;
 import java.util.*;
@@ -62,6 +65,8 @@ public abstract class JsonRestServlet extends HttpServlet {
 
     private XLog auditLog;
     XLog.Info logInfo;
+    private XLog LOG = XLog.getLog(getClass());
+
 
     /**
      * This bean defines a query string parameter.
@@ -243,18 +248,30 @@ public abstract class JsonRestServlet extends HttpServlet {
             String param = (String) request.getAttribute(AUDIT_PARAM);
             String user = XLog.Info.get().getParameter(XLogService.USER);
             String group = XLog.Info.get().getParameter(XLogService.GROUP);
-            String jobId = XLog.Info.get().getParameter(DagXLogInfoService.JOB);
+            String jobId = getJobId(request);
             String app = XLog.Info.get().getParameter(DagXLogInfoService.APP);
 
             String errorCode = (String) request.getAttribute(AUDIT_ERROR_CODE);
             String errorMessage = (String) request.getAttribute(AUDIT_ERROR_MESSAGE);
             String hostDetail = request.getRemoteAddr();
 
-            auditLog.info(
-                    "IP [{0}], USER [{1}], GROUP [{2}], APP [{3}], JOBID [{4}], OPERATION [{5}], PARAMETER [{6}], STATUS [{7}],"
-                            + " HTTPCODE [{8}], ERRORCODE [{9}], ERRORMESSAGE [{10}]", hostDetail, user, group, app,
-                    jobId, operation, param, status, httpStatusCode, errorCode, errorMessage);
+            auditLog.info("IP [{0}], USER [{1}], GROUP [{2}], APP [{3}], " + DagXLogInfoService.AUDIT_JOBID
+                    + " [{4}], OPERATION [{5}], PARAMETER [{6}], STATUS [{7}],"
+                    + " HTTPCODE [{8}], ERRORCODE [{9}], ERRORMESSAGE [{10}]", hostDetail, user, group, app, jobId,
+                    operation, param, status, httpStatusCode, errorCode, errorMessage);
         }
+    }
+
+    private String getJobId(HttpServletRequest request) {
+        String jobId = XLog.Info.get().getParameter(DagXLogInfoService.JOB);
+        if (jobId == null) {
+            LOG.debug("JobId is not present in XLog.Info, getting it from HttpServletRequest" );
+            jobId = getResourceName(request);
+            if (!(jobId.endsWith("-C") || jobId.endsWith("-B") || jobId.endsWith("-W") || jobId.contains("C@"))) {
+                jobId = null;
+            }
+        }
+        return jobId;
     }
 
     /**
@@ -566,15 +583,11 @@ public abstract class JsonRestServlet extends HttpServlet {
     }
 
     /**
-     * Set the log info with the given information.
+     * Set the thread local log info with the given information.
      *
-     * @param jobid job ID.
      * @param actionid action ID.
      */
-    protected void setLogInfo(String jobid, String actionid) {
-        logInfo.setParameter(DagXLogInfoService.JOB, jobid);
-        logInfo.setParameter(DagXLogInfoService.ACTION, actionid);
-
-        XLog.Info.get().setParameters(logInfo);
+    protected void setLogInfo(String actionid) {
+        LogUtils.setLogInfo(actionid);
     }
 }

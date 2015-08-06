@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.event;
 
 import java.io.FileWriter;
@@ -336,8 +337,8 @@ public class TestEventGeneration extends XDataTestCase {
         action.setStatus(CoordinatorAction.Status.KILLED);
         CoordActionQueryExecutor.getInstance().executeUpdate(CoordActionQuery.UPDATE_COORD_ACTION_STATUS_PENDING_TIME, action);
         queue.clear();
-        new CoordRerunXCommand(coord.getId(), RestConstants.JOB_COORD_SCOPE_ACTION, "1", false, true)
-                .call();
+        new CoordRerunXCommand(coord.getId(), RestConstants.JOB_COORD_SCOPE_ACTION, "1", false, true, false,
+                null).call();
         waitFor(3 * 100, new Predicate() {
             @Override
             public boolean evaluate() throws Exception {

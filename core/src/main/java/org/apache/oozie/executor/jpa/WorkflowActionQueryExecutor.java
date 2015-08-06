@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.executor.jpa;
 
 import java.sql.Timestamp;
@@ -109,6 +110,7 @@ public class WorkflowActionQueryExecutor extends
             case UPDATE_ACTION_PENDING:
                 query.setParameter("pending", actionBean.getPending());
                 query.setParameter("pendingAge", actionBean.getPendingAgeTimestamp());
+                query.setParameter("executionPath", actionBean.getExecutionPath());
                 query.setParameter("id", actionBean.getId());
                 break;
             case UPDATE_ACTION_STATUS_PENDING:
@@ -208,7 +210,9 @@ public class WorkflowActionQueryExecutor extends
             case GET_PENDING_ACTIONS:
                 Long minimumPendingAgeSecs = (Long) parameters[0];
                 Timestamp pts = new Timestamp(System.currentTimeMillis() - minimumPendingAgeSecs * 1000);
+                Timestamp createdTimeInterval = new Timestamp((Long) parameters[1]);
                 query.setParameter("pendingAge", pts);
+                query.setParameter("createdTime", createdTimeInterval);
                 break;
             case GET_ACTIONS_FOR_WORKFLOW_RERUN:
                 query.setParameter("wfId", parameters[0]);
@@ -272,6 +276,7 @@ public class WorkflowActionQueryExecutor extends
                 bean.setExecutionPath((String) arr[11]);
                 bean.setSignalValue((String) arr[12]);
                 bean.setSlaXmlBlob((StringBlob) arr[13]);
+                bean.setExternalId((String) arr[14]);
                 break;
             case GET_ACTION_CHECK:
                 bean = new WorkflowActionBean();
@@ -355,6 +360,7 @@ public class WorkflowActionQueryExecutor extends
                 bean.setName((String) arr[1]);
                 bean.setStatusStr((String) arr[2]);
                 bean.setEndTime(DateUtils.toDate((Timestamp) arr[3]));
+                bean.setType((String) arr[4]);
                 break;
             default:
                 throw new JPAExecutorException(ErrorCode.E0603, "QueryExecutor cannot construct action bean for "

@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.servlet;
 
 import java.io.IOException;
@@ -31,14 +32,13 @@ import org.apache.oozie.CoordinatorActionInfo;
 import org.apache.oozie.CoordinatorEngine;
 import org.apache.oozie.CoordinatorEngineException;
 import org.apache.oozie.CoordinatorJobBean;
+import org.apache.oozie.CoordinatorJobInfo;
 import org.apache.oozie.ErrorCode;
 import org.apache.oozie.XException;
 import org.apache.oozie.client.CoordinatorAction;
 import org.apache.oozie.client.CoordinatorJob;
 import org.apache.oozie.client.CoordinatorJob.Execution;
 import org.apache.oozie.client.rest.RestConstants;
-import org.apache.oozie.command.CommandException;
-import org.apache.oozie.command.coord.CoordUpdateXCommand;
 import org.apache.oozie.service.CoordinatorEngineService;
 import org.apache.oozie.util.DateUtils;
 
@@ -176,7 +176,7 @@ public class MockCoordinatorEngineService extends CoordinatorEngineService {
         }
         @Override
         public CoordinatorActionInfo reRun(String jobId, String rerunType, String scope, boolean refresh,
-                boolean noCleanup) throws BaseEngineException {
+                boolean noCleanup, boolean failed, Configuration conf) throws BaseEngineException {
             did = RestConstants.JOB_COORD_ACTION_RERUN;
             int idx = validateCoordinatorIdx(jobId);
             started.set(idx, true);
@@ -205,6 +205,13 @@ public class MockCoordinatorEngineService extends CoordinatorEngineService {
             MockCoordinatorEngineService.filter = filter;
             int idx = validateCoordinatorIdx(jobId);
             return (CoordinatorJobBean) coordJobs.get(idx);
+        }
+
+        @Override
+        public String getJobStatus(String jobId) throws CoordinatorEngineException {
+            did = RestConstants.JOB_SHOW_STATUS;
+            int idx = validateCoordinatorIdx(jobId);
+            return coordJobs.get(idx).getStatus().toString();
         }
 
         @Override
@@ -240,6 +247,43 @@ public class MockCoordinatorEngineService extends CoordinatorEngineService {
             }
             validateCoordinatorIdx(jobId);
             return "";
+        }
+
+        @Override
+        public CoordinatorJobInfo suspendJobs(String filter, int start, int length)
+                throws CoordinatorEngineException {
+            did = RestConstants.JOBS;
+            return new CoordinatorJobInfo(new ArrayList<CoordinatorJobBean>(), 0, 0, 0);
+        }
+
+        @Override
+        public CoordinatorJobInfo resumeJobs(String filter, int start, int length)
+                throws CoordinatorEngineException {
+            did = RestConstants.JOBS;
+            return new CoordinatorJobInfo(new ArrayList<CoordinatorJobBean>(), 0, 0, 0);
+        }
+
+        @Override
+        public CoordinatorJobInfo killJobs(String filter, int start, int length)
+                throws CoordinatorEngineException {
+            did = RestConstants.JOBS;
+            return new CoordinatorJobInfo(new ArrayList<CoordinatorJobBean>(), 0, 0, 0);
+        }
+
+        public void disableSLAAlert(String id, String actions, String dates, String childIds)
+                throws BaseEngineException {
+            did = RestConstants.SLA_DISABLE_ALERT;
+        }
+
+        @Override
+        public void changeSLA(String id, String actions, String dates, String childIds, String newParams)
+                throws BaseEngineException {
+            did = RestConstants.SLA_CHANGE;
+        }
+
+        @Override
+        public void enableSLAAlert(String id, String actions, String dates, String childIds) throws BaseEngineException {
+            did = RestConstants.SLA_ENABLE_ALERT;
         }
 
         private int validateCoordinatorIdx(String jobId) throws CoordinatorEngineException {

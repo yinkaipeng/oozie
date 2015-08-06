@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.util;
 
 import java.util.List;
@@ -44,144 +45,144 @@ public class TestZKUtilsWithSecurity extends ZKXTestCaseWithSecurity {
         // We want to verify the ACLs on locks and the service discovery; ZKUtils does the service discovery and starting
         // ZKLocksService will use ZKUtils which will start advertising on the service discovery.  We can also acquire a lock so
         // it will create a lock znode.
-//        ZKLocksService zkls = new ZKLocksService();
-//        try {
-//            zkls.init(Services.get());
-//            LockToken lock = zkls.getWriteLock("foo", 3);
-//            lock.release();
-//            List<ACL> acls = getClient().getZookeeperClient().getZooKeeper().getACL("/oozie", new Stat());
-//            assertEquals(ZooDefs.Perms.ALL, acls.get(0).getPerms());
-//            assertEquals("world", acls.get(0).getId().getScheme());
-//            assertEquals("anyone", acls.get(0).getId().getId());
-//            acls = getClient().getACL().forPath("/locks");
-//            assertEquals(ZooDefs.Perms.ALL, acls.get(0).getPerms());
-//            assertEquals("world", acls.get(0).getId().getScheme());
-//            assertEquals("anyone", acls.get(0).getId().getId());
-//            acls = getClient().getACL().forPath("/locks/foo");
-//            assertEquals(ZooDefs.Perms.ALL, acls.get(0).getPerms());
-//            assertEquals("world", acls.get(0).getId().getScheme());
-//            assertEquals("anyone", acls.get(0).getId().getId());
-//            acls = getClient().getACL().forPath("/services");
-//            assertEquals(ZooDefs.Perms.ALL, acls.get(0).getPerms());
-//            assertEquals("world", acls.get(0).getId().getScheme());
-//            assertEquals("anyone", acls.get(0).getId().getId());
-//            acls = getClient().getACL().forPath("/services/servers");
-//            assertEquals(ZooDefs.Perms.ALL, acls.get(0).getPerms());
-//            assertEquals("world", acls.get(0).getId().getScheme());
-//            assertEquals("anyone", acls.get(0).getId().getId());
-//            acls = getClient().getACL().forPath("/services/servers/" + ZK_ID);
-//            assertEquals(ZooDefs.Perms.ALL, acls.get(0).getPerms());
-//            assertEquals("world", acls.get(0).getId().getScheme());
-//            assertEquals("anyone", acls.get(0).getId().getId());
-//        }
-//        finally {
-//            // unregistering all users of ZKUtils (i.e. ZKLocksService) will cause it to disconnect so when we set
-//            // "oozie.zookeeper.secure" to true, it will again connect but using SASL/Kerberos
-//            zkls.destroy();
-//        }
-//
-//        // Verify that the expected paths created above still exist with the "world" ACLs
-//        List<ACL> acls = getClient().getZookeeperClient().getZooKeeper().getACL("/oozie", new Stat());
-//        assertEquals(ZooDefs.Perms.ALL, acls.get(0).getPerms());
-//        assertEquals("world", acls.get(0).getId().getScheme());
-//        assertEquals("anyone", acls.get(0).getId().getId());
-//        acls = getClient().getACL().forPath("/locks");
-//        assertEquals(ZooDefs.Perms.ALL, acls.get(0).getPerms());
-//        assertEquals("world", acls.get(0).getId().getScheme());
-//        assertEquals("anyone", acls.get(0).getId().getId());
-//        acls = getClient().getACL().forPath("/locks/foo");
-//        assertEquals(ZooDefs.Perms.ALL, acls.get(0).getPerms());
-//        assertEquals("world", acls.get(0).getId().getScheme());
-//        assertEquals("anyone", acls.get(0).getId().getId());
-//        acls = getClient().getACL().forPath("/services");
-//        assertEquals(ZooDefs.Perms.ALL, acls.get(0).getPerms());
-//        assertEquals("world", acls.get(0).getId().getScheme());
-//        assertEquals("anyone", acls.get(0).getId().getId());
-//        acls = getClient().getACL().forPath("/services/servers");
-//        assertEquals(ZooDefs.Perms.ALL, acls.get(0).getPerms());
-//        assertEquals("world", acls.get(0).getId().getScheme());
-//        assertEquals("anyone", acls.get(0).getId().getId());
-//
-//        zkls = new ZKLocksService();
-//        try {
-//            Services.get().getConf().set("oozie.zookeeper.secure", "true");
-//            // Now that security is enabled, it will trigger the checkAndSetACLs() code to go through and set all of the previously
-//            // created znodes to have "sasl" ACLs
-//            zkls.init(Services.get());
-//            acls = getClient().getZookeeperClient().getZooKeeper().getACL("/oozie", new Stat());
-//            assertEquals(ZooDefs.Perms.ALL, acls.get(0).getPerms());
-//            assertEquals("sasl", acls.get(0).getId().getScheme());
-//            assertEquals(PRIMARY_PRINCIPAL, acls.get(0).getId().getId());
-//            acls = getClient().getACL().forPath("/locks");
-//            assertEquals(ZooDefs.Perms.ALL, acls.get(0).getPerms());
-//            assertEquals("sasl", acls.get(0).getId().getScheme());
-//            assertEquals(PRIMARY_PRINCIPAL, acls.get(0).getId().getId());
-//            acls = getClient().getACL().forPath("/locks/foo");
-//            assertEquals(ZooDefs.Perms.ALL, acls.get(0).getPerms());
-//            assertEquals("sasl", acls.get(0).getId().getScheme());
-//            assertEquals(PRIMARY_PRINCIPAL, acls.get(0).getId().getId());
-//            acls = getClient().getACL().forPath("/services");
-//            assertEquals(ZooDefs.Perms.ALL, acls.get(0).getPerms());
-//            assertEquals("sasl", acls.get(0).getId().getScheme());
-//            assertEquals(PRIMARY_PRINCIPAL, acls.get(0).getId().getId());
-//            acls = getClient().getACL().forPath("/services/servers");
-//            assertEquals(ZooDefs.Perms.ALL, acls.get(0).getPerms());
-//            assertEquals("sasl", acls.get(0).getId().getScheme());
-//            assertEquals(PRIMARY_PRINCIPAL, acls.get(0).getId().getId());
-//            acls = getClient().getACL().forPath("/services/servers/" + ZK_ID);
-//            assertEquals(ZooDefs.Perms.ALL, acls.get(0).getPerms());
-//            assertEquals("sasl", acls.get(0).getId().getScheme());
-//            assertEquals(PRIMARY_PRINCIPAL, acls.get(0).getId().getId());
-//        }
-//        finally {
-//            zkls.destroy();
-//            Services.get().getConf().set("oozie.zookeeper.secure", "false");
-//        }
+        ZKLocksService zkls = new ZKLocksService();
+        try {
+            zkls.init(Services.get());
+            LockToken lock = zkls.getWriteLock("foo", 3);
+            lock.release();
+            List<ACL> acls = getClient().getZookeeperClient().getZooKeeper().getACL("/oozie", new Stat());
+            assertEquals(ZooDefs.Perms.ALL, acls.get(0).getPerms());
+            assertEquals("world", acls.get(0).getId().getScheme());
+            assertEquals("anyone", acls.get(0).getId().getId());
+            acls = getClient().getACL().forPath("/locks");
+            assertEquals(ZooDefs.Perms.ALL, acls.get(0).getPerms());
+            assertEquals("world", acls.get(0).getId().getScheme());
+            assertEquals("anyone", acls.get(0).getId().getId());
+            acls = getClient().getACL().forPath("/locks/foo");
+            assertEquals(ZooDefs.Perms.ALL, acls.get(0).getPerms());
+            assertEquals("world", acls.get(0).getId().getScheme());
+            assertEquals("anyone", acls.get(0).getId().getId());
+            acls = getClient().getACL().forPath("/services");
+            assertEquals(ZooDefs.Perms.ALL, acls.get(0).getPerms());
+            assertEquals("world", acls.get(0).getId().getScheme());
+            assertEquals("anyone", acls.get(0).getId().getId());
+            acls = getClient().getACL().forPath("/services/servers");
+            assertEquals(ZooDefs.Perms.ALL, acls.get(0).getPerms());
+            assertEquals("world", acls.get(0).getId().getScheme());
+            assertEquals("anyone", acls.get(0).getId().getId());
+            acls = getClient().getACL().forPath("/services/servers/" + ZK_ID);
+            assertEquals(ZooDefs.Perms.ALL, acls.get(0).getPerms());
+            assertEquals("world", acls.get(0).getId().getScheme());
+            assertEquals("anyone", acls.get(0).getId().getId());
+        }
+        finally {
+            // unregistering all users of ZKUtils (i.e. ZKLocksService) will cause it to disconnect so when we set
+            // "oozie.zookeeper.secure" to true, it will again connect but using SASL/Kerberos
+            zkls.destroy();
+        }
+
+        // Verify that the expected paths created above still exist with the "world" ACLs
+        List<ACL> acls = getClient().getZookeeperClient().getZooKeeper().getACL("/oozie", new Stat());
+        assertEquals(ZooDefs.Perms.ALL, acls.get(0).getPerms());
+        assertEquals("world", acls.get(0).getId().getScheme());
+        assertEquals("anyone", acls.get(0).getId().getId());
+        acls = getClient().getACL().forPath("/locks");
+        assertEquals(ZooDefs.Perms.ALL, acls.get(0).getPerms());
+        assertEquals("world", acls.get(0).getId().getScheme());
+        assertEquals("anyone", acls.get(0).getId().getId());
+        acls = getClient().getACL().forPath("/locks/foo");
+        assertEquals(ZooDefs.Perms.ALL, acls.get(0).getPerms());
+        assertEquals("world", acls.get(0).getId().getScheme());
+        assertEquals("anyone", acls.get(0).getId().getId());
+        acls = getClient().getACL().forPath("/services");
+        assertEquals(ZooDefs.Perms.ALL, acls.get(0).getPerms());
+        assertEquals("world", acls.get(0).getId().getScheme());
+        assertEquals("anyone", acls.get(0).getId().getId());
+        acls = getClient().getACL().forPath("/services/servers");
+        assertEquals(ZooDefs.Perms.ALL, acls.get(0).getPerms());
+        assertEquals("world", acls.get(0).getId().getScheme());
+        assertEquals("anyone", acls.get(0).getId().getId());
+
+        zkls = new ZKLocksService();
+        try {
+            Services.get().getConf().set("oozie.zookeeper.secure", "true");
+            // Now that security is enabled, it will trigger the checkAndSetACLs() code to go through and set all of the previously
+            // created znodes to have "sasl" ACLs
+            zkls.init(Services.get());
+            acls = getClient().getZookeeperClient().getZooKeeper().getACL("/oozie", new Stat());
+            assertEquals(ZooDefs.Perms.ALL, acls.get(0).getPerms());
+            assertEquals("sasl", acls.get(0).getId().getScheme());
+            assertEquals(PRIMARY_PRINCIPAL, acls.get(0).getId().getId());
+            acls = getClient().getACL().forPath("/locks");
+            assertEquals(ZooDefs.Perms.ALL, acls.get(0).getPerms());
+            assertEquals("sasl", acls.get(0).getId().getScheme());
+            assertEquals(PRIMARY_PRINCIPAL, acls.get(0).getId().getId());
+            acls = getClient().getACL().forPath("/locks/foo");
+            assertEquals(ZooDefs.Perms.ALL, acls.get(0).getPerms());
+            assertEquals("sasl", acls.get(0).getId().getScheme());
+            assertEquals(PRIMARY_PRINCIPAL, acls.get(0).getId().getId());
+            acls = getClient().getACL().forPath("/services");
+            assertEquals(ZooDefs.Perms.ALL, acls.get(0).getPerms());
+            assertEquals("sasl", acls.get(0).getId().getScheme());
+            assertEquals(PRIMARY_PRINCIPAL, acls.get(0).getId().getId());
+            acls = getClient().getACL().forPath("/services/servers");
+            assertEquals(ZooDefs.Perms.ALL, acls.get(0).getPerms());
+            assertEquals("sasl", acls.get(0).getId().getScheme());
+            assertEquals(PRIMARY_PRINCIPAL, acls.get(0).getId().getId());
+            acls = getClient().getACL().forPath("/services/servers/" + ZK_ID);
+            assertEquals(ZooDefs.Perms.ALL, acls.get(0).getPerms());
+            assertEquals("sasl", acls.get(0).getId().getScheme());
+            assertEquals(PRIMARY_PRINCIPAL, acls.get(0).getId().getId());
+        }
+        finally {
+            zkls.destroy();
+            Services.get().getConf().set("oozie.zookeeper.secure", "false");
+        }
     }
 
     public void testNewUsingACLs() throws Exception {
         // We want to verify the ACLs on new locks and the service discovery; ZKUtils does the service discovery and starting
         // ZKLocksService will use ZKUtils which will start advertising on the service discovery.  We can also acquire a lock so
         // it will create a lock znode.
-//        ZKLocksService zkls = new ZKLocksService();
-//        try {
-//            Services.get().getConf().set("oozie.zookeeper.secure", "true");
-//            // Verify that the znodes don't already exist
-//            assertNull(getClient().getZookeeperClient().getZooKeeper().exists("/oozie", null));
-//            assertNull(getClient().checkExists().forPath("/locks"));
-//            assertNull(getClient().checkExists().forPath("/services"));
-//            // Check that new znodes will use the ACLs
-//            zkls.init(Services.get());
-//            LockToken lock = zkls.getWriteLock("foo", 3);
-//            lock.release();
-//            List<ACL> acls = getClient().getZookeeperClient().getZooKeeper().getACL("/oozie", new Stat());
-//            assertEquals(ZooDefs.Perms.ALL, acls.get(0).getPerms());
-//            assertEquals("sasl", acls.get(0).getId().getScheme());
-//            assertEquals(PRIMARY_PRINCIPAL, acls.get(0).getId().getId());
-//            acls = getClient().getACL().forPath("/locks");
-//            assertEquals(ZooDefs.Perms.ALL, acls.get(0).getPerms());
-//            assertEquals("sasl", acls.get(0).getId().getScheme());
-//            assertEquals(PRIMARY_PRINCIPAL, acls.get(0).getId().getId());
-//            acls = getClient().getACL().forPath("/locks/foo");
-//            assertEquals(ZooDefs.Perms.ALL, acls.get(0).getPerms());
-//            assertEquals("sasl", acls.get(0).getId().getScheme());
-//            assertEquals(PRIMARY_PRINCIPAL, acls.get(0).getId().getId());
-//            acls = getClient().getACL().forPath("/services");
-//            assertEquals(ZooDefs.Perms.ALL, acls.get(0).getPerms());
-//            assertEquals("sasl", acls.get(0).getId().getScheme());
-//            assertEquals(PRIMARY_PRINCIPAL, acls.get(0).getId().getId());
-//            acls = getClient().getACL().forPath("/services/servers");
-//            assertEquals(ZooDefs.Perms.ALL, acls.get(0).getPerms());
-//            assertEquals("sasl", acls.get(0).getId().getScheme());
-//            assertEquals(PRIMARY_PRINCIPAL, acls.get(0).getId().getId());
-//            acls = getClient().getACL().forPath("/services/servers/" + ZK_ID);
-//            assertEquals(ZooDefs.Perms.ALL, acls.get(0).getPerms());
-//            assertEquals("sasl", acls.get(0).getId().getScheme());
-//            assertEquals(PRIMARY_PRINCIPAL, acls.get(0).getId().getId());
-//        }
-//        finally {
-//            zkls.destroy();
-//            Services.get().getConf().set("oozie.zookeeper.secure", "false");
-//        }
+        ZKLocksService zkls = new ZKLocksService();
+        try {
+            Services.get().getConf().set("oozie.zookeeper.secure", "true");
+            // Verify that the znodes don't already exist
+            assertNull(getClient().getZookeeperClient().getZooKeeper().exists("/oozie", null));
+            assertNull(getClient().checkExists().forPath("/locks"));
+            assertNull(getClient().checkExists().forPath("/services"));
+            // Check that new znodes will use the ACLs
+            zkls.init(Services.get());
+            LockToken lock = zkls.getWriteLock("foo", 3);
+            lock.release();
+            List<ACL> acls = getClient().getZookeeperClient().getZooKeeper().getACL("/oozie", new Stat());
+            assertEquals(ZooDefs.Perms.ALL, acls.get(0).getPerms());
+            assertEquals("sasl", acls.get(0).getId().getScheme());
+            assertEquals(PRIMARY_PRINCIPAL, acls.get(0).getId().getId());
+            acls = getClient().getACL().forPath("/locks");
+            assertEquals(ZooDefs.Perms.ALL, acls.get(0).getPerms());
+            assertEquals("sasl", acls.get(0).getId().getScheme());
+            assertEquals(PRIMARY_PRINCIPAL, acls.get(0).getId().getId());
+            acls = getClient().getACL().forPath("/locks/foo");
+            assertEquals(ZooDefs.Perms.ALL, acls.get(0).getPerms());
+            assertEquals("sasl", acls.get(0).getId().getScheme());
+            assertEquals(PRIMARY_PRINCIPAL, acls.get(0).getId().getId());
+            acls = getClient().getACL().forPath("/services");
+            assertEquals(ZooDefs.Perms.ALL, acls.get(0).getPerms());
+            assertEquals("sasl", acls.get(0).getId().getScheme());
+            assertEquals(PRIMARY_PRINCIPAL, acls.get(0).getId().getId());
+            acls = getClient().getACL().forPath("/services/servers");
+            assertEquals(ZooDefs.Perms.ALL, acls.get(0).getPerms());
+            assertEquals("sasl", acls.get(0).getId().getScheme());
+            assertEquals(PRIMARY_PRINCIPAL, acls.get(0).getId().getId());
+            acls = getClient().getACL().forPath("/services/servers/" + ZK_ID);
+            assertEquals(ZooDefs.Perms.ALL, acls.get(0).getPerms());
+            assertEquals("sasl", acls.get(0).getId().getScheme());
+            assertEquals(PRIMARY_PRINCIPAL, acls.get(0).getId().getId());
+        }
+        finally {
+            zkls.destroy();
+            Services.get().getConf().set("oozie.zookeeper.secure", "false");
+        }
     }
 }

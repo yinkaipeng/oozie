@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.action.hadoop;
 
 import java.io.OutputStreamWriter;
@@ -57,16 +58,9 @@ public class TestShellActionExecutor extends ActionExecutorTestCase {
             : "ls -ltr\necho $1 $2\nexit 1";
     private static final String PERL_SCRIPT_CONTENT = "print \"MY_VAR=TESTING\";";
 
-    @Override
-    protected void setSystemProps() throws Exception {
-        super.setSystemProps();
-        setSystemProperty("oozie.service.ActionService.executor.classes", ShellActionExecutor.class.getName());
-    }
-
     /**
      * Verify if the ShellActionExecutor indeed setups the basic stuffs
      *
-     * @param launcherJarShouldExist
      * @throws Exception
      */
     public void testSetupMethods() throws Exception {
@@ -332,7 +326,7 @@ public class TestShellActionExecutor extends ActionExecutorTestCase {
     }
 
     public void testShellMainPathInUber() throws Exception {
-        Services.get().getConf().setBoolean("oozie.action.launcher.mapreduce.job.ubertask.enable", true);
+        Services.get().getConf().setBoolean("oozie.action.shell.launcher.mapreduce.job.ubertask.enable", true);
 
         Element actionXml = XmlUtils.parseXml("<shell>" + "<job-tracker>" + getJobTrackerUri() + "</job-tracker>"
                 + "<name-node>" + getNameNodeUri() + "</name-node>" + "<exec>script.sh</exec>"

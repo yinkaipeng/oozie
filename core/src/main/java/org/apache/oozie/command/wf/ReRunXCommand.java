@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.command.wf;
 
 import java.io.IOException;
@@ -50,6 +51,7 @@ import org.apache.oozie.executor.jpa.BatchQueryExecutor;
 import org.apache.oozie.executor.jpa.WorkflowJobQueryExecutor;
 import org.apache.oozie.executor.jpa.BatchQueryExecutor.UpdateEntry;
 import org.apache.oozie.executor.jpa.WorkflowJobQueryExecutor.WorkflowJobQuery;
+import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.DagXLogInfoService;
 import org.apache.oozie.service.HadoopAccessorException;
 import org.apache.oozie.service.HadoopAccessorService;
@@ -93,6 +95,7 @@ public class ReRunXCommand extends WorkflowXCommand<Void> {
 
     private static final Set<String> DISALLOWED_DEFAULT_PROPERTIES = new HashSet<String>();
     private static final Set<String> DISALLOWED_USER_PROPERTIES = new HashSet<String>();
+    public static final String DISABLE_CHILD_RERUN = "oozie.wf.rerun.disablechild";
 
     static {
         String[] badUserProps = { PropertiesUtils.DAYS, PropertiesUtils.HOURS, PropertiesUtils.MINUTES,
@@ -112,6 +115,11 @@ public class ReRunXCommand extends WorkflowXCommand<Void> {
         this.conf = ParamChecker.notNull(conf, "conf");
     }
 
+    @Override
+    protected void setLogInfo() {
+        LogUtils.setLogInfo(jobId);
+    }
+
     /* (non-Javadoc)
      * @see org.apache.oozie.command.XCommand#execute()
      */
@@ -128,7 +136,7 @@ public class ReRunXCommand extends WorkflowXCommand<Void> {
 
     private void setupReRun() throws CommandException {
         InstrumentUtils.incrJobCounter(getName(), 1, getInstrumentation());
-        LogUtils.setLogInfo(wfBean, logInfo);
+        LogUtils.setLogInfo(wfBean);
         WorkflowInstance oldWfInstance = this.wfBean.getWorkflowInstance();
         WorkflowInstance newWfInstance;
         String appPath = null;
@@ -170,16 +178,8 @@ public class ReRunXCommand extends WorkflowXCommand<Void> {
             // necessary to ensure propagation of Oozie properties to Hadoop calls downstream
             conf = ((XConfiguration) conf).resolve();
 
-            // Prepare the action endtimes map
-            Map<String, Date> actionEndTimes = new HashMap<String, Date>();
-            for (WorkflowActionBean action : actions) {
-                if (action.getEndTime() != null) {
-                    actionEndTimes.put(action.getName(), action.getEndTime());
-                }
-            }
-
             try {
-                newWfInstance = workflowLib.createInstance(app, conf, jobId, actionEndTimes);
+                newWfInstance = workflowLib.createInstance(app, conf, jobId);
             }
             catch (WorkflowException e) {
                 throw new CommandException(e);
@@ -217,7 +217,11 @@ public class ReRunXCommand extends WorkflowXCommand<Void> {
         }
 
         for (int i = 0; i < actions.size(); i++) {
-            if (!nodesToSkip.contains(actions.get(i).getName())) {
+            // Skipping to delete the sub workflow when rerun failed node option has been provided. As same
+            // action will be used to rerun the job.
+            if (!nodesToSkip.contains(actions.get(i).getName()) &&
+                    !(conf.getBoolean(OozieClient.RERUN_FAIL_NODES, false) &&
+                    SubWorkflowActionExecutor.ACTION_TYPE.equals(actions.get(i).getType()))) {
                 deleteList.add(actions.get(i));
                 LOG.info("Deleting Action[{0}] for re-run", actions.get(i).getId());
             }
@@ -246,6 +250,9 @@ public class ReRunXCommand extends WorkflowXCommand<Void> {
         }
         catch (JPAExecutorException je) {
             throw new CommandException(je);
+        }
+        finally {
+            updateParentIfNecessary(wfBean);
         }
 
     }
@@ -326,6 +333,14 @@ public class ReRunXCommand extends WorkflowXCommand<Void> {
      */
     @Override
     protected void eagerVerifyPrecondition() throws CommandException, PreconditionException {
+        // Throwing error if parent exist and same workflow trying to rerun, when running child workflow disabled
+        // through conf.
+        if (wfBean.getParentId() != null && !conf.getBoolean(SubWorkflowActionExecutor.SUBWORKFLOW_RERUN, false)
+                && ConfigurationService.getBoolean(DISABLE_CHILD_RERUN)) {
+            throw new CommandException(ErrorCode.E0755, " Rerun is not allowed through child workflow, please" +
+                    " re-run through the parent " + wfBean.getParentId());
+        }
+
         if (!(wfBean.getStatus().equals(WorkflowJob.Status.FAILED)
                 || wfBean.getStatus().equals(WorkflowJob.Status.KILLED) || wfBean.getStatus().equals(
                         WorkflowJob.Status.SUCCEEDED))) {

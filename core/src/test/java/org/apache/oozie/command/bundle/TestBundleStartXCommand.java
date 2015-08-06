@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.command.bundle;
 
 import java.io.IOException;
@@ -276,7 +277,7 @@ public class TestBundleStartXCommand extends XDataTestCase {
         runnable.run();
         sleep(2000);
         job = jpaService.execute(bundleJobGetExecutor);
-        assertEquals(job.getStatus(), Job.Status.KILLED);
+        assertEquals(job.getStatus(), Job.Status.DONEWITHERROR);
     }
 
 

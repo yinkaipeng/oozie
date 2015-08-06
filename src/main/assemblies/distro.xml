@@ -124,6 +124,7 @@
         <file>
             <source>${basedir}/../core/src/main/resources/oozie-default.xml</source>
             <outputDirectory>/conf</outputDirectory>
+            <destName>oozie-default.xml.reference</destName>
         </file>
         <!-- Oozie core jar -->
         <file>

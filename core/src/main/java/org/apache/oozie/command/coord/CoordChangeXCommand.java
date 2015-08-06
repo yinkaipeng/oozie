@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.command.coord;
 
 import java.util.ArrayList;
@@ -97,6 +98,11 @@ public class CoordChangeXCommand extends CoordinatorXCommand<Void> {
         ParamChecker.notEmpty(changeValue, "value");
 
         validateChangeValue(changeValue);
+    }
+
+    @Override
+    protected void setLogInfo() {
+        LogUtils.setLogInfo(jobId);
     }
 
     /**
@@ -490,7 +496,7 @@ public class CoordChangeXCommand extends CoordinatorXCommand<Void> {
             throw new CommandException(e);
         }
 
-        LogUtils.setLogInfo(this.coordJob, logInfo);
+        LogUtils.setLogInfo(this.coordJob);
     }
 
     /* (non-Javadoc)

@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.command.coord;
 
 import java.util.Date;
@@ -48,6 +49,11 @@ public class CoordActionSkipXCommand extends CoordinatorXCommand<Void> {
         this.actionBean = ParamChecker.notNull(actionBean, "ActionBean");
         this.user = ParamChecker.notEmpty(user, "user");
         this.appName = ParamChecker.notEmpty(appName, "appName");
+    }
+
+    @Override
+    protected void setLogInfo() {
+        LogUtils.setLogInfo(actionBean.getId());
     }
 
     @Override
@@ -100,7 +106,7 @@ public class CoordActionSkipXCommand extends CoordinatorXCommand<Void> {
         catch (JPAExecutorException e) {
             throw new CommandException(e);
         }
-        LogUtils.setLogInfo(actionBean, logInfo);
+        LogUtils.setLogInfo(actionBean);
     }
 
     @Override

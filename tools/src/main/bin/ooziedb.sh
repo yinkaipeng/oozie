@@ -45,6 +45,9 @@ OOZIECPPATH=""
 for i in "${BASEDIR}/libtools/"*.jar; do
   OOZIECPPATH="${OOZIECPPATH}:$i"
 done
+for i in "${BASEDIR}/lib/"*.jar; do
+  OOZIECPPATH="${OOZIECPPATH}:$i"
+done
 for i in "${BASEDIR}/libext/"*.jar; do
   OOZIECPPATH="${OOZIECPPATH}:$i"
 done

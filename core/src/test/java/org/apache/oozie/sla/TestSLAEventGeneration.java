@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.sla;
 
 import java.util.Arrays;
@@ -111,6 +112,7 @@ public class TestSLAEventGeneration extends XDataTestCase {
         conf.setInt(EventHandlerService.CONF_WORKER_INTERVAL, 10000);
         conf.setInt(EventHandlerService.CONF_WORKER_THREADS, 0);
         conf.setInt(EventHandlerService.CONF_BATCH_SIZE, 1);
+        conf.setInt(OozieClient.SLA_DISABLE_ALERT_OLDER_THAN, -1);
         services.init();
         jpa = services.get(JPAService.class);
         ehs = services.get(EventHandlerService.class);
@@ -331,8 +333,8 @@ public class TestSLAEventGeneration extends XDataTestCase {
         addRecordToCoordActionTable(job.getId(), 1, CoordinatorAction.Status.FAILED, "coord-rerun-action1.xml", 0);
 
         try {
-            new CoordRerunXCommand(job.getId(), RestConstants.JOB_COORD_SCOPE_DATE, "2009-12-15T01:00Z", false, true)
-                    .call();
+            new CoordRerunXCommand(job.getId(), RestConstants.JOB_COORD_SCOPE_DATE, "2009-12-15T01:00Z", false,
+                    true, false, null).call();
         }
         catch (CommandException ce) {
             if (ce.getErrorCode() == ErrorCode.E0604) {
@@ -408,6 +410,9 @@ public class TestSLAEventGeneration extends XDataTestCase {
         Date nominal = cal.getTime();
         String nominalTime = DateUtils.formatDateOozieTZ(nominal);
         conf.set("nominal_time", nominalTime);
+        conf.set("start", "2009-01-02T08:01Z");
+        conf.set("frequency", "coord:days(1)");
+        conf.set("end", "2009-01-03T08:00Z");
         cal.setTime(nominal);
         cal.add(Calendar.MINUTE, 10); // as per the sla xml
         String expectedStart = DateUtils.formatDateOozieTZ(cal.getTime());

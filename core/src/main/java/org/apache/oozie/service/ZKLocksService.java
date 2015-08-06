@@ -19,19 +19,25 @@ package org.apache.oozie.service;
 
 import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
+
 import org.apache.curator.framework.recipes.locks.InterProcessMutex;
 import org.apache.curator.framework.recipes.locks.InterProcessReadWriteLock;
 import org.apache.oozie.ErrorCode;
 import org.apache.oozie.util.Instrumentable;
 import org.apache.oozie.util.Instrumentation;
+import org.apache.oozie.event.listener.ZKConnectionListener;
 import org.apache.oozie.lock.LockToken;
 import org.apache.oozie.util.XLog;
 import org.apache.oozie.util.ZKUtils;
+
 import java.io.IOException;
 import java.util.concurrent.ScheduledExecutorService;
+
 import org.apache.curator.framework.recipes.locks.ChildReaper;
 import org.apache.curator.framework.recipes.locks.Reaper;
+import org.apache.curator.framework.state.ConnectionState;
 import org.apache.curator.utils.ThreadUtils;
+
 import com.google.common.annotations.VisibleForTesting;
 
 /**
@@ -48,7 +54,6 @@ public class ZKLocksService extends MemoryLocksService implements Service, Instr
     final private HashMap<String, InterProcessReadWriteLock> zkLocks = new HashMap<String, InterProcessReadWriteLock>();
 
     private static final String REAPING_LEADER_PATH = ZKUtils.ZK_BASE_SERVICES_PATH + "/locksChildReaperLeaderPath";
-    public static final int DEFAULT_REAPING_THRESHOLD = 300; // In sec
     public static final String REAPING_THRESHOLD = CONF_PREFIX + "ZKLocksService.locks.reaper.threshold";
     public static final String REAPING_THREADS = CONF_PREFIX + "ZKLocksService.locks.reaper.threads";
     private ChildReaper reaper = null;
@@ -63,8 +68,8 @@ public class ZKLocksService extends MemoryLocksService implements Service, Instr
         super.init(services);
         try {
             zk = ZKUtils.register(this);
-            reaper = new ChildReaper(zk.getClient(), LOCKS_NODE, Reaper.Mode.REAP_INDEFINITELY, getExecutorService(),
-                    services.getConf().getInt(REAPING_THRESHOLD, DEFAULT_REAPING_THRESHOLD) * 1000, REAPING_LEADER_PATH);
+            reaper = new ChildReaper(zk.getClient(), LOCKS_NODE, Reaper.Mode.REAP_UNTIL_GONE, getExecutorService(),
+                    ConfigurationService.getInt(services.getConf(), REAPING_THRESHOLD) * 1000, REAPING_LEADER_PATH);
             reaper.start();
         }
         catch (Exception ex) {
@@ -77,7 +82,7 @@ public class ZKLocksService extends MemoryLocksService implements Service, Instr
      */
     @Override
     public void destroy() {
-        if (reaper != null) {
+        if (reaper != null && ZKConnectionListener.getZKConnectionState() != ConnectionState.LOST) {
             try {
                 reaper.close();
             }
@@ -85,7 +90,6 @@ public class ZKLocksService extends MemoryLocksService implements Service, Instr
                 LOG.error("Error closing childReaper", e);
             }
         }
-
         if (zk != null) {
             zk.unregister(this);
         }
@@ -216,7 +220,7 @@ public class ZKLocksService extends MemoryLocksService implements Service, Instr
     }
 
     private static ScheduledExecutorService getExecutorService() {
-        return ThreadUtils.newFixedThreadScheduledPool(Services.get().getConf().getInt(REAPING_THREADS, 2),
+        return ThreadUtils.newFixedThreadScheduledPool(ConfigurationService.getInt(REAPING_THREADS),
                 "ZKLocksChildReaper");
     }
 

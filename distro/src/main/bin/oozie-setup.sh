@@ -134,7 +134,7 @@ do
     OOZIE_OPTS="${OOZIE_OPTS} -Dderby.stream.error.file=${OOZIE_LOG}/derby.log"
 
     OOZIECPPATH=""
-    OOZIECPPATH=${BASEDIR}/libtools/'*':${BASEDIR}/libext/'*'
+    OOZIECPPATH=${BASEDIR}/lib/'*':${BASEDIR}/libtools/'*':${BASEDIR}/libext/'*'
 
     if test -z ${JAVA_HOME}; then
       JAVA_BIN=java
@@ -164,13 +164,6 @@ do
   fi
   shift
 done
-
-if [ -e "${CATALINA_PID}" ]; then
-  echo
-  echo "ERROR: Stop Oozie first"
-  echo
-  exit -1
-fi
 
 echo
 

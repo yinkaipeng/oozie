@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.dependency;
 
 import java.net.URI;
@@ -92,6 +93,13 @@ public class TestHCatURIHandler extends XHCatTestCase {
         assertFalse(handler.exists(hcatURI, conf, getTestUser()));
 
         hcatURI = getHCatURI(db, table, "month=02;dt=02");
+        assertFalse(handler.exists(hcatURI, conf, getTestUser()));
+
+        addPartition(db, table, "year=2012;month=12;dt=04;country=us");
+
+        hcatURI = getHCatURI(db, table, "country=us;year=2012;month=12;dt=04");
+        assertTrue(handler.exists(hcatURI, conf, getTestUser()));
+        ((HCatURIHandler)handler).delete(hcatURI, conf, getTestUser());
         assertFalse(handler.exists(hcatURI, conf, getTestUser()));
 
         dropTestTable();

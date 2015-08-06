@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.command.coord;
 
 import java.util.List;
@@ -47,6 +48,11 @@ public class CoordActionReadyXCommand extends CoordinatorXCommand<Void> {
     public CoordActionReadyXCommand(String id) {
         super("coord_action_ready", "coord_action_ready", 1);
         this.jobId = id;
+    }
+
+    @Override
+    protected void setLogInfo() {
+        LogUtils.setLogInfo(jobId);
     }
 
     @Override
@@ -157,7 +163,7 @@ public class CoordActionReadyXCommand extends CoordinatorXCommand<Void> {
         catch (JPAExecutorException e) {
             throw new CommandException(e);
         }
-        LogUtils.setLogInfo(coordJob, logInfo);
+        LogUtils.setLogInfo(coordJob);
     }
 
     @Override

@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.command.coord;
 
 import org.apache.hadoop.conf.Configuration;
@@ -31,6 +32,7 @@ import org.apache.oozie.command.CommandException;
 import org.apache.oozie.command.MaterializeTransitionXCommand;
 import org.apache.oozie.command.PreconditionException;
 import org.apache.oozie.command.bundle.BundleStatusUpdateXCommand;
+import org.apache.oozie.coord.CoordUtils;
 import org.apache.oozie.coord.TimeUnit;
 import org.apache.oozie.executor.jpa.BatchQueryExecutor;
 import org.apache.oozie.executor.jpa.BatchQueryExecutor.UpdateEntry;
@@ -38,6 +40,7 @@ import org.apache.oozie.executor.jpa.CoordActionsActiveCountJPAExecutor;
 import org.apache.oozie.executor.jpa.CoordJobQueryExecutor;
 import org.apache.oozie.executor.jpa.CoordJobQueryExecutor.CoordJobQuery;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
+import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.CoordMaterializeTriggerService;
 import org.apache.oozie.service.EventHandlerService;
 import org.apache.oozie.service.JPAService;
@@ -77,11 +80,8 @@ public class CoordMaterializeTransitionXCommand extends MaterializeTransitionXCo
     private int lastActionNumber = 1; // over-ride by DB value
     private CoordinatorJob.Status prevStatus = null;
 
-    static final private int lookAheadWindow = Services
-            .get()
-            .getConf()
-            .getInt(CoordMaterializeTriggerService.CONF_LOOKUP_INTERVAL,
-                    CoordMaterializeTriggerService.CONF_LOOKUP_INTERVAL_DEFAULT);
+    static final private int lookAheadWindow = ConfigurationService.getInt(CoordMaterializeTriggerService
+            .CONF_LOOKUP_INTERVAL);
 
     /**
      * Default MAX timeout in minutes, after which coordinator input check will timeout
@@ -93,12 +93,21 @@ public class CoordMaterializeTransitionXCommand extends MaterializeTransitionXCo
      *
      * @param jobId coordinator job id
      * @param materializationWindow materialization window to calculate end time
-     * @param lookahead window
      */
     public CoordMaterializeTransitionXCommand(String jobId, int materializationWindow) {
         super("coord_mater", "coord_mater", 1);
         this.jobId = ParamChecker.notEmpty(jobId, "jobId");
         this.materializationWindow = materializationWindow;
+    }
+
+    public CoordMaterializeTransitionXCommand(CoordinatorJobBean coordJob, int materializationWindow, Date startTime,
+                                              Date endTime) {
+        super("coord_mater", "coord_mater", 1);
+        this.jobId = ParamChecker.notEmpty(coordJob.getId(), "jobId");
+        this.materializationWindow = materializationWindow;
+        this.coordJob = coordJob;
+        this.startMatdTime = startTime;
+        this.endMatdTime = endTime;
     }
 
     /* (non-Javadoc)
@@ -185,7 +194,7 @@ public class CoordMaterializeTransitionXCommand extends MaterializeTransitionXCo
         // calculate start materialize and end materialize time
         calcMatdTime();
 
-        LogUtils.setLogInfo(coordJob, logInfo);
+        LogUtils.setLogInfo(coordJob);
     }
 
     /**
@@ -302,6 +311,15 @@ public class CoordMaterializeTransitionXCommand extends MaterializeTransitionXCo
             }
         }
 
+        if (coordJob.getNextMaterializedTimestamp() != null
+                && coordJob.getNextMaterializedTimestamp().after(
+                        new Timestamp(System.currentTimeMillis() + lookAheadWindow * 1000))) {
+            throw new PreconditionException(ErrorCode.E1100, "CoordMaterializeTransitionXCommand for jobId=" + jobId
+                    + " Request is for future time. Lookup time is  "
+                    + new Timestamp(System.currentTimeMillis() + lookAheadWindow * 1000) + " mat time is "
+                    + coordJob.getNextMaterializedTimestamp());
+        }
+
         if (coordJob.getLastActionTime() != null && coordJob.getLastActionTime().compareTo(coordJob.getEndTime()) >= 0) {
             throw new PreconditionException(ErrorCode.E1100, "ENDED Coordinator materialization for jobId = " + jobId
                     + ", all actions have been materialized from start time = " + coordJob.getStartTime()
@@ -412,7 +430,7 @@ public class CoordMaterializeTransitionXCommand extends MaterializeTransitionXCo
         }
 
         String action = null;
-        int numWaitingActions = jpaService.execute(new CoordActionsActiveCountJPAExecutor(coordJob.getId()));
+        int numWaitingActions = dryrun ? 0 : jpaService.execute(new CoordActionsActiveCountJPAExecutor(coordJob.getId()));
         int maxActionToBeCreated = coordJob.getMatThrottling() - numWaitingActions;
         // If LAST_ONLY and all materialization is in the past, ignore maxActionsToBeCreated
         boolean ignoreMaxActions =
@@ -469,7 +487,7 @@ public class CoordMaterializeTransitionXCommand extends MaterializeTransitionXCo
                 actionBean.setTimeOut(timeout);
 
                 if (!dryrun) {
-                    storeToDB(actionBean, action); // Storing to table
+                    storeToDB(actionBean, action, jobConf); // Storing to table
 
                 }
                 else {
@@ -507,26 +525,28 @@ public class CoordMaterializeTransitionXCommand extends MaterializeTransitionXCo
         }
     }
 
-    private void storeToDB(CoordinatorActionBean actionBean, String actionXml) throws Exception {
+    private void storeToDB(CoordinatorActionBean actionBean, String actionXml, Configuration jobConf) throws Exception {
         LOG.debug("In storeToDB() coord action id = " + actionBean.getId() + ", size of actionXml = "
                 + actionXml.length());
         actionBean.setActionXml(actionXml);
 
         insertList.add(actionBean);
-        writeActionSlaRegistration(actionXml, actionBean);
+        writeActionSlaRegistration(actionXml, actionBean, jobConf);
     }
 
-    private void writeActionSlaRegistration(String actionXml, CoordinatorActionBean actionBean) throws Exception {
+    private void writeActionSlaRegistration(String actionXml, CoordinatorActionBean actionBean, Configuration jobConf)
+            throws Exception {
         Element eAction = XmlUtils.parseXml(actionXml);
         Element eSla = eAction.getChild("action", eAction.getNamespace()).getChild("info", eAction.getNamespace("sla"));
-        SLAEventBean slaEvent = SLADbOperations.createSlaRegistrationEvent(eSla, actionBean.getId(), SlaAppType.COORDINATOR_ACTION, coordJob
-                .getUser(), coordJob.getGroup(), LOG);
-        if(slaEvent != null) {
+                SLAEventBean slaEvent = SLADbOperations.createSlaRegistrationEvent(eSla, actionBean.getId(),
+                                 SlaAppType.COORDINATOR_ACTION, coordJob.getUser(), coordJob.getGroup(), LOG);
+                         if (slaEvent != null) {
             insertList.add(slaEvent);
         }
         // inserting into new table also
         SLAOperations.createSlaRegistrationEvent(eSla, actionBean.getId(), actionBean.getJobId(),
-                AppType.COORDINATOR_ACTION, coordJob.getUser(), coordJob.getAppName(), LOG, false);
+                AppType.COORDINATOR_ACTION, coordJob.getUser(), coordJob.getAppName(), LOG, false,
+                CoordUtils.isSlaAlertDisabled(actionBean, coordJob.getAppName(), jobConf));
     }
 
     private void updateJobMaterializeInfo(CoordinatorJobBean job) throws CommandException {

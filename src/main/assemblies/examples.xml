@@ -40,6 +40,10 @@
             <outputDirectory>/examples/input-data/text</outputDirectory>
         </file>
         <file>
+            <source>${basedir}/src/main/data/int.txt</source>
+            <outputDirectory>/examples/input-data/table</outputDirectory>
+        </file>
+        <file>
             <source>${basedir}/src/main/data/log01.txt</source>
             <outputDirectory>/examples/input-data/rawLogs/2010/01/01/00/20</outputDirectory>
         </file>
@@ -114,7 +118,12 @@
         <file>
             <source>${basedir}/target/${artifact.artifactId}-${artifact.version}.jar</source>
             <outputDirectory>/examples/apps/map-reduce/lib</outputDirectory>
-        </file> 
+        </file>
+        <file>
+            <source>${basedir}/target/${artifact.artifactId}-${artifact.version}.jar</source>
+            <outputDirectory>/examples/apps/spark/lib</outputDirectory>
+            <destName>${artifact.artifactId}.jar</destName>
+        </file>
     </files>
 
 </assembly>

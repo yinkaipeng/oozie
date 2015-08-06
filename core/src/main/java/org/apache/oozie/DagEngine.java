@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie;
 
 import org.apache.oozie.service.XLogService;
@@ -41,11 +42,14 @@ import org.apache.oozie.command.wf.SubmitSqoopXCommand;
 import org.apache.oozie.command.wf.SubmitXCommand;
 import org.apache.oozie.command.wf.SuspendXCommand;
 import org.apache.oozie.command.wf.WorkflowActionInfoXCommand;
+import org.apache.oozie.command.OperationType;
+import org.apache.oozie.command.wf.BulkWorkflowXCommand;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
 import org.apache.oozie.executor.jpa.WorkflowJobQueryExecutor;
 import org.apache.oozie.executor.jpa.WorkflowJobQueryExecutor.WorkflowJobQuery;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.service.CallableQueueService;
+import org.apache.oozie.util.XLogAuditFilter;
 import org.apache.oozie.util.XLogFilter;
 import org.apache.oozie.util.XLogUserFilterParam;
 import org.apache.oozie.util.ParamChecker;
@@ -79,12 +83,7 @@ public class DagEngine extends BaseEngine {
      * Create a system Dag engine, with no user and no group.
      */
     public DagEngine() {
-        if (Services.get().getConf().getBoolean(USE_XCOMMAND, true) == false) {
-            LOG.debug("Oozie DagEngine is not using XCommands.");
-        }
-        else {
-            LOG.debug("Oozie DagEngine is using XCommands.");
-        }
+
     }
 
     /**
@@ -383,7 +382,7 @@ public class DagEngine extends BaseEngine {
     @Override
     public String getDefinition(String jobId) throws DagEngineException {
         try {
-			return new DefinitionXCommand(jobId).call();
+            return new DefinitionXCommand(jobId).call();
         }
         catch (CommandException ex) {
             throw new DagEngineException(ex);
@@ -402,15 +401,64 @@ public class DagEngine extends BaseEngine {
     @Override
     public void streamLog(String jobId, Writer writer, Map<String, String[]> params) throws IOException,
             DagEngineException {
+        streamJobLog(jobId, writer, params, LOG_TYPE.LOG);
+    }
+
+    /**
+     * Stream the error log of a job.
+     *
+     * @param jobId job Id.
+     * @param writer writer to stream the log to.
+     * @param params additional parameters from the request
+     * @throws IOException thrown if the log cannot be streamed.
+     * @throws DagEngineException thrown if there is error in getting the Workflow Information for jobId.
+     */
+    @Override
+    public void streamErrorLog(String jobId, Writer writer, Map<String, String[]> params) throws IOException,
+            DagEngineException {
+        streamJobLog(jobId, writer, params, LOG_TYPE.ERROR_LOG);
+    }
+
+    /**
+     * Stream the audit log of a job.
+     *
+     * @param jobId job Id.
+     * @param writer writer to stream the log to.
+     * @param params additional parameters from the request
+     * @throws IOException thrown if the log cannot be streamed.
+     * @throws DagEngineException thrown if there is error in getting the Workflow Information for jobId.
+     */
+    @Override
+    public void streamAuditLog(String jobId, Writer writer, Map<String, String[]> params) throws IOException,
+            DagEngineException {
         try {
-            XLogFilter filter = new XLogFilter(new XLogUserFilterParam(params));
+            streamJobLog(new XLogAuditFilter(new XLogUserFilterParam(params)),jobId, writer, params, LOG_TYPE.AUDIT_LOG);
+        }
+        catch (CommandException e) {
+            throw new IOException(e);
+        }
+    }
+
+    private void streamJobLog(String jobId, Writer writer, Map<String, String[]> params, LOG_TYPE logType)
+            throws IOException, DagEngineException {
+        try {
+            streamJobLog(new XLogFilter(new XLogUserFilterParam(params)), jobId, writer, params, logType);
+        }
+        catch (Exception e) {
+            throw new IOException(e);
+        }
+    }
+
+    private void streamJobLog(XLogFilter filter, String jobId, Writer writer, Map<String, String[]> params, LOG_TYPE logType)
+            throws IOException, DagEngineException {
+        try {
             filter.setParameter(DagXLogInfoService.JOB, jobId);
             WorkflowJob job = getJob(jobId);
             Date lastTime = job.getEndTime();
             if (lastTime == null) {
                 lastTime = job.getLastModifiedTime();
             }
-            Services.get().get(XLogStreamingService.class).streamLog(filter, job.getCreatedTime(), lastTime, writer, params);
+            fetchLog(filter, job.getCreatedTime(), lastTime, writer, params, logType);
         }
         catch (Exception e) {
             throw new IOException(e);
@@ -425,6 +473,8 @@ public class DagEngine extends BaseEngine {
         FILTER_NAMES.add(OozieClient.FILTER_GROUP);
         FILTER_NAMES.add(OozieClient.FILTER_STATUS);
         FILTER_NAMES.add(OozieClient.FILTER_ID);
+        FILTER_NAMES.add(OozieClient.FILTER_CREATED_TIME_START);
+        FILTER_NAMES.add(OozieClient.FILTER_CREATED_TIME_END);
     }
 
     /**
@@ -445,6 +495,7 @@ public class DagEngine extends BaseEngine {
                     if (pair.length != 2) {
                         throw new DagEngineException(ErrorCode.E0420, filter, "elements must be name=value pairs");
                     }
+                    pair[0] = pair[0].toLowerCase();
                     if (!FILTER_NAMES.contains(pair[0])) {
                         throw new DagEngineException(ErrorCode.E0420, filter, XLog
                                 .format("invalid name [{0}]", pair[0]));
@@ -538,6 +589,105 @@ public class DagEngine extends BaseEngine {
             SubmitXCommand submit = new SubmitXCommand(true, conf);
             return submit.call();
         } catch (CommandException ex) {
+            throw new DagEngineException(ex);
+        }
+    }
+
+    /**
+     * Return the status for a Job ID
+     *
+     * @param jobId job Id.
+     * @return the job's status
+     * @throws DagEngineException thrown if the job's status could not be obtained
+     */
+    @Override
+    public String getJobStatus(String jobId) throws DagEngineException {
+        try {
+            WorkflowJobBean wfJob = WorkflowJobQueryExecutor.getInstance().get(WorkflowJobQuery.GET_WORKFLOW_STATUS, jobId);
+            return wfJob.getStatusStr();
+        }
+        catch (JPAExecutorException ex) {
+            throw new DagEngineException(ex);
+        }
+    }
+
+    @Override
+    public void enableSLAAlert(String id, String actions, String dates, String childIds) throws BaseEngineException {
+        throw new BaseEngineException(new XException(ErrorCode.E0301, "Not supported for workflow"));
+    }
+
+    @Override
+    public void disableSLAAlert(String id, String actions, String dates, String childIds) throws BaseEngineException {
+        throw new BaseEngineException(new XException(ErrorCode.E0301, "Not supported for workflow"));
+    }
+
+    @Override
+    public void changeSLA(String id, String actions, String dates, String childIds, String newParams) throws BaseEngineException {
+        throw new BaseEngineException(new XException(ErrorCode.E0301, "Not supported for workflow"));
+    }
+
+    /**
+     * return the jobs that've been killed
+     * @param filter Jobs that satisfy the filter will be killed
+     * @param start start index in the database of jobs
+     * @param len maximum number of jobs that will be killed
+     * @return
+     * @throws DagEngineException
+     */
+    public WorkflowsInfo killJobs(String filter, int start, int len) throws DagEngineException {
+        try {
+            Map<String, List<String>> filterList = parseFilter(filter);
+            WorkflowsInfo workflowsInfo = new BulkWorkflowXCommand(filterList, start, len, OperationType.Kill).call();
+            if (workflowsInfo == null) {
+                return new WorkflowsInfo(new ArrayList<WorkflowJobBean>(), 0, 0, 0);
+            }
+            return workflowsInfo;
+        }
+        catch (CommandException ex) {
+            throw new DagEngineException(ex);
+        }
+    }
+
+    /**
+     * return the jobs that've been suspended
+     * @param filter Filter for jobs that will be suspended, can be name, user, group, status, id or combination of any
+     * @param start Offset for the jobs that will be suspended
+     * @param len maximum number of jobs that will be suspended
+     * @return
+     * @throws DagEngineException
+     */
+    public WorkflowsInfo suspendJobs(String filter, int start, int len) throws DagEngineException {
+        try {
+            Map<String, List<String>> filterList = parseFilter(filter);
+            WorkflowsInfo workflowsInfo = new BulkWorkflowXCommand(filterList, start, len, OperationType.Suspend).call();
+            if (workflowsInfo == null) {
+                return new WorkflowsInfo(new ArrayList<WorkflowJobBean>(), 0, 0, 0);
+            }
+            return workflowsInfo;
+        }
+        catch (CommandException ex) {
+            throw new DagEngineException(ex);
+        }
+    }
+
+    /**
+     * return the jobs that've been resumed
+     * @param filter Filter for jobs that will be resumed, can be name, user, group, status, id or combination of any
+     * @param start Offset for the jobs that will be resumed
+     * @param len maximum number of jobs that will be resumed
+     * @return
+     * @throws DagEngineException
+     */
+    public WorkflowsInfo resumeJobs(String filter, int start, int len) throws DagEngineException {
+        try {
+            Map<String, List<String>> filterList = parseFilter(filter);
+            WorkflowsInfo workflowsInfo = new BulkWorkflowXCommand(filterList, start, len, OperationType.Resume).call();
+            if (workflowsInfo == null) {
+                return new WorkflowsInfo(new ArrayList<WorkflowJobBean>(), 0, 0, 0);
+            }
+            return workflowsInfo;
+        }
+        catch (CommandException ex) {
             throw new DagEngineException(ex);
         }
     }

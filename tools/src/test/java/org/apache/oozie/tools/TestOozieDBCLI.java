@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 
+
 package org.apache.oozie.tools;
 
 import org.apache.hadoop.fs.FileUtil;
@@ -52,7 +53,6 @@ public class TestOozieDBCLI extends XTestCase {
         Connection conn = DriverManager.getConnection(url, "sa", "");
         conn.close();
 
-        System.setProperty("oozie.test.metastore.server", "false");
         super.setUp(false);
 
     }

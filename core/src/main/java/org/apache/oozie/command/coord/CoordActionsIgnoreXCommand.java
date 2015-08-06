@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.command.coord;
 
 import java.util.Date;
@@ -133,6 +134,6 @@ public class CoordActionsIgnoreXCommand extends IgnoreTransitionXCommand<Coordin
         }catch (Exception ex){
             throw new CommandException(ErrorCode.E0603, ex.getMessage(), ex);
         }
-        LogUtils.setLogInfo(this.coordJob, logInfo);
+        LogUtils.setLogInfo(this.coordJob);
     }
 }

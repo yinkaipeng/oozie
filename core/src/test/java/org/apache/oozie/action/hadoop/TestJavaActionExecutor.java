@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.action.hadoop;
 
 import java.io.File;
@@ -32,6 +33,7 @@ import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.filecache.DistributedCache;
+import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -48,6 +50,7 @@ import org.apache.oozie.action.ActionExecutorException;
 import org.apache.oozie.client.OozieClient;
 import org.apache.oozie.client.WorkflowAction;
 import org.apache.oozie.client.WorkflowJob;
+import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.HadoopAccessorService;
 import org.apache.oozie.service.LiteWorkflowStoreService;
 import org.apache.oozie.service.Services;
@@ -287,8 +290,8 @@ public class TestJavaActionExecutor extends ActionExecutorTestCase {
         conf = ae.createLauncherConf(getFileSystem(), context, action, actionXml, actionConf);
         assertEquals("LQ", conf.get("mapred.job.queue.name"));
         assertEquals("AQ", actionConf.get("mapred.job.queue.name"));
-
-
+        assertEquals(true, conf.getBoolean("mapreduce.job.complete.cancel.delegation.tokens", false));
+        assertEquals(false, actionConf.getBoolean("mapreduce.job.complete.cancel.delegation.tokens", true));
     }
 
     protected Context createContext(String actionXml, String group) throws Exception {
@@ -950,8 +953,7 @@ public class TestJavaActionExecutor extends ActionExecutorTestCase {
         }
 
         // Define 'abc' token type in oozie-site
-        Configuration conf = Services.get().getConf();
-        conf.set("oozie.credentials.credentialclasses", "abc=org.apache.oozie.action.hadoop.InsertTestToken");
+        ConfigurationService.set("oozie.credentials.credentialclasses", "abc=org.apache.oozie.action.hadoop.InsertTestToken");
 
         // Try to load the token after being defined in oozie-site; should work correctly
         credentialsConf = new JobConf();
@@ -1027,7 +1029,7 @@ public class TestJavaActionExecutor extends ActionExecutorTestCase {
         Assert.assertArrayEquals(new String[] { "java-action-executor" },
                 ae.getShareLibNames(context, new Element("java"), actionConf));
 
-        Services.get().getConf().set("oozie.action.sharelib.for.java", "java-oozie-conf");
+        ConfigurationService.set("oozie.action.sharelib.for.java", "java-oozie-conf");
         Assert.assertArrayEquals(new String[] { "java-oozie-conf" },
                 ae.getShareLibNames(context, new Element("java"), actionConf));
 
@@ -1068,8 +1070,8 @@ public class TestJavaActionExecutor extends ActionExecutorTestCase {
 
         Configuration conf = ae.createLauncherConf(getFileSystem(), context, action, actionXmlconf, actionConf);
 
-        assertEquals("-Xmx200m JAVA-OPT1 JAVA-OPT2", conf.get("mapred.child.java.opts"));
-        assertEquals("-Xmx200m JAVA-OPT1 JAVA-OPT2", conf.get("mapreduce.map.java.opts"));
+        assertEquals("-Xmx200m JAVA-OPT1 JAVA-OPT2 -Djava.io.tmpdir=./tmp", conf.get("mapred.child.java.opts"));
+        assertEquals("-Xmx200m JAVA-OPT1 JAVA-OPT2 -Djava.io.tmpdir=./tmp", conf.get("mapreduce.map.java.opts"));
 
         actionXml = "<java>" + "<job-tracker>" + getJobTrackerUri() + "</job-tracker>" + "<name-node>"
                 + getNameNodeUri() + "</name-node>" + "<job-xml>job.xml</job-xml>" + "<job-xml>job2.xml</job-xml>"
@@ -1093,8 +1095,8 @@ public class TestJavaActionExecutor extends ActionExecutorTestCase {
 
         conf = ae.createLauncherConf(getFileSystem(), context, action, actionXmlconf, actionConf);
 
-        assertEquals("-Xmx200m JAVA-OPT1 JAVA-OPT2", conf.get("mapred.child.java.opts"));
-        assertEquals("-Xmx200m JAVA-OPT1 JAVA-OPT2", conf.get("mapreduce.map.java.opts"));
+        assertEquals("-Xmx200m JAVA-OPT1 JAVA-OPT2 -Djava.io.tmpdir=./tmp", conf.get("mapred.child.java.opts"));
+        assertEquals("-Xmx200m JAVA-OPT1 JAVA-OPT2 -Djava.io.tmpdir=./tmp", conf.get("mapreduce.map.java.opts"));
 
         actionXml = "<java>" + "<job-tracker>" + getJobTrackerUri() + "</job-tracker>" + "<name-node>"
                 + getNameNodeUri() + "</name-node>" + "<job-xml>job.xml</job-xml>" + "<job-xml>job2.xml</job-xml>"
@@ -1120,8 +1122,8 @@ public class TestJavaActionExecutor extends ActionExecutorTestCase {
 
         conf = ae.createLauncherConf(getFileSystem(), context, action, actionXmlconf, actionConf);
 
-        assertEquals("JAVA-OPT3 JAVA-OPT1 JAVA-OPT2", conf.get("mapred.child.java.opts"));
-        assertEquals("JAVA-OPT3 JAVA-OPT1 JAVA-OPT2", conf.get("mapreduce.map.java.opts"));
+        assertEquals("JAVA-OPT3 JAVA-OPT1 JAVA-OPT2 -Djava.io.tmpdir=./tmp", conf.get("mapred.child.java.opts"));
+        assertEquals("JAVA-OPT3 JAVA-OPT1 JAVA-OPT2 -Djava.io.tmpdir=./tmp", conf.get("mapreduce.map.java.opts"));
 
         actionXml = "<java>" + "<job-tracker>" + getJobTrackerUri() + "</job-tracker>" + "<name-node>"
                 + getNameNodeUri() + "</name-node>" + "<job-xml>job.xml</job-xml>" + "<job-xml>job2.xml</job-xml>"
@@ -1147,8 +1149,8 @@ public class TestJavaActionExecutor extends ActionExecutorTestCase {
 
         conf = ae.createLauncherConf(getFileSystem(), context, action, actionXmlconf, actionConf);
 
-        assertEquals("-Xmx200m JAVA-OPT3 JAVA-OPT1 JAVA-OPT2", conf.get("mapred.child.java.opts"));
-        assertEquals("-Xmx200m JAVA-OPT3 JAVA-OPT1 JAVA-OPT2", conf.get("mapreduce.map.java.opts"));
+        assertEquals("-Xmx200m JAVA-OPT3 JAVA-OPT1 JAVA-OPT2 -Djava.io.tmpdir=./tmp", conf.get("mapred.child.java.opts"));
+        assertEquals("-Xmx200m JAVA-OPT3 JAVA-OPT1 JAVA-OPT2 -Djava.io.tmpdir=./tmp", conf.get("mapreduce.map.java.opts"));
 
         actionXml = "<java>" + "<job-tracker>" + getJobTrackerUri() + "</job-tracker>" + "<name-node>"
                 + getNameNodeUri() + "</name-node>" + "<job-xml>job.xml</job-xml>" + "<job-xml>job2.xml</job-xml>"
@@ -1175,8 +1177,8 @@ public class TestJavaActionExecutor extends ActionExecutorTestCase {
 
         conf = ae.createLauncherConf(getFileSystem(), context, action, actionXmlconf, actionConf);
 
-        assertEquals("JAVA-OPT3 JAVA-OPT4 JAVA-OPT1 JAVA-OPT2", conf.get("mapred.child.java.opts"));
-        assertEquals("JAVA-OPT3 JAVA-OPT4 JAVA-OPT1 JAVA-OPT2", conf.get("mapreduce.map.java.opts"));
+        assertEquals("JAVA-OPT3 JAVA-OPT4 JAVA-OPT1 JAVA-OPT2 -Djava.io.tmpdir=./tmp", conf.get("mapred.child.java.opts"));
+        assertEquals("JAVA-OPT3 JAVA-OPT4 JAVA-OPT1 JAVA-OPT2 -Djava.io.tmpdir=./tmp", conf.get("mapreduce.map.java.opts"));
     }
 
     public void testActionLibsPath() throws Exception {
@@ -1260,7 +1262,7 @@ public class TestJavaActionExecutor extends ActionExecutorTestCase {
 
         WorkflowAppService wps = Services.get().get(WorkflowAppService.class);
 
-        Path systemLibPath = new Path(wps.getSystemLibPath(), ShareLibService.SHARED_LIB_PREFIX
+        Path systemLibPath = new Path(wps.getSystemLibPath(), ShareLibService.SHARE_LIB_PREFIX
                 + new SimpleDateFormat("yyyyMMddHHmmss").format(new Date()).toString());
 
         Path javaShareLibPath = new Path(systemLibPath, "java");
@@ -1300,7 +1302,7 @@ public class TestJavaActionExecutor extends ActionExecutorTestCase {
         wfConf.setBoolean(OozieClient.USE_SYSTEM_LIBPATH, true);
         workflow.setConf(XmlUtils.prettyPrint(wfConf).toString());
 
-        Services.get().getConf().set("oozie.action.sharelib.for.java", "java,hcat");
+        ConfigurationService.set("oozie.action.sharelib.for.java", "java,hcat");
 
         JavaActionExecutor ae = new JavaActionExecutor();
 
@@ -1338,7 +1340,7 @@ public class TestJavaActionExecutor extends ActionExecutorTestCase {
         wfConf.set("oozie.action.sharelib.for.java", "other,hcat");
         workflow.setConf(XmlUtils.prettyPrint(wfConf).toString());
 
-        Services.get().getConf().set("oozie.action.sharelib.for.java", "java");
+        ConfigurationService.set("oozie.action.sharelib.for.java", "java");
         ae = new JavaActionExecutor();
 
         jobConf = ae.createBaseHadoopConf(context, eActionXml);
@@ -1375,7 +1377,7 @@ public class TestJavaActionExecutor extends ActionExecutorTestCase {
         new Services().init();
         // Create the dir
         WorkflowAppService wps = Services.get().get(WorkflowAppService.class);
-        Path systemLibPath = new Path(wps.getSystemLibPath(), ShareLibService.SHARED_LIB_PREFIX
+        Path systemLibPath = new Path(wps.getSystemLibPath(), ShareLibService.SHARE_LIB_PREFIX
                 + new SimpleDateFormat("yyyyMMddHHmmss").format(new Date()).toString());
         Path javaShareLibPath = new Path(systemLibPath, "java-action-executor");
         getFileSystem().mkdirs(javaShareLibPath);
@@ -1384,7 +1386,7 @@ public class TestJavaActionExecutor extends ActionExecutorTestCase {
         JobConf conf = ae.createBaseHadoopConf(context, eActionXml);
         // Despite systemLibPath is not fully qualified and the action refers to the
         // second namenode the next line won't throw exception because default fs is used
-        ae.addShareLib(conf, new String[]{"java-action-executor"});
+        ae.addShareLib(conf, new String[] { "java-action-executor" });
 
         // Set sharelib to a full path (i.e. include scheme and authority)
         Services.get().destroy();
@@ -1393,7 +1395,7 @@ public class TestJavaActionExecutor extends ActionExecutorTestCase {
         Services.get().setService(ShareLibService.class);
         conf = ae.createBaseHadoopConf(context, eActionXml);
         // The next line should not throw an Exception because it will get the scheme and authority from the sharelib path
-        ae.addShareLib(conf, new String[]{"java-action-executor"});
+        ae.addShareLib(conf, new String[] { "java-action-executor" });
     }
 
     public void testFilesystemScheme() throws Exception {
@@ -1612,343 +1614,580 @@ public class TestJavaActionExecutor extends ActionExecutorTestCase {
         assertEquals("test", conf.get("user"));
     }
 
-    public void testInjectLauncherUseUberMode() throws Exception {
-        // TODO: Delete these two lines once uber mode is set back to the
-        // default (OOZIE-1385)
-        assertFalse(Services.get().getConf().getBoolean("oozie.action.launcher.mapreduce.job.ubertask.enable", true));
-        Services.get().getConf().setBoolean("oozie.action.launcher.mapreduce.job.ubertask.enable", true);
-
-        // default -- should set to true
-        JavaActionExecutor jae = new JavaActionExecutor();
-        Configuration conf = new Configuration(false);
-        assertNull(conf.get("mapreduce.job.ubertask.enable"));
-        jae.injectLauncherUseUberMode(conf);
-        assertEquals("true", conf.get("mapreduce.job.ubertask.enable"));
-
-        // action conf set to true -- should keep at true
-        conf = new Configuration(false);
-        assertNull(conf.get("mapreduce.job.ubertask.enable"));
-        conf.setBoolean("mapreduce.job.ubertask.enable", true);
-        jae.injectLauncherUseUberMode(conf);
-        assertEquals("true", conf.get("mapreduce.job.ubertask.enable"));
-
-        // action conf set to false -- should keep at false
-        conf = new Configuration(false);
-        assertNull(conf.get("mapreduce.job.ubertask.enable"));
-        conf.setBoolean("mapreduce.job.ubertask.enable", false);
-        jae.injectLauncherUseUberMode(conf);
-        assertEquals("false", conf.get("mapreduce.job.ubertask.enable"));
-
-        // disable at oozie-site level (default is to be enabled) -- redo above
-        // tests
-        Services.get().getConf().setBoolean("oozie.action.launcher.mapreduce.job.ubertask.enable", false);
-
-        // default -- should not set
-        conf = new Configuration(false);
-        assertNull(conf.get("mapreduce.job.ubertask.enable"));
-        jae.injectLauncherUseUberMode(conf);
-        assertNull(conf.get("mapreduce.job.ubertask.enable"));
-
-        // action conf set to true -- should keep at true
-        conf = new Configuration(false);
-        assertNull(conf.get("mapreduce.job.ubertask.enable"));
-        conf.setBoolean("mapreduce.job.ubertask.enable", true);
-        jae.injectLauncherUseUberMode(conf);
-        assertEquals("true", conf.get("mapreduce.job.ubertask.enable"));
-
-        // action conf set to false -- should keep at false
-        conf = new Configuration(false);
-        assertNull(conf.get("mapreduce.job.ubertask.enable"));
-        conf.setBoolean("mapreduce.job.ubertask.enable", false);
-        jae.injectLauncherUseUberMode(conf);
-        assertEquals("false", conf.get("mapreduce.job.ubertask.enable"));
-    }
-
-    public void testUpdateConfForUberMode() throws Exception {
-
-        Services.get().getConf().setBoolean("oozie.action.launcher.mapreduce.job.ubertask.enable", true);
-
-        Element actionXml1 = XmlUtils
-                .parseXml("<java>"
-                        + "<job-tracker>"
-                        + getJobTrackerUri()
-                        + "</job-tracker>"
-                        + "<name-node>"
-                        + getNameNodeUri()
-                        + "</name-node>"
-                        + "<configuration>"
-                        + "<property><name>oozie.launcher.mapreduce.map.memory.mb</name><value>2048</value></property>"
-                        + "<property><name>oozie.launcher.mapred.child.java.opts</name>"
-                        + "<value>-Xmx2048m -Djava.net.preferIPv4Stack=true</value></property>"
-                        + "<property><name>oozie.launcher.mapred.child.env</name><value>A=foo</value></property>"
-                        + "</configuration>" + "<main-class>MAIN-CLASS</main-class>" + "</java>");
-        JavaActionExecutor ae = new JavaActionExecutor();
-        XConfiguration protoConf = new XConfiguration();
-        protoConf.set(WorkflowAppService.HADOOP_USER, getTestUser());
-
-        WorkflowJobBean wf = createBaseWorkflow(protoConf, "action");
-        WorkflowActionBean action = (WorkflowActionBean) wf.getActions().get(0);
-        action.setType(ae.getType());
-
-        Context context = new Context(wf, action);
-        JobConf launcherConf = new JobConf();
-        launcherConf = ae.createLauncherConf(getFileSystem(), context, action, actionXml1, launcherConf);
-        // memoryMB (2048 + 512)
-        assertEquals("2560", launcherConf.get(JavaActionExecutor.YARN_AM_RESOURCE_MB));
-        // heap size in child.opts (2048 + 512)
-        int heapSize = ae.extractHeapSizeMB(launcherConf.get(JavaActionExecutor.YARN_AM_COMMAND_OPTS));
-        assertEquals("-Xmx2048m -Djava.net.preferIPv4Stack=true", launcherConf.get("mapred.child.java.opts"));
-        assertEquals("-Xmx2048m -Djava.net.preferIPv4Stack=true", launcherConf.get("mapreduce.map.java.opts"));
-        // There's an extra parameter (-Xmx1024m) in here when using YARN that's not here when using MR1
-        if (createJobConf().get("yarn.resourcemanager.address") != null) {
-            assertEquals("-Xmx1024m -Xmx2048m -Djava.net.preferIPv4Stack=true -Xmx2560m",
-                    launcherConf.get(JavaActionExecutor.YARN_AM_COMMAND_OPTS).trim());
-        }
-        else {
-            assertEquals("-Xmx2048m -Djava.net.preferIPv4Stack=true -Xmx2560m",
-                    launcherConf.get(JavaActionExecutor.YARN_AM_COMMAND_OPTS).trim());
-        }
-        assertEquals(2560, heapSize);
-
-        // env
-        assertEquals("A=foo", launcherConf.get(JavaActionExecutor.YARN_AM_ENV));
-
-        Element actionXml2 = XmlUtils
-                .parseXml("<java>"
-                        + "<job-tracker>"
-                        + getJobTrackerUri()
-                        + "</job-tracker>"
-                        + "<name-node>"
-                        + getNameNodeUri()
-                        + "</name-node>"
-                        + "<configuration>"
-                        + "<property><name>oozie.launcher.yarn.app.mapreduce.am.resource.mb</name><value>3072</value></property>"
-                        + "<property><name>oozie.launcher.mapreduce.map.memory.mb</name><value>2048</value></property>"
-                        + "<property><name>oozie.launcher.yarn.app.mapreduce.am.command-opts</name>"
-                        + "<value>-Xmx1024m -Djava.net.preferIPv4Stack=true </value></property>"
-                        + "<property><name>oozie.launcher.mapred.child.java.opts</name><value>-Xmx1536m</value></property>"
-                        + "<property><name>oozie.launcher.mapreduce.map.java.opts</name>"
-                        + "<value>-Xmx2560m -XX:NewRatio=8</value></property>"
-                        + "<property><name>oozie.launcher.yarn.app.mapreduce.am.env</name><value>A=foo</value></property>"
-                        + "<property><name>oozie.launcher.mapred.child.env</name><value>B=bar</value></property>"
-                        + "</configuration>" + "<main-class>MAIN-CLASS</main-class>" + "</java>");
-
-        launcherConf = ae.createLauncherConf(getFileSystem(), context, action, actionXml2, launcherConf);
-
-        // memoryMB (3072 + 512)
-        assertEquals("3584", launcherConf.get(JavaActionExecutor.YARN_AM_RESOURCE_MB));
-
-        // heap size (2560 + 512)
-        heapSize = ae.extractHeapSizeMB(launcherConf.get(JavaActionExecutor.YARN_AM_COMMAND_OPTS));
-        assertEquals("-Xmx1536m -Xmx2560m -XX:NewRatio=8", launcherConf.get("mapred.child.java.opts"));
-        assertEquals("-Xmx1536m -Xmx2560m -XX:NewRatio=8", launcherConf.get("mapreduce.map.java.opts"));
-        assertEquals("-Xmx1024m -Djava.net.preferIPv4Stack=true -Xmx1536m -Xmx2560m -XX:NewRatio=8 -Xmx3072m",
-                launcherConf.get(JavaActionExecutor.YARN_AM_COMMAND_OPTS).trim());
-        assertEquals(3072, heapSize);
-
-        // env (equqls to mapreduce.map.env + am.env)
-        assertTrue(launcherConf.get(JavaActionExecutor.YARN_AM_ENV).trim().equals("A=foo,B=bar"));
-
-        // Test limit is applied in case of 32 bit
-        Element actionXml3 = XmlUtils
-                .parseXml("<java>"
-                        + "<job-tracker>"
-                        + getJobTrackerUri()
-                        + "</job-tracker>"
-                        + "<name-node>"
-                        + getNameNodeUri()
-                        + "</name-node>"
-                        + "<configuration>"
-                        + "<property><name>oozie.launcher.yarn.app.mapreduce.am.resource.mb</name><value>3072</value></property>"
-                        + "<property><name>oozie.launcher.mapreduce.map.memory.mb</name><value>4000</value></property>"
-                        + "<property><name>oozie.launcher.yarn.app.mapreduce.am.command-opts</name>"
-                        + "<value>-Xmx1024m -Djava.net.preferIPv4Stack=true</value></property>"
-                        + "<property><name>oozie.launcher.mapred.child.java.opts</name><value>-Xmx1536m</value></property>"
-                        + "<property><name>oozie.launcher.mapreduce.map.java.opts</name>"
-                        + "<value>-Xmx4000m -XX:NewRatio=8</value></property>"
-                        + "<property><name>oozie.launcher.yarn.app.mapreduce.am.env</name><value>A=foo</value></property>"
-                        + "<property><name>oozie.launcher.mapred.child.env</name><value>B=bar</value></property>"
-                        + "</configuration>" + "<main-class>MAIN-CLASS</main-class>" + "</java>");
-
-        launcherConf = ae.createBaseHadoopConf(context, actionXml3);
-        launcherConf = ae.createLauncherConf(getFileSystem(), context, action, actionXml3, launcherConf);
-
-        // memoryMB (limit to 4096)
-        assertEquals("4096", launcherConf.get(JavaActionExecutor.YARN_AM_RESOURCE_MB));
-
-        // heap size (limit to 3584)
-        heapSize = ae.extractHeapSizeMB(launcherConf.get(JavaActionExecutor.YARN_AM_COMMAND_OPTS));
-        assertEquals("-Xmx1536m -Xmx4000m -XX:NewRatio=8", launcherConf.get("mapred.child.java.opts"));
-        assertEquals("-Xmx1536m -Xmx4000m -XX:NewRatio=8", launcherConf.get("mapreduce.map.java.opts"));
-        assertEquals("-Xmx1024m -Djava.net.preferIPv4Stack=true -Xmx1536m -Xmx4000m -XX:NewRatio=8 -Xmx3584m",
-                launcherConf.get(JavaActionExecutor.YARN_AM_COMMAND_OPTS).trim());
-        assertEquals(3584, heapSize);
-
-        // env (equqls to mapreduce.map.env + am.env)
-        assertEquals("A=foo,B=bar", launcherConf.get(JavaActionExecutor.YARN_AM_ENV));
-    }
-
-    public void testUpdateConfForUberModeWithEnvDup() throws Exception {
-
-        Services.get().getConf().setBoolean("oozie.action.launcher.mapreduce.job.ubertask.enable", true);
-
-        Element actionXml1 = XmlUtils.parseXml("<java>" + "<job-tracker>" + getJobTrackerUri() + "</job-tracker>"
-                + "<name-node>" + getNameNodeUri() + "</name-node>" + "<configuration>"
-                + "<property><name>oozie.launcher.yarn.app.mapreduce.am.env</name>"
-                + "<value>JAVA_HOME=/home/blah/java/jdk64/current,A=foo,B=bar</value></property>"
-                + "<property><name>oozie.launcher.mapreduce.map.env</name>"
-                + "<value>JAVA_HOME=/home/blah/java/jdk64/latest,C=blah</value></property>" + "</configuration>"
-                + "<main-class>MAIN-CLASS</main-class>" + "</java>");
-        JavaActionExecutor ae = new JavaActionExecutor();
-        XConfiguration protoConf = new XConfiguration();
-        protoConf.set(WorkflowAppService.HADOOP_USER, getTestUser());
-
-        WorkflowJobBean wf = createBaseWorkflow(protoConf, "action");
-        WorkflowActionBean action = (WorkflowActionBean) wf.getActions().get(0);
-        action.setType(ae.getType());
-
-        Context context = new Context(wf, action);
-        JobConf launcherConf = new JobConf();
-        launcherConf = ae.createLauncherConf(getFileSystem(), context, action, actionXml1, launcherConf);
-
-        // uber mode should be disabled since JAVA_HOME points to different paths in am.evn and map.env
-        assertEquals("false", launcherConf.get(JavaActionExecutor.HADOOP_YARN_UBER_MODE));
-
-        // testing complicated env setting case
-        Element actionXml2 = XmlUtils.parseXml("<java>" + "<job-tracker>" + getJobTrackerUri() + "</job-tracker>"
-                + "<name-node>" + getNameNodeUri() + "</name-node>" + "<configuration>" + "<property>"
-                + "<name>oozie.launcher.yarn.app.mapreduce.am.env</name>"
-                + "<value>LD_LIBRARY_PATH=$HADOOP_HOME_1/lib/native/`$JAVA_HOME/bin/java -d32 -version;"
-                + "if [ $? -eq 0 ]; then echo Linux-i386-32; else echo Linux-amd64-64;fi`</value></property>"
-                + "<property>" + "<name>oozie.launcher.mapreduce.map.env</name>"
-                + "<value>LD_LIBRARY_PATH=$HADOOP_HOME_2/lib/native/`$JAVA_HOME/bin/java -d32 -version;"
-                + "if [ $? -eq 0 ]; then echo Linux-i386-32; else echo Linux-amd64-64;fi`</value></property>"
-                + "</configuration>" + "<main-class>MAIN-CLASS</main-class>" + "</java>");
-
-        launcherConf = ae.createLauncherConf(getFileSystem(), context, action, actionXml2, launcherConf);
-
-        // uber mode should be disabled since LD_LIBRARY_PATH is different in am.evn and map.env
-        assertEquals("false", launcherConf.get(JavaActionExecutor.HADOOP_YARN_UBER_MODE));
-
-        Element actionXml3 = XmlUtils
-                .parseXml("<java>"
-                        + "<job-tracker>"
-                        + getJobTrackerUri()
-                        + "</job-tracker>"
-                        + "<name-node>"
-                        + getNameNodeUri()
-                        + "</name-node>"
-                        + "<configuration>"
-                        + "<property><name>oozie.launcher.yarn.app.mapreduce.am.env</name>"
-                        + "<value>JAVA_HOME=/home/blah/java/jdk64/current,PATH=A,PATH=B</value></property>"
-                        + "<property><name>oozie.launcher.mapreduce.map.env</name>"
-                        + "<value>JAVA_HOME=/home/blah/java/jdk64/current,PATH=A</value></property>"
-                        + "</configuration>" + "<main-class>MAIN-CLASS</main-class>" + "</java>");
-
-        launcherConf = ae.createBaseHadoopConf(context, actionXml3);
-        launcherConf = ae.createLauncherConf(getFileSystem(), context, action, actionXml3, launcherConf);
-
-        // uber mode should be enabled since JAVA_HOME is the same, and PATH doesn't conflict
-        assertEquals("true", launcherConf.get(JavaActionExecutor.HADOOP_YARN_UBER_MODE));
-
-        // JAVA_HOME, PATH=A duplication is removed
-        String a = launcherConf.get(JavaActionExecutor.YARN_AM_ENV);
-        assertEquals("JAVA_HOME=/home/blah/java/jdk64/current,PATH=A,PATH=B",
-                launcherConf.get(JavaActionExecutor.YARN_AM_ENV));
-    }
-
-    public void testUpdateConfForUberModeForJavaOpts() throws Exception {
-        Services.get().getConf().setBoolean("oozie.action.launcher.mapreduce.job.ubertask.enable", true);
-
-        Element actionXml1 = XmlUtils
-                .parseXml("<java>"
-                        + "<job-tracker>"
-                        + getJobTrackerUri()
-                        + "</job-tracker>"
-                        + "<name-node>"
-                        + getNameNodeUri()
-                        + "</name-node>"
-                        + "<configuration>"
-                        + "<property><name>oozie.launcher.yarn.app.mapreduce.am.command-opts</name>"
-                        + "<value>-Xmx1024m -Djava.net.preferIPv4Stack=true </value></property>"
-                        + "<property><name>oozie.launcher.mapreduce.map.java.opts</name><value>-Xmx1536m</value></property>"
-                        + "</configuration>" + "<main-class>MAIN-CLASS</main-class>"
-                        + "<java-opt>-Xmx2048m</java-opt>"
-                        + "<java-opt>-Dkey1=val1</java-opt>"
-                        + "<java-opt>-Dkey2=val2</java-opt>"
-                        + "</java>");
-        JavaActionExecutor ae = new JavaActionExecutor();
-        XConfiguration protoConf = new XConfiguration();
-        protoConf.set(WorkflowAppService.HADOOP_USER, getTestUser());
-
-        WorkflowJobBean wf = createBaseWorkflow(protoConf, "action");
-        WorkflowActionBean action = (WorkflowActionBean) wf.getActions().get(0);
-        action.setType(ae.getType());
-
-        Context context = new Context(wf, action);
-        JobConf launcherConf = new JobConf();
-        launcherConf = ae.createLauncherConf(getFileSystem(), context, action, actionXml1, launcherConf);
-
-        // heap size (2048 + 512)
-        int heapSize = ae.extractHeapSizeMB(launcherConf.get(JavaActionExecutor.YARN_AM_COMMAND_OPTS));
-        assertEquals("-Xmx200m -Xmx1536m -Xmx2048m -Dkey1=val1 -Dkey2=val2", launcherConf.get("mapred.child.java.opts"));
-        assertEquals("-Xmx200m -Xmx1536m -Xmx2048m -Dkey1=val1 -Dkey2=val2", launcherConf.get("mapreduce.map.java.opts"));
-        assertEquals("-Xmx1024m -Djava.net.preferIPv4Stack=true -Xmx200m -Xmx1536m -Xmx2048m -Dkey1=val1 -Dkey2=val2 -Xmx2560m",
-                launcherConf.get(JavaActionExecutor.YARN_AM_COMMAND_OPTS).trim());
-        assertEquals(2560, heapSize);
-
-        Element actionXml2 = XmlUtils
-                .parseXml("<java>"
-                        + "<job-tracker>"
-                        + getJobTrackerUri()
-                        + "</job-tracker>"
-                        + "<name-node>"
-                        + getNameNodeUri()
-                        + "</name-node>"
-                        + "<configuration>"
-                        + "<property><name>oozie.launcher.yarn.app.mapreduce.am.command-opts</name>"
-                        + "<value>-Xmx1024m -Djava.net.preferIPv4Stack=true </value></property>"
-                        + "<property><name>oozie.launcher.mapreduce.map.java.opts</name><value>-Xmx1536m</value></property>"
-                        + "</configuration>" + "<main-class>MAIN-CLASS</main-class>"
-                        + "<java-opts>-Xmx2048m -Dkey1=val1</java-opts>"
-                        + "</java>");
-
-        launcherConf = ae.createLauncherConf(getFileSystem(), context, action, actionXml2, launcherConf);
-
-        // heap size (2048 + 512)
-        heapSize = ae.extractHeapSizeMB(launcherConf.get(JavaActionExecutor.YARN_AM_COMMAND_OPTS));
-        assertEquals("-Xmx200m -Xmx1536m -Xmx2048m -Dkey1=val1", launcherConf.get("mapred.child.java.opts"));
-        assertEquals("-Xmx200m -Xmx1536m -Xmx2048m -Dkey1=val1", launcherConf.get("mapreduce.map.java.opts"));
-        assertEquals("-Xmx1024m -Djava.net.preferIPv4Stack=true -Xmx200m -Xmx1536m -Xmx2048m -Dkey1=val1 -Xmx2560m",
-                launcherConf.get(JavaActionExecutor.YARN_AM_COMMAND_OPTS).trim());
-        assertEquals(2560, heapSize);
-
-        Element actionXml3 = XmlUtils
-                .parseXml("<java>"
-                        + "<job-tracker>"
-                        + getJobTrackerUri()
-                        + "</job-tracker>"
-                        + "<name-node>"
-                        + getNameNodeUri()
-                        + "</name-node>"
-                        + "<configuration>"
-                        + "<property><name>oozie.launcher.yarn.app.mapreduce.am.command-opts</name>"
-                        + "<value>-Xmx2048m -Djava.net.preferIPv4Stack=true </value></property>"
-                        + "<property><name>oozie.launcher.mapreduce.map.java.opts</name><value>-Xmx3072m</value></property>"
-                        + "</configuration>" + "<main-class>MAIN-CLASS</main-class>"
-                        + "<java-opts>-Xmx1024m -Dkey1=val1</java-opts>"
-                        + "</java>");
-
-        launcherConf = ae.createLauncherConf(getFileSystem(), context, action, actionXml3, launcherConf);
-
-        // heap size (2048 + 512)
-        heapSize = ae.extractHeapSizeMB(launcherConf.get(JavaActionExecutor.YARN_AM_COMMAND_OPTS));
-        assertEquals("-Xmx200m -Xmx3072m -Xmx1024m -Dkey1=val1", launcherConf.get("mapred.child.java.opts"));
-        assertEquals("-Xmx200m -Xmx3072m -Xmx1024m -Dkey1=val1", launcherConf.get("mapreduce.map.java.opts"));
-        assertEquals("-Xmx2048m -Djava.net.preferIPv4Stack=true -Xmx200m -Xmx3072m -Xmx1024m -Dkey1=val1 -Xmx2560m",
-                launcherConf.get(JavaActionExecutor.YARN_AM_COMMAND_OPTS).trim());
-        assertEquals(2560, heapSize);
-    }
+//    public void testInjectLauncherUseUberMode() throws Exception {
+//        // default -- should set to true
+//        JavaActionExecutor jae = new JavaActionExecutor();
+//        Configuration conf = new Configuration(false);
+//        assertNull(conf.get("mapreduce.job.ubertask.enable"));
+//        jae.injectLauncherUseUberMode(conf);
+//        assertEquals("true", conf.get("mapreduce.job.ubertask.enable"));
+//
+//        // action conf set to true -- should keep at true
+//        conf = new Configuration(false);
+//        assertNull(conf.get("mapreduce.job.ubertask.enable"));
+//        conf.setBoolean("mapreduce.job.ubertask.enable", true);
+//        jae.injectLauncherUseUberMode(conf);
+//        assertEquals("true", conf.get("mapreduce.job.ubertask.enable"));
+//
+//        // action conf set to false -- should keep at false
+//        conf = new Configuration(false);
+//        assertNull(conf.get("mapreduce.job.ubertask.enable"));
+//        conf.setBoolean("mapreduce.job.ubertask.enable", false);
+//        jae.injectLauncherUseUberMode(conf);
+//        assertEquals("false", conf.get("mapreduce.job.ubertask.enable"));
+//
+//        // disable at oozie-site level for just the "test" action
+//        ConfigurationService.setBoolean("oozie.action.test.launcher.mapreduce.job.ubertask.enable", false);
+//        JavaActionExecutor tjae = new JavaActionExecutor("test");
+//
+//        // default -- should not set
+//        conf = new Configuration(false);
+//        assertNull(conf.get("mapreduce.job.ubertask.enable"));
+//        tjae.injectLauncherUseUberMode(conf);
+//        assertNull(conf.get("mapreduce.job.ubertask.enable"));
+//        // default -- should be true
+//        conf = new Configuration(false);
+//        assertNull(conf.get("mapreduce.job.ubertask.enable"));
+//        jae.injectLauncherUseUberMode(conf);
+//        assertEquals("true", conf.get("mapreduce.job.ubertask.enable"));
+//
+//        // action conf set to true -- should keep at true
+//        conf = new Configuration(false);
+//        assertNull(conf.get("mapreduce.job.ubertask.enable"));
+//        conf.setBoolean("mapreduce.job.ubertask.enable", true);
+//        tjae.injectLauncherUseUberMode(conf);
+//        assertEquals("true", conf.get("mapreduce.job.ubertask.enable"));
+//        // action conf set to true -- should keep at true
+//        conf = new Configuration(false);
+//        assertNull(conf.get("mapreduce.job.ubertask.enable"));
+//        conf.setBoolean("mapreduce.job.ubertask.enable", true);
+//        jae.injectLauncherUseUberMode(conf);
+//        assertEquals("true", conf.get("mapreduce.job.ubertask.enable"));
+//
+//        // action conf set to false -- should keep at false
+//        conf = new Configuration(false);
+//        assertNull(conf.get("mapreduce.job.ubertask.enable"));
+//        conf.setBoolean("mapreduce.job.ubertask.enable", false);
+//        tjae.injectLauncherUseUberMode(conf);
+//        assertEquals("false", conf.get("mapreduce.job.ubertask.enable"));
+//        // action conf set to false -- should keep at false
+//        conf = new Configuration(false);
+//        assertNull(conf.get("mapreduce.job.ubertask.enable"));
+//        conf.setBoolean("mapreduce.job.ubertask.enable", false);
+//        jae.injectLauncherUseUberMode(conf);
+//        assertEquals("false", conf.get("mapreduce.job.ubertask.enable"));
+//
+//        // disable at oozie-site level for all actions except for the "test" action
+//        ConfigurationService.setBoolean("oozie.action.test.launcher.mapreduce.job.ubertask.enable", true);
+//        ConfigurationService.setBoolean("oozie.action.launcher.mapreduce.job.ubertask.enable", false);
+//
+//        // default -- should be true
+//        conf = new Configuration(false);
+//        assertNull(conf.get("mapreduce.job.ubertask.enable"));
+//        tjae.injectLauncherUseUberMode(conf);
+//        assertEquals("true", conf.get("mapreduce.job.ubertask.enable"));
+//        // default -- should not set
+//        conf = new Configuration(false);
+//        assertNull(conf.get("mapreduce.job.ubertask.enable"));
+//        jae.injectLauncherUseUberMode(conf);
+//        assertNull(conf.get("mapreduce.job.ubertask.enable"));
+//
+//        // action conf set to true -- should keep at true
+//        conf = new Configuration(false);
+//        assertNull(conf.get("mapreduce.job.ubertask.enable"));
+//        conf.setBoolean("mapreduce.job.ubertask.enable", true);
+//        tjae.injectLauncherUseUberMode(conf);
+//        assertEquals("true", conf.get("mapreduce.job.ubertask.enable"));
+//        // action conf set to true -- should keep at true
+//        conf = new Configuration(false);
+//        assertNull(conf.get("mapreduce.job.ubertask.enable"));
+//        conf.setBoolean("mapreduce.job.ubertask.enable", true);
+//        jae.injectLauncherUseUberMode(conf);
+//        assertEquals("true", conf.get("mapreduce.job.ubertask.enable"));
+//
+//        // action conf set to false -- should keep at false
+//        conf = new Configuration(false);
+//        assertNull(conf.get("mapreduce.job.ubertask.enable"));
+//        conf.setBoolean("mapreduce.job.ubertask.enable", false);
+//        tjae.injectLauncherUseUberMode(conf);
+//        assertEquals("false", conf.get("mapreduce.job.ubertask.enable"));
+//        // action conf set to false -- should keep at false
+//        conf = new Configuration(false);
+//        assertNull(conf.get("mapreduce.job.ubertask.enable"));
+//        conf.setBoolean("mapreduce.job.ubertask.enable", false);
+//        jae.injectLauncherUseUberMode(conf);
+//        assertEquals("false", conf.get("mapreduce.job.ubertask.enable"));
+//    }
+//
+//    public void testUpdateConfForJavaTmpDir() throws Exception {
+//
+//        //Test UpdateCOnfForJavaTmpDir for launcherConf
+//        String actionXml1 = "<java>"
+//                        + "<job-tracker>"
+//                        + getJobTrackerUri()
+//                        + "</job-tracker>"
+//                        + "<name-node>"
+//                        + getNameNodeUri()
+//                        + "</name-node>"
+//                        + "<configuration>"
+//                        + "<property><name>oozie.launcher.yarn.app.mapreduce.am.command-opts</name>"
+//                        + "<value>-Xmx1024m -Djava.net.preferIPv4Stack=true -Djava.io.tmpdir=./usr</value></property>"
+//                        + "<property><name>oozie.launcher.mapred.child.java.opts</name>"
+//                        + "<value>-Xmx2048m -Djava.net.preferIPv4Stack=true</value></property>"
+//                        + "<property><name>oozie.launcher.mapreduce.reduce.java.opts</name>"
+//                        + "<value>-Xmx2560m -XX:NewRatio=8 -Djava.io.tmpdir=./usr</value></property>"
+//                        + "</configuration>" + "<main-class>MAIN-CLASS</main-class>" + "</java>";
+//        JavaActionExecutor ae = new JavaActionExecutor();
+//        WorkflowJobBean wfBean = addRecordToWfJobTable("test1", actionXml1);
+//        WorkflowActionBean action = (WorkflowActionBean) wfBean.getActions().get(0);
+//        action.setType(ae.getType());
+//        action.setConf(actionXml1);
+//
+//        Context context = new Context(wfBean, action);
+//        Element actionXmlconf = XmlUtils.parseXml(action.getConf());
+//
+//        Configuration actionConf = ae.createBaseHadoopConf(context, actionXmlconf);
+//        Configuration conf = ae.createLauncherConf(getFileSystem(), context, action, actionXmlconf, actionConf);
+//
+//        assertEquals("-Xmx2048m -Djava.net.preferIPv4Stack=true -Djava.io.tmpdir=./tmp",
+//                conf.get(JavaActionExecutor.HADOOP_CHILD_JAVA_OPTS));
+//        assertEquals("-Xmx2048m -Djava.net.preferIPv4Stack=true -Djava.io.tmpdir=./tmp",
+//                conf.get(JavaActionExecutor.HADOOP_MAP_JAVA_OPTS));
+//        assertEquals("-Xmx2560m -XX:NewRatio=8 -Djava.io.tmpdir=./usr", conf.get(JavaActionExecutor.HADOOP_REDUCE_JAVA_OPTS));
+//        assertEquals("-Xmx1024m -Djava.net.preferIPv4Stack=true -Djava.io.tmpdir=./usr -Xmx2048m " +
+//                        "-Djava.net.preferIPv4Stack=true -Xmx2560m", conf.get(JavaActionExecutor.YARN_AM_COMMAND_OPTS).trim());
+//
+//        //Test UpdateConfForJavaTmpDIr for actionConf
+//        String actionXml = "<java>"
+//                        + "<job-tracker>"
+//                        + getJobTrackerUri()
+//                        + "</job-tracker>"
+//                        + "<name-node>"
+//                        + getNameNodeUri()
+//                        + "</name-node>"
+//                        + "<configuration>"
+//                        + "<property><name>mapreduce.map.java.opts</name>"
+//                        + "<value>-Xmx1024m -Djava.io.tmpdir=./usr</value></property>"
+//                        + "<property><name>mapreduce.reduce.java.opts</name>"
+//                        + "<value>-Xmx2560m -XX:NewRatio=8</value></property>"
+//                        + "</configuration>" + "<main-class>MAIN-CLASS</main-class>" + "</java>";
+//        Element eActionXml = XmlUtils.parseXml(actionXml);
+//        Context context2 = createContext(actionXml, null);
+//        Path appPath2 = getAppPath();
+//        JavaActionExecutor ae2 = new JavaActionExecutor();
+//        Configuration jobConf = ae2.createBaseHadoopConf(context2, eActionXml);
+//        ae2.setupActionConf(jobConf, context2, eActionXml, appPath2);
+//
+//        assertEquals("-Xmx200m -Djava.io.tmpdir=./tmp", jobConf.get(JavaActionExecutor.HADOOP_CHILD_JAVA_OPTS));
+//        assertEquals("-Xmx1024m -Djava.io.tmpdir=./usr", jobConf.get(JavaActionExecutor.HADOOP_MAP_JAVA_OPTS));
+//        assertEquals("-Xmx2560m -XX:NewRatio=8 -Djava.io.tmpdir=./tmp", jobConf.get(JavaActionExecutor.HADOOP_REDUCE_JAVA_OPTS));
+//        assertNull(jobConf.get(JavaActionExecutor.YARN_AM_COMMAND_OPTS));
+//    }
+//    public void testUpdateConfForUberMode() throws Exception {
+//        Element actionXml1 = XmlUtils
+//                .parseXml("<java>"
+//                        + "<job-tracker>"
+//                        + getJobTrackerUri()
+//                        + "</job-tracker>"
+//                        + "<name-node>"
+//                        + getNameNodeUri()
+//                        + "</name-node>"
+//                        + "<configuration>"
+//                        + "<property><name>oozie.launcher.mapreduce.map.memory.mb</name><value>2048</value></property>"
+//                        + "<property><name>oozie.launcher.mapred.child.java.opts</name>"
+//                        + "<value>-Xmx2048m -Djava.net.preferIPv4Stack=true</value></property>"
+//                        + "<property><name>oozie.launcher.mapred.child.env</name><value>A=foo</value></property>"
+//                        + "</configuration>" + "<main-class>MAIN-CLASS</main-class>" + "</java>");
+//        JavaActionExecutor ae = new JavaActionExecutor();
+//        XConfiguration protoConf = new XConfiguration();
+//        protoConf.set(WorkflowAppService.HADOOP_USER, getTestUser());
+//
+//        WorkflowJobBean wf = createBaseWorkflow(protoConf, "action");
+//        WorkflowActionBean action = (WorkflowActionBean) wf.getActions().get(0);
+//        action.setType(ae.getType());
+//
+//        Context context = new Context(wf, action);
+//        JobConf launcherConf = new JobConf();
+//        launcherConf = ae.createLauncherConf(getFileSystem(), context, action, actionXml1, launcherConf);
+//        // memoryMB (2048 + 512)
+//        assertEquals("2560", launcherConf.get(JavaActionExecutor.YARN_AM_RESOURCE_MB));
+//        // heap size in child.opts (2048 + 512)
+//        int heapSize = ae.extractHeapSizeMB(launcherConf.get(JavaActionExecutor.YARN_AM_COMMAND_OPTS));
+//        assertEquals("-Xmx2048m -Djava.net.preferIPv4Stack=true -Djava.io.tmpdir=./tmp",
+//                launcherConf.get("mapred.child.java.opts"));
+//        assertEquals("-Xmx2048m -Djava.net.preferIPv4Stack=true -Djava.io.tmpdir=./tmp",
+//                launcherConf.get("mapreduce.map.java.opts"));
+//        // There's an extra parameter (-Xmx1024m) in here when using YARN that's not here when using MR1
+//        if (createJobConf().get("yarn.resourcemanager.address") != null) {
+//            assertEquals("-Xmx1024m -Xmx2048m -Djava.net.preferIPv4Stack=true -Xmx2560m",
+//                    launcherConf.get(JavaActionExecutor.YARN_AM_COMMAND_OPTS).trim());
+//        }
+//        else {
+//            assertEquals("-Xmx2048m -Djava.net.preferIPv4Stack=true -Xmx2560m -Djava.io.tmpdir=./tmp",
+//                    launcherConf.get(JavaActionExecutor.YARN_AM_COMMAND_OPTS).trim());
+//        }
+//        assertEquals(2560, heapSize);
+//
+//        // env
+//        assertEquals("A=foo", launcherConf.get(JavaActionExecutor.YARN_AM_ENV));
+//
+//        Element actionXml2 = XmlUtils
+//                .parseXml("<java>"
+//                        + "<job-tracker>"
+//                        + getJobTrackerUri()
+//                        + "</job-tracker>"
+//                        + "<name-node>"
+//                        + getNameNodeUri()
+//                        + "</name-node>"
+//                        + "<configuration>"
+//                        + "<property><name>oozie.launcher.yarn.app.mapreduce.am.resource.mb</name><value>3072</value></property>"
+//                        + "<property><name>oozie.launcher.mapreduce.map.memory.mb</name><value>2048</value></property>"
+//                        + "<property><name>oozie.launcher.yarn.app.mapreduce.am.command-opts</name>"
+//                        + "<value>-Xmx1024m -Djava.net.preferIPv4Stack=true </value></property>"
+//                        + "<property><name>oozie.launcher.mapred.child.java.opts</name><value>-Xmx1536m</value></property>"
+//                        + "<property><name>oozie.launcher.mapreduce.map.java.opts</name>"
+//                        + "<value>-Xmx2560m -XX:NewRatio=8</value></property>"
+//                        + "<property><name>oozie.launcher.yarn.app.mapreduce.am.env</name><value>A=foo</value></property>"
+//                        + "<property><name>oozie.launcher.mapred.child.env</name><value>B=bar</value></property>"
+//                        + "</configuration>" + "<main-class>MAIN-CLASS</main-class>" + "</java>");
+//
+//        launcherConf = ae.createLauncherConf(getFileSystem(), context, action, actionXml2, launcherConf);
+//
+//        // memoryMB (3072 + 512)
+//        assertEquals("3584", launcherConf.get(JavaActionExecutor.YARN_AM_RESOURCE_MB));
+//
+//        // heap size (2560 + 512)
+//        heapSize = ae.extractHeapSizeMB(launcherConf.get(JavaActionExecutor.YARN_AM_COMMAND_OPTS));
+//        assertEquals("-Xmx1536m -Xmx2560m -XX:NewRatio=8 -Djava.io.tmpdir=./tmp", launcherConf.get("mapred.child.java.opts"));
+//        assertEquals("-Xmx1536m -Xmx2560m -XX:NewRatio=8 -Djava.io.tmpdir=./tmp", launcherConf.get("mapreduce.map.java.opts"));
+//        assertEquals("-Xmx1024m -Djava.net.preferIPv4Stack=true -Xmx1536m -Xmx2560m -XX:NewRatio=8 " +
+//                        "-Xmx3072m -Djava.io.tmpdir=./tmp", launcherConf.get(JavaActionExecutor.YARN_AM_COMMAND_OPTS).trim());
+//        assertEquals(3072, heapSize);
+//
+//        // env (equqls to mapreduce.map.env + am.env)
+//        assertTrue(launcherConf.get(JavaActionExecutor.YARN_AM_ENV).trim().equals("A=foo,B=bar"));
+//
+//        // Test limit is applied in case of 32 bit
+//        Element actionXml3 = XmlUtils
+//                .parseXml("<java>"
+//                        + "<job-tracker>"
+//                        + getJobTrackerUri()
+//                        + "</job-tracker>"
+//                        + "<name-node>"
+//                        + getNameNodeUri()
+//                        + "</name-node>"
+//                        + "<configuration>"
+//                        + "<property><name>oozie.launcher.yarn.app.mapreduce.am.resource.mb</name><value>3072</value></property>"
+//                        + "<property><name>oozie.launcher.mapreduce.map.memory.mb</name><value>4000</value></property>"
+//                        + "<property><name>oozie.launcher.yarn.app.mapreduce.am.command-opts</name>"
+//                        + "<value>-Xmx1024m -Djava.net.preferIPv4Stack=true</value></property>"
+//                        + "<property><name>oozie.launcher.mapred.child.java.opts</name><value>-Xmx1536m</value></property>"
+//                        + "<property><name>oozie.launcher.mapreduce.map.java.opts</name>"
+//                        + "<value>-Xmx4000m -XX:NewRatio=8</value></property>"
+//                        + "<property><name>oozie.launcher.yarn.app.mapreduce.am.env</name><value>A=foo</value></property>"
+//                        + "<property><name>oozie.launcher.mapred.child.env</name><value>B=bar</value></property>"
+//                        + "</configuration>" + "<main-class>MAIN-CLASS</main-class>" + "</java>");
+//
+//        launcherConf = ae.createBaseHadoopConf(context, actionXml3);
+//        launcherConf = ae.createLauncherConf(getFileSystem(), context, action, actionXml3, launcherConf);
+//
+//        // memoryMB (limit to 4096)
+//        assertEquals("4096", launcherConf.get(JavaActionExecutor.YARN_AM_RESOURCE_MB));
+//
+//        // heap size (limit to 3584)
+//        heapSize = ae.extractHeapSizeMB(launcherConf.get(JavaActionExecutor.YARN_AM_COMMAND_OPTS));
+//        assertEquals("-Xmx1536m -Xmx4000m -XX:NewRatio=8 -Djava.io.tmpdir=./tmp", launcherConf.get("mapred.child.java.opts"));
+//        assertEquals("-Xmx1536m -Xmx4000m -XX:NewRatio=8 -Djava.io.tmpdir=./tmp", launcherConf.get("mapreduce.map.java.opts"));
+//        assertEquals("-Xmx1024m -Djava.net.preferIPv4Stack=true -Xmx1536m -Xmx4000m -XX:NewRatio=8 " +
+//                        "-Xmx3584m -Djava.io.tmpdir=./tmp", launcherConf.get(JavaActionExecutor.YARN_AM_COMMAND_OPTS).trim());
+//        assertEquals(3584, heapSize);
+//
+//        // env (equqls to mapreduce.map.env + am.env)
+//        assertEquals("A=foo,B=bar", launcherConf.get(JavaActionExecutor.YARN_AM_ENV));
+//    }
+//
+//    public void testUpdateConfForUberModeWithEnvDup() throws Exception {
+//        Element actionXml1 = XmlUtils.parseXml("<java>" + "<job-tracker>" + getJobTrackerUri() + "</job-tracker>"
+//                + "<name-node>" + getNameNodeUri() + "</name-node>" + "<configuration>"
+//                + "<property><name>oozie.launcher.yarn.app.mapreduce.am.env</name>"
+//                + "<value>JAVA_HOME=/home/blah/java/jdk64/current,A=foo,B=bar</value></property>"
+//                + "<property><name>oozie.launcher.mapreduce.map.env</name>"
+//                + "<value>JAVA_HOME=/home/blah/java/jdk64/latest,C=blah</value></property>" + "</configuration>"
+//                + "<main-class>MAIN-CLASS</main-class>" + "</java>");
+//        JavaActionExecutor ae = new JavaActionExecutor();
+//        XConfiguration protoConf = new XConfiguration();
+//        protoConf.set(WorkflowAppService.HADOOP_USER, getTestUser());
+//
+//        WorkflowJobBean wf = createBaseWorkflow(protoConf, "action");
+//        WorkflowActionBean action = (WorkflowActionBean) wf.getActions().get(0);
+//        action.setType(ae.getType());
+//
+//        Context context = new Context(wf, action);
+//        JobConf launcherConf = new JobConf();
+//        launcherConf = ae.createLauncherConf(getFileSystem(), context, action, actionXml1, launcherConf);
+//
+//        // uber mode should be disabled since JAVA_HOME points to different paths in am.evn and map.env
+//        assertEquals("false", launcherConf.get(JavaActionExecutor.HADOOP_YARN_UBER_MODE));
+//
+//        // testing complicated env setting case
+//        Element actionXml2 = XmlUtils.parseXml("<java>" + "<job-tracker>" + getJobTrackerUri() + "</job-tracker>"
+//                + "<name-node>" + getNameNodeUri() + "</name-node>" + "<configuration>" + "<property>"
+//                + "<name>oozie.launcher.yarn.app.mapreduce.am.env</name>"
+//                + "<value>LD_LIBRARY_PATH=$HADOOP_HOME_1/lib/native/`$JAVA_HOME/bin/java -d32 -version;"
+//                + "if [ $? -eq 0 ]; then echo Linux-i386-32; else echo Linux-amd64-64;fi`</value></property>"
+//                + "<property>" + "<name>oozie.launcher.mapreduce.map.env</name>"
+//                + "<value>LD_LIBRARY_PATH=$HADOOP_HOME_2/lib/native/`$JAVA_HOME/bin/java -d32 -version;"
+//                + "if [ $? -eq 0 ]; then echo Linux-i386-32; else echo Linux-amd64-64;fi`</value></property>"
+//                + "</configuration>" + "<main-class>MAIN-CLASS</main-class>" + "</java>");
+//
+//        launcherConf = ae.createLauncherConf(getFileSystem(), context, action, actionXml2, launcherConf);
+//
+//        // uber mode should be disabled since LD_LIBRARY_PATH is different in am.evn and map.env
+//        assertEquals("false", launcherConf.get(JavaActionExecutor.HADOOP_YARN_UBER_MODE));
+//
+//        Element actionXml3 = XmlUtils
+//                .parseXml("<java>"
+//                        + "<job-tracker>"
+//                        + getJobTrackerUri()
+//                        + "</job-tracker>"
+//                        + "<name-node>"
+//                        + getNameNodeUri()
+//                        + "</name-node>"
+//                        + "<configuration>"
+//                        + "<property><name>oozie.launcher.yarn.app.mapreduce.am.env</name>"
+//                        + "<value>JAVA_HOME=/home/blah/java/jdk64/current,PATH=A,PATH=B</value></property>"
+//                        + "<property><name>oozie.launcher.mapreduce.map.env</name>"
+//                        + "<value>JAVA_HOME=/home/blah/java/jdk64/current,PATH=A</value></property>"
+//                        + "</configuration>" + "<main-class>MAIN-CLASS</main-class>" + "</java>");
+//
+//        launcherConf = ae.createBaseHadoopConf(context, actionXml3);
+//        launcherConf = ae.createLauncherConf(getFileSystem(), context, action, actionXml3, launcherConf);
+//
+//        // uber mode should be enabled since JAVA_HOME is the same, and PATH doesn't conflict
+//        assertEquals("true", launcherConf.get(JavaActionExecutor.HADOOP_YARN_UBER_MODE));
+//
+//        // JAVA_HOME, PATH=A duplication is removed
+//        String a = launcherConf.get(JavaActionExecutor.YARN_AM_ENV);
+//        assertEquals("JAVA_HOME=/home/blah/java/jdk64/current,PATH=A,PATH=B",
+//                launcherConf.get(JavaActionExecutor.YARN_AM_ENV));
+//    }
+//
+//    public void testUpdateConfForUberModeForJavaOpts() throws Exception {
+//        Element actionXml1 = XmlUtils
+//                .parseXml("<java>"
+//                        + "<job-tracker>"
+//                        + getJobTrackerUri()
+//                        + "</job-tracker>"
+//                        + "<name-node>"
+//                        + getNameNodeUri()
+//                        + "</name-node>"
+//                        + "<configuration>"
+//                        + "<property><name>oozie.launcher.yarn.app.mapreduce.am.command-opts</name>"
+//                        + "<value>-Xmx1024m -Djava.net.preferIPv4Stack=true </value></property>"
+//                        + "<property><name>oozie.launcher.mapreduce.map.java.opts</name><value>-Xmx1536m</value></property>"
+//                        + "</configuration>" + "<main-class>MAIN-CLASS</main-class>"
+//                        + "<java-opt>-Xmx2048m</java-opt>"
+//                        + "<java-opt>-Dkey1=val1</java-opt>"
+//                        + "<java-opt>-Dkey2=val2</java-opt>"
+//                        + "</java>");
+//        JavaActionExecutor ae = new JavaActionExecutor();
+//        XConfiguration protoConf = new XConfiguration();
+//        protoConf.set(WorkflowAppService.HADOOP_USER, getTestUser());
+//
+//        WorkflowJobBean wf = createBaseWorkflow(protoConf, "action");
+//        WorkflowActionBean action = (WorkflowActionBean) wf.getActions().get(0);
+//        action.setType(ae.getType());
+//
+//        Context context = new Context(wf, action);
+//        JobConf launcherConf = new JobConf();
+//        launcherConf = ae.createLauncherConf(getFileSystem(), context, action, actionXml1, launcherConf);
+//
+//        // heap size (2048 + 512)
+//        int heapSize = ae.extractHeapSizeMB(launcherConf.get(JavaActionExecutor.YARN_AM_COMMAND_OPTS));
+//        assertEquals("-Xmx200m -Xmx1536m -Xmx2048m -Dkey1=val1 -Dkey2=val2 -Djava.io.tmpdir=./tmp",
+//                launcherConf.get("mapred.child.java.opts"));
+//        assertEquals("-Xmx200m -Xmx1536m -Xmx2048m -Dkey1=val1 -Dkey2=val2 -Djava.io.tmpdir=./tmp",
+//                launcherConf.get("mapreduce.map.java.opts"));
+//        assertEquals("-Xmx1024m -Djava.net.preferIPv4Stack=true -Xmx200m -Xmx1536m -Xmx2048m -Dkey1=val1 -Dkey2=val2 -Xmx2560m " +
+//                        "-Djava.io.tmpdir=./tmp", launcherConf.get(JavaActionExecutor.YARN_AM_COMMAND_OPTS).trim());
+//        assertEquals(2560, heapSize);
+//
+//        Element actionXml2 = XmlUtils
+//                .parseXml("<java>"
+//                        + "<job-tracker>"
+//                        + getJobTrackerUri()
+//                        + "</job-tracker>"
+//                        + "<name-node>"
+//                        + getNameNodeUri()
+//                        + "</name-node>"
+//                        + "<configuration>"
+//                        + "<property><name>oozie.launcher.yarn.app.mapreduce.am.command-opts</name>"
+//                        + "<value>-Xmx1024m -Djava.net.preferIPv4Stack=true </value></property>"
+//                        + "<property><name>oozie.launcher.mapreduce.map.java.opts</name><value>-Xmx1536m</value></property>"
+//                        + "</configuration>" + "<main-class>MAIN-CLASS</main-class>"
+//                        + "<java-opts>-Xmx2048m -Dkey1=val1</java-opts>"
+//                        + "</java>");
+//
+//        launcherConf = ae.createLauncherConf(getFileSystem(), context, action, actionXml2, launcherConf);
+//
+//        // heap size (2048 + 512)
+//        heapSize = ae.extractHeapSizeMB(launcherConf.get(JavaActionExecutor.YARN_AM_COMMAND_OPTS));
+//        assertEquals("-Xmx200m -Xmx1536m -Xmx2048m -Dkey1=val1 -Djava.io.tmpdir=./tmp",
+//                launcherConf.get("mapred.child.java.opts"));
+//        assertEquals("-Xmx200m -Xmx1536m -Xmx2048m -Dkey1=val1 -Djava.io.tmpdir=./tmp",
+//                launcherConf.get("mapreduce.map.java.opts"));
+//        assertEquals("-Xmx1024m -Djava.net.preferIPv4Stack=true -Xmx200m -Xmx1536m -Xmx2048m -Dkey1=val1 -Xmx2560m " +
+//                        "-Djava.io.tmpdir=./tmp", launcherConf.get(JavaActionExecutor.YARN_AM_COMMAND_OPTS).trim());
+//        assertEquals(2560, heapSize);
+//
+//        Element actionXml3 = XmlUtils
+//                .parseXml("<java>"
+//                        + "<job-tracker>"
+//                        + getJobTrackerUri()
+//                        + "</job-tracker>"
+//                        + "<name-node>"
+//                        + getNameNodeUri()
+//                        + "</name-node>"
+//                        + "<configuration>"
+//                        + "<property><name>oozie.launcher.yarn.app.mapreduce.am.command-opts</name>"
+//                        + "<value>-Xmx2048m -Djava.net.preferIPv4Stack=true </value></property>"
+//                        + "<property><name>oozie.launcher.mapreduce.map.java.opts</name><value>-Xmx3072m</value></property>"
+//                        + "</configuration>" + "<main-class>MAIN-CLASS</main-class>"
+//                        + "<java-opts>-Xmx1024m -Dkey1=val1</java-opts>"
+//                        + "</java>");
+//
+//        launcherConf = ae.createLauncherConf(getFileSystem(), context, action, actionXml3, launcherConf);
+//
+//        // heap size (2048 + 512)
+//        heapSize = ae.extractHeapSizeMB(launcherConf.get(JavaActionExecutor.YARN_AM_COMMAND_OPTS));
+//        assertEquals("-Xmx200m -Xmx3072m -Xmx1024m -Dkey1=val1 -Djava.io.tmpdir=./tmp",
+//                launcherConf.get("mapred.child.java.opts"));
+//        assertEquals("-Xmx200m -Xmx3072m -Xmx1024m -Dkey1=val1 -Djava.io.tmpdir=./tmp",
+//                launcherConf.get("mapreduce.map.java.opts"));
+//        assertEquals("-Xmx2048m -Djava.net.preferIPv4Stack=true -Xmx200m -Xmx3072m -Xmx1024m -Dkey1=val1 -Xmx2560m " +
+//                        "-Djava.io.tmpdir=./tmp", launcherConf.get(JavaActionExecutor.YARN_AM_COMMAND_OPTS).trim());
+//        assertEquals(2560, heapSize);
+//    }
+//
+//    public void testDisableUberForProperties() throws Exception {
+//        Element actionXml1 = XmlUtils.parseXml("<java>" + "<job-tracker>" + getJobTrackerUri() + "</job-tracker>"
+//                + "<name-node>" + getNameNodeUri() + "</name-node>"
+//                + "<configuration>"
+//                + "<property><name>oozie.launcher.mapreduce.job.classloader</name>"
+//                + "<value>true</value></property>"
+//                + "</configuration>"
+//                + "<main-class>MAIN-CLASS</main-class>" + "</java>");
+//        JavaActionExecutor ae = new JavaActionExecutor();
+//        XConfiguration protoConf = new XConfiguration();
+//        protoConf.set(WorkflowAppService.HADOOP_USER, getTestUser());
+//
+//        WorkflowJobBean wf = createBaseWorkflow(protoConf, "action");
+//        WorkflowActionBean action = (WorkflowActionBean) wf.getActions().get(0);
+//        action.setType(ae.getType());
+//
+//        Context context = new Context(wf, action);
+//        JobConf launcherConf = new JobConf();
+//        launcherConf = ae.createLauncherConf(getFileSystem(), context, action, actionXml1, launcherConf);
+//
+//        // uber mode should be disabled since oozie.launcher.mapreduce.job.classloader=true
+//        assertEquals("false", launcherConf.get(JavaActionExecutor.HADOOP_YARN_UBER_MODE));
+//
+//        Element actionXml2 = XmlUtils.parseXml("<java>" + "<job-tracker>" + getJobTrackerUri() + "</job-tracker>"
+//                + "<name-node>" + getNameNodeUri() + "</name-node>"
+//                + "<configuration>"
+//                + "<property><name>oozie.launcher.mapreduce.user.classpath.first</name>"
+//                + "<value>true</value></property>"
+//                + "</configuration>"
+//                + "<main-class>MAIN-CLASS</main-class>" + "</java>");
+//        ae = new JavaActionExecutor();
+//        protoConf = new XConfiguration();
+//        protoConf.set(WorkflowAppService.HADOOP_USER, getTestUser());
+//
+//        wf = createBaseWorkflow(protoConf, "action");
+//        action = (WorkflowActionBean) wf.getActions().get(0);
+//        action.setType(ae.getType());
+//
+//        context = new Context(wf, action);
+//        launcherConf = new JobConf();
+//        launcherConf = ae.createLauncherConf(getFileSystem(), context, action, actionXml2, launcherConf);
+//
+//        // uber mode should be disabled since oozie.launcher.mapreduce.user.classpath.first=true
+//        assertEquals("false", launcherConf.get(JavaActionExecutor.HADOOP_YARN_UBER_MODE));
+//    }
+//
+//    public void testUpdateConfForTimeLineServiceEnabled() throws Exception {
+//        Element actionXml = XmlUtils
+//                .parseXml("<java>"
+//                        + "<job-tracker>"
+//                        + getJobTrackerUri()
+//                        + "</job-tracker>"
+//                        + "<name-node>"
+//                        + getNameNodeUri()
+//                        + "</name-node>"
+//                        + "<main-class>MAIN-CLASS</main-class>"
+//                        + "</java>");
+//        JavaActionExecutor ae = new JavaActionExecutor();
+//        XConfiguration protoConf = new XConfiguration();
+//        protoConf.set(WorkflowAppService.HADOOP_USER, getTestUser());
+//        WorkflowJobBean wf = createBaseWorkflow(protoConf, "action");
+//        WorkflowActionBean action = (WorkflowActionBean) wf.getActions().get(0);
+//        action.setType(ae.getType());
+//        Context context = new Context(wf, action);
+//        JobConf actionConf = new JobConf();
+//
+//        // Test when server side setting is not enabled
+//        JobConf launcherConf = ae.createLauncherConf(getFileSystem(), context, action, actionXml, actionConf);
+//        assertNull(launcherConf.get(JavaActionExecutor.HADOOP_YARN_TIMELINE_SERVICE_ENABLED));
+//
+//        ConfigurationService.set("oozie.action.launcher." + JavaActionExecutor.HADOOP_YARN_TIMELINE_SERVICE_ENABLED, "true");
+//
+//        // Test when server side setting is enabled but tez-site.xml is not in DistributedCache
+//        launcherConf = ae.createLauncherConf(getFileSystem(), context, action, actionXml, actionConf);
+//        assertNull(launcherConf.get(JavaActionExecutor.HADOOP_YARN_TIMELINE_SERVICE_ENABLED));
+//
+//        final Path tezSite = new Path("/tmp/tez-site.xml");
+//        final FSDataOutputStream out = getFileSystem().create(tezSite);
+//        out.close();
+//
+//        // Test when server side setting is enabled and tez-site.xml is in DistributedCache
+//        Element actionXmlWithTez = XmlUtils
+//                .parseXml("<java>"
+//                        + "<job-tracker>"
+//                        + getJobTrackerUri()
+//                        + "</job-tracker>"
+//                        + "<name-node>"
+//                        + getNameNodeUri()
+//                        + "</name-node>"
+//                        + "<main-class>MAIN-CLASS</main-class>"
+//                        + "<file>" + tezSite + "</file>"
+//                        + "</java>");
+//        launcherConf = ae.createLauncherConf(getFileSystem(), context, action, actionXmlWithTez, actionConf);
+//        assertTrue(launcherConf.getBoolean(JavaActionExecutor.HADOOP_YARN_TIMELINE_SERVICE_ENABLED, false));
+//
+//        // Test when server side setting is enabled, tez-site.xml is in DistributedCache
+//        // but user has disabled in action configuration
+//        Element actionXmlATSDisabled = XmlUtils
+//                .parseXml("<java>"
+//                        + "<job-tracker>"
+//                        + getJobTrackerUri()
+//                        + "</job-tracker>"
+//                        + "<name-node>"
+//                        + getNameNodeUri()
+//                        + "</name-node>"
+//                        + "<configuration>"
+//                        + "<property><name>oozie.launcher.yarn.timeline-service.enabled</name>"
+//                        + "<value>false</value></property>"
+//                        + "</configuration>"
+//                        + "<main-class>MAIN-CLASS</main-class>"
+//                        + "<file>" + tezSite + "</file>"
+//                        + "</java>");
+//        actionConf = ae.createBaseHadoopConf(context, actionXmlATSDisabled);
+//        ae.setupActionConf(actionConf, context, actionXmlATSDisabled, new Path("hdfs:///tmp/workflow"));
+//        launcherConf = ae.createLauncherConf(getFileSystem(), context, action, actionXmlATSDisabled, actionConf);
+//        assertFalse(launcherConf.getBoolean(JavaActionExecutor.HADOOP_YARN_TIMELINE_SERVICE_ENABLED, false));
+//
+//        getFileSystem().delete(tezSite, true);
+//    }
 
     public void testAddToCache() throws Exception {
         JavaActionExecutor ae = new JavaActionExecutor();
@@ -2178,7 +2417,7 @@ public class TestJavaActionExecutor extends ActionExecutorTestCase {
 
         WorkflowAppService wps = Services.get().get(WorkflowAppService.class);
 
-        Path systemLibPath = new Path(wps.getSystemLibPath(), ShareLibService.SHARED_LIB_PREFIX
+        Path systemLibPath = new Path(wps.getSystemLibPath(), ShareLibService.SHARE_LIB_PREFIX
                 + new SimpleDateFormat("yyyyMMddHHmmss").format(new Date()).toString());
 
         File jarFile = IOUtils.createJar(new File(getTestCaseDir()), "sourcejar.jar", LauncherMainTester.class);
@@ -2223,7 +2462,7 @@ public class TestJavaActionExecutor extends ActionExecutorTestCase {
         wfConf.setBoolean(OozieClient.USE_SYSTEM_LIBPATH, true);
         workflow.setConf(XmlUtils.prettyPrint(wfConf).toString());
 
-        Services.get().getConf().set("oozie.action.sharelib.for.java", "java");
+        ConfigurationService.set("oozie.action.sharelib.for.java", "java");
 
         final RunningJob runningJob = submitAction(context);
         waitFor(60 * 1000, new Predicate() {

@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 
+
 package org.apache.oozie.action.hadoop;
 
 import java.io.BufferedReader;
@@ -288,33 +289,5 @@ public class ShellMain extends LauncherMain {
             throw new RuntimeException("Action Configuration does not have " + CONF_OOZIE_SHELL_EXEC + " property");
         }
         return exec;
-    }
-
-    /**
-     * Read action configuration passes through action xml file.
-     *
-     * @return action  Configuration
-     * @throws IOException
-     */
-    protected Configuration loadActionConf() throws IOException {
-        System.out.println();
-        System.out.println("Oozie Shell action configuration");
-        System.out.println("=================================================================");
-
-        // loading action conf prepared by Oozie
-        Configuration actionConf = new Configuration(false);
-
-        String actionXml = System.getProperty("oozie.action.conf.xml");
-
-        if (actionXml == null) {
-            throw new RuntimeException("Missing Java System Property [oozie.action.conf.xml]");
-        }
-        if (!new File(actionXml).exists()) {
-            throw new RuntimeException("Action Configuration XML file [" + actionXml + "] does not exist");
-        }
-
-        actionConf.addResource(new Path("file:///", actionXml));
-        logMasking("Shell configuration:", new HashSet<String>(), actionConf);
-        return actionConf;
     }
 }

@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.command.coord;
 
 import java.util.Date;
@@ -44,6 +45,7 @@ import org.apache.oozie.service.Services;
 import org.apache.oozie.util.InstrumentUtils;
 import org.apache.oozie.util.LogUtils;
 import org.apache.oozie.util.ParamChecker;
+import org.apache.oozie.util.XLog;
 
 /**
  * Resume coordinator job and actions.
@@ -90,7 +92,7 @@ public class CoordResumeXCommand extends ResumeTransitionXCommand {
         }
         setJob(coordJob);
         prevStatus = coordJob.getStatus();
-        LogUtils.setLogInfo(coordJob, logInfo);
+        LogUtils.setLogInfo(coordJob);
     }
 
     @Override

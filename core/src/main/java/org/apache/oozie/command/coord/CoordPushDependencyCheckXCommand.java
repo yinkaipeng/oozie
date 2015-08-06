@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.command.coord;
 
 import java.io.IOException;
@@ -42,6 +43,7 @@ import org.apache.oozie.executor.jpa.CoordActionQueryExecutor.CoordActionQuery;
 import org.apache.oozie.executor.jpa.CoordJobGetJPAExecutor;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
 import org.apache.oozie.service.CallableQueueService;
+import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.EventHandlerService;
 import org.apache.oozie.service.JPAService;
 import org.apache.oozie.service.PartitionDependencyManagerService;
@@ -67,11 +69,6 @@ public class CoordPushDependencyCheckXCommand extends CoordinatorXCommand<Void> 
      */
     public static final String CONF_COORD_PUSH_CHECK_REQUEUE_INTERVAL = Service.CONF_PREFIX
             + "coord.push.check.requeue.interval";
-    /**
-     * Default re-queue interval in ms. It is applied when no value defined in
-     * the oozie configuration.
-     */
-    private final int DEFAULT_COMMAND_REQUEUE_INTERVAL = 600000;
     private boolean registerForNotification;
     private boolean removeAvailDependencies;
 
@@ -94,6 +91,11 @@ public class CoordPushDependencyCheckXCommand extends CoordinatorXCommand<Void> 
     protected CoordPushDependencyCheckXCommand(String actionName, String actionId) {
         super(actionName, actionName, 0);
         this.actionId = actionId;
+    }
+
+    @Override
+    protected void setLogInfo() {
+        LogUtils.setLogInfo(actionId);
     }
 
     @Override
@@ -189,8 +191,7 @@ public class CoordPushDependencyCheckXCommand extends CoordinatorXCommand<Void> 
      * @return
      */
     public long getCoordPushCheckRequeueInterval() {
-        long requeueInterval = Services.get().getConf().getLong(CONF_COORD_PUSH_CHECK_REQUEUE_INTERVAL,
-                DEFAULT_COMMAND_REQUEUE_INTERVAL);
+        long requeueInterval = ConfigurationService.getLong(CONF_COORD_PUSH_CHECK_REQUEUE_INTERVAL);
         return requeueInterval;
     }
 
@@ -352,7 +353,7 @@ public class CoordPushDependencyCheckXCommand extends CoordinatorXCommand<Void> 
             coordAction = jpaService.execute(new CoordActionGetForInputCheckJPAExecutor(actionId));
             if (coordAction != null) {
                 coordJob = jpaService.execute(new CoordJobGetJPAExecutor(coordAction.getJobId()));
-                LogUtils.setLogInfo(coordAction, logInfo);
+                LogUtils.setLogInfo(coordAction);
             }
             else {
                 throw new CommandException(ErrorCode.E0605, actionId);

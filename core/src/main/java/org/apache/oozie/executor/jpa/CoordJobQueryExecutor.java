@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.executor.jpa;
 
 import java.sql.Timestamp;
@@ -51,6 +52,8 @@ public class CoordJobQueryExecutor extends QueryExecutor<CoordinatorJobBean, Coo
         UPDATE_COORD_JOB_STATUS_PENDING_TIME,
         UPDATE_COORD_JOB_MATERIALIZE,
         UPDATE_COORD_JOB_CHANGE,
+        UPDATE_COORD_JOB_CONF,
+        UPDATE_COORD_JOB_XML,
         GET_COORD_JOB,
         GET_COORD_JOB_USER_APPNAME,
         GET_COORD_JOB_INPUT_CHECK,
@@ -58,9 +61,16 @@ public class CoordJobQueryExecutor extends QueryExecutor<CoordinatorJobBean, Coo
         GET_COORD_JOB_ACTION_KILL,
         GET_COORD_JOB_MATERIALIZE,
         GET_COORD_JOB_SUSPEND_KILL,
+        GET_COORD_JOB_STATUS,
         GET_COORD_JOB_STATUS_PARENTID,
         GET_COORD_JOBS_CHANGED,
-        GET_COORD_JOBS_OLDER_FOR_MATERILZATION
+        GET_COORD_JOBS_OLDER_FOR_MATERIALIZATION,
+        GET_COORD_FOR_ABANDONEDCHECK,
+        GET_COORD_IDS_FOR_STATUS_TRANSIT,
+        GET_COORD_JOBS_FOR_BUNDLE_BY_APPNAME_ID,
+        GET_COORD_JOBS_WITH_PARENT_ID,
+        GET_COORD_JOB_CONF,
+        GET_COORD_JOB_XML
     };
 
     private static CoordJobQueryExecutor instance = new CoordJobQueryExecutor();
@@ -172,6 +182,15 @@ public class CoordJobQueryExecutor extends QueryExecutor<CoordinatorJobBean, Coo
                 query.setParameter("lastModifiedTime", cjBean.getLastModifiedTimestamp());
                 query.setParameter("id", cjBean.getId());
                 break;
+            case UPDATE_COORD_JOB_CONF:
+                query.setParameter("conf", cjBean.getConfBlob());
+                query.setParameter("id", cjBean.getId());
+                break;
+            case UPDATE_COORD_JOB_XML:
+                query.setParameter("jobXml", cjBean.getJobXmlBlob());
+                query.setParameter("id", cjBean.getId());
+                break;
+
             default:
                 throw new JPAExecutorException(ErrorCode.E0603, "QueryExecutor cannot set parameters for "
                         + namedQuery.name());
@@ -191,20 +210,37 @@ public class CoordJobQueryExecutor extends QueryExecutor<CoordinatorJobBean, Coo
             case GET_COORD_JOB_ACTION_KILL:
             case GET_COORD_JOB_MATERIALIZE:
             case GET_COORD_JOB_SUSPEND_KILL:
+            case GET_COORD_JOB_STATUS:
             case GET_COORD_JOB_STATUS_PARENTID:
+            case GET_COORD_JOB_CONF:
+            case GET_COORD_JOB_XML:
                 query.setParameter("id", parameters[0]);
                 break;
             case GET_COORD_JOBS_CHANGED:
                 query.setParameter("lastModifiedTime", new Timestamp(((Date)parameters[0]).getTime()));
                 break;
-            case GET_COORD_JOBS_OLDER_FOR_MATERILZATION:
+            case GET_COORD_JOBS_OLDER_FOR_MATERIALIZATION:
                 query.setParameter("matTime", new Timestamp(((Date)parameters[0]).getTime()));
                 int limit = (Integer) parameters[1];
                 if (limit > 0) {
                     query.setMaxResults(limit);
                 }
                 break;
+            case GET_COORD_FOR_ABANDONEDCHECK:
+                query.setParameter(1, (Integer) parameters[0]);
+                query.setParameter(2, (Timestamp) parameters[1]);
+                break;
 
+            case GET_COORD_IDS_FOR_STATUS_TRANSIT:
+                query.setParameter("lastModifiedTime", new Timestamp(((Date) parameters[0]).getTime()));
+                break;
+            case GET_COORD_JOBS_FOR_BUNDLE_BY_APPNAME_ID:
+                query.setParameter("appName", parameters[0]);
+                query.setParameter("bundleId", parameters[1]);
+                break;
+            case GET_COORD_JOBS_WITH_PARENT_ID:
+                query.setParameter("parentId", parameters[0]);
+                break;
             default:
                 throw new JPAExecutorException(ErrorCode.E0603, "QueryExecutor cannot set parameters for "
                         + namedQuery.name());
@@ -306,6 +342,11 @@ public class CoordJobQueryExecutor extends QueryExecutor<CoordinatorJobBean, Coo
                 bean.setAppNamespace((String) arr[6]);
                 bean.setDoneMaterialization((Integer) arr[7]);
                 break;
+            case GET_COORD_JOB_STATUS:
+                bean = new CoordinatorJobBean();
+                bean.setId((String) parameters[0]);
+                bean.setStatusStr((String) ret);
+                break;
             case GET_COORD_JOB_STATUS_PARENTID:
                 bean = new CoordinatorJobBean();
                 arr = (Object[]) ret;
@@ -316,10 +357,39 @@ public class CoordJobQueryExecutor extends QueryExecutor<CoordinatorJobBean, Coo
             case GET_COORD_JOBS_CHANGED:
                 bean = (CoordinatorJobBean) ret;
                 break;
-            case GET_COORD_JOBS_OLDER_FOR_MATERILZATION:
+            case GET_COORD_JOBS_OLDER_FOR_MATERIALIZATION:
                 bean = new CoordinatorJobBean();
                 bean.setId((String) ret);
                 break;
+            case GET_COORD_JOBS_FOR_BUNDLE_BY_APPNAME_ID:
+                bean = new CoordinatorJobBean();
+                bean.setId((String) ret);
+                break;
+            case GET_COORD_JOBS_WITH_PARENT_ID:
+                bean = new CoordinatorJobBean();
+                bean.setId((String) ret);
+                break;
+            case GET_COORD_FOR_ABANDONEDCHECK:
+                bean = new CoordinatorJobBean();
+                arr = (Object[]) ret;
+                bean.setId((String) arr[0]);
+                bean.setUser((String) arr[1]);
+                bean.setGroup((String) arr[2]);
+                bean.setAppName((String) arr[3]);
+                break;
+            case GET_COORD_IDS_FOR_STATUS_TRANSIT:
+                bean = new CoordinatorJobBean();
+                bean.setId((String) ret);
+                break;
+            case GET_COORD_JOB_CONF:
+                bean = new CoordinatorJobBean();
+                bean.setConfBlob((StringBlob) ret);
+                break;
+            case GET_COORD_JOB_XML:
+                bean = new CoordinatorJobBean();
+                bean.setJobXmlBlob((StringBlob) ret);
+                break;
+
             default:
                 throw new JPAExecutorException(ErrorCode.E0603, "QueryExecutor cannot construct job bean for "
                         + namedQuery.name());
@@ -359,5 +429,4 @@ public class CoordJobQueryExecutor extends QueryExecutor<CoordinatorJobBean, Coo
     public Object getSingleValue(CoordJobQuery namedQuery, Object... parameters) throws JPAExecutorException {
         throw new UnsupportedOperationException();
     }
-
 }

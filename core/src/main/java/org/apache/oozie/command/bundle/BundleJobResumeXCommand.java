@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.command.bundle;
 
 import java.util.Date;
@@ -166,7 +167,7 @@ public class BundleJobResumeXCommand extends ResumeTransitionXCommand {
             throw new CommandException(ErrorCode.E0604, bundleId);
         }
 
-        LogUtils.setLogInfo(bundleJob, logInfo);
+        LogUtils.setLogInfo(bundleJob);
     }
 
     /* (non-Javadoc)

@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.command.coord;
 
 import java.io.IOException;
@@ -56,7 +57,8 @@ import org.apache.oozie.coord.CoordinatorJobException;
 import org.apache.oozie.coord.TimeUnit;
 import org.apache.oozie.executor.jpa.CoordJobQueryExecutor;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
-import org.apache.oozie.service.DagXLogInfoService;
+import org.apache.oozie.service.CoordMaterializeTriggerService;
+import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.HadoopAccessorException;
 import org.apache.oozie.service.HadoopAccessorService;
 import org.apache.oozie.service.JPAService;
@@ -78,7 +80,6 @@ import org.apache.oozie.util.ParameterVerifier;
 import org.apache.oozie.util.ParameterVerifierException;
 import org.apache.oozie.util.PropertiesUtils;
 import org.apache.oozie.util.XConfiguration;
-import org.apache.oozie.util.XLog;
 import org.apache.oozie.util.XmlUtils;
 import org.jdom.Attribute;
 import org.jdom.Element;
@@ -238,8 +239,7 @@ public class CoordSubmitXCommand extends SubmitTransitionXCommand {
 
             jobId = storeToDB(appXml, eJob, coordJob);
             // log job info for coordinator job
-            LogUtils.setLogInfo(coordJob, logInfo);
-            LOG = XLog.resetPrefix(LOG);
+            LogUtils.setLogInfo(coordJob);
 
             if (!dryrun) {
                 queueMaterializeTransitionXCommand(jobId);
@@ -287,14 +287,16 @@ public class CoordSubmitXCommand extends SubmitTransitionXCommand {
     /**
      * Gets the dryrun output.
      *
-     * @param jobId the job id
+     * @param coordJob the coordinatorJobBean
      * @return the dry run
      * @throws Exception the exception
      */
     protected String getDryRun(CoordinatorJobBean coordJob) throws Exception{
+        int materializationWindow = ConfigurationService
+                .getInt(CoordMaterializeTriggerService.CONF_MATERIALIZATION_WINDOW);
         Date startTime = coordJob.getStartTime();
         long startTimeMilli = startTime.getTime();
-        long endTimeMilli = startTimeMilli + (3600 * 1000);
+        long endTimeMilli = startTimeMilli + (materializationWindow * 1000);
         Date jobEndTime = coordJob.getEndTime();
         Date endTime = new Date(endTimeMilli);
         if (endTime.compareTo(jobEndTime) > 0) {
@@ -304,8 +306,6 @@ public class CoordSubmitXCommand extends SubmitTransitionXCommand {
         LOG.info("[" + jobId + "]: Update status to RUNNING");
         coordJob.setStatus(Job.Status.RUNNING);
         coordJob.setPending();
-        CoordActionMaterializeCommand coordActionMatCom = new CoordActionMaterializeCommand(jobId, startTime,
-                endTime);
         Configuration jobConf = null;
         try {
             jobConf = new XConfiguration(new StringReader(coordJob.getConf()));
@@ -313,7 +313,8 @@ public class CoordSubmitXCommand extends SubmitTransitionXCommand {
         catch (IOException e1) {
             LOG.warn("Configuration parse error. read from DB :" + coordJob.getConf(), e1);
         }
-        String action = coordActionMatCom.materializeJobs(true, coordJob, jobConf, null);
+        String action = new CoordMaterializeTransitionXCommand(coordJob, materializationWindow, startTime,
+                endTime).materializeActions(true);
         String output = coordJob.getJobXml() + System.getProperty("line.separator")
         + "***actions for instance***" + action;
         return output;
@@ -323,9 +324,9 @@ public class CoordSubmitXCommand extends SubmitTransitionXCommand {
      * Queue MaterializeTransitionXCommand
      */
     protected void queueMaterializeTransitionXCommand(String jobId) {
-        // submit a command to materialize jobs for the next 1 hour (3600 secs)
-        // so we don't wait 10 mins for the Service to run.
-        queue(new CoordMaterializeTransitionXCommand(jobId, 3600), 100);
+        int materializationWindow = ConfigurationService
+                .getInt(CoordMaterializeTriggerService.CONF_MATERIALIZATION_WINDOW);
+        queue(new CoordMaterializeTransitionXCommand(jobId, materializationWindow), 100);
     }
 
     /**
@@ -342,7 +343,7 @@ public class CoordSubmitXCommand extends SubmitTransitionXCommand {
             int freq = Integer.parseInt(coordJob.getFrequency());
 
             // Check if the frequency is faster than 5 min if enabled
-            if (Services.get().getConf().getBoolean(CONF_CHECK_MAX_FREQUENCY, true)) {
+            if (ConfigurationService.getBoolean(CONF_CHECK_MAX_FREQUENCY)) {
                 CoordinatorJob.Timeunit unit = coordJob.getTimeUnit();
                 if (freq == 0 || (freq < 5 && unit == CoordinatorJob.Timeunit.MINUTE)) {
                     throw new IllegalArgumentException("Coordinator job with frequency [" + freq +
@@ -745,32 +746,32 @@ public class CoordSubmitXCommand extends SubmitTransitionXCommand {
             }
         }
         else {
-            val = Services.get().getConf().get(CONF_DEFAULT_TIMEOUT_NORMAL);
+            val = ConfigurationService.get(CONF_DEFAULT_TIMEOUT_NORMAL);
         }
 
         ival = ParamChecker.checkInteger(val, "timeout");
-        if (ival < 0 || ival > Services.get().getConf().getInt(CONF_DEFAULT_MAX_TIMEOUT, 129600)) {
-            ival = Services.get().getConf().getInt(CONF_DEFAULT_MAX_TIMEOUT, 129600);
+        if (ival < 0 || ival > ConfigurationService.getInt(CONF_DEFAULT_MAX_TIMEOUT)) {
+            ival = ConfigurationService.getInt(CONF_DEFAULT_MAX_TIMEOUT);
         }
         coordJob.setTimeout(ival);
 
         val = resolveTagContents("concurrency", eAppXml.getChild("controls", eAppXml.getNamespace()), evalNofuncs);
         if (val == null || val.isEmpty()) {
-            val = Services.get().getConf().get(CONF_DEFAULT_CONCURRENCY, "1");
+            val = ConfigurationService.get(CONF_DEFAULT_CONCURRENCY);
         }
         ival = ParamChecker.checkInteger(val, "concurrency");
         coordJob.setConcurrency(ival);
 
         val = resolveTagContents("throttle", eAppXml.getChild("controls", eAppXml.getNamespace()), evalNofuncs);
         if (val == null || val.isEmpty()) {
-            int defaultThrottle = Services.get().getConf().getInt(CONF_DEFAULT_THROTTLE, 12);
+            int defaultThrottle = ConfigurationService.getInt(CONF_DEFAULT_THROTTLE);
             ival = defaultThrottle;
         }
         else {
             ival = ParamChecker.checkInteger(val, "throttle");
         }
-        int maxQueue = Services.get().getConf().getInt(CONF_QUEUE_SIZE, 10000);
-        float factor = Services.get().getConf().getFloat(CONF_MAT_THROTTLING_FACTOR, 0.10f);
+        int maxQueue = ConfigurationService.getInt(CONF_QUEUE_SIZE);
+        float factor = ConfigurationService.getFloat(CONF_MAT_THROTTLING_FACTOR);
         int maxThrottle = (int) (maxQueue * factor);
         if (ival > maxThrottle || ival < 1) {
             ival = maxThrottle;
@@ -1268,8 +1269,7 @@ public class CoordSubmitXCommand extends SubmitTransitionXCommand {
             // this coord job is created from bundle
             coordJob.setBundleId(this.bundleId);
             // first use bundle id if submit thru bundle
-            logInfo.setParameter(DagXLogInfoService.JOB, this.bundleId);
-            LogUtils.setLogInfo(logInfo);
+            LogUtils.setLogInfo(this.bundleId);
         }
         if (this.coordName != null) {
             // this coord job is created from bundle
