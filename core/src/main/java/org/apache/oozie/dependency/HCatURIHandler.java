@@ -31,8 +31,11 @@ import java.util.Set;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.conf.HiveConf;
-import org.apache.hadoop.hive.shims.Utils;
+//import org.apache.hadoop.hive.shims.Utils;
+import org.apache.hadoop.hive.thrift.DelegationTokenIdentifier;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hadoop.security.token.Token;
+import org.apache.hadoop.io.Text;
 import org.apache.hive.hcatalog.api.ConnectionFailureException;
 import org.apache.hive.hcatalog.api.HCatClient;
 import org.apache.hive.hcatalog.api.HCatPartition;
@@ -270,8 +273,10 @@ public class HCatURIHandler implements URIHandler {
                     delegationToken = tokenClient.getDelegationToken(user, UserGroupInformation.getLoginUser()
                             .getUserName());
                     // Store Delegation token in the UGI
-                    Utils.setTokenStr(ugi, delegationToken,
-                            hiveConf.get("hive.metastore.token.signature"));
+                    Token<DelegationTokenIdentifier> delegationTokenDecoded = createToken(delegationToken, hiveConf.get("hive.metastore.token.signature"));
+                    ugi.addToken(delegationTokenDecoded);
+                    //Utils.setTokenStr(ugi, delegationToken,
+                            //hiveConf.get("hive.metastore.token.signature"));
                 }
                 finally {
                     if (tokenClient != null)
@@ -332,6 +337,14 @@ public class HCatURIHandler implements URIHandler {
         finally {
             closeQuietly(client, null, closeClient);
         }
+    }
+
+    private static Token<DelegationTokenIdentifier> createToken(String tokenStr, String tokenService)
+      throws IOException {
+        Token<DelegationTokenIdentifier> delegationToken = new Token<DelegationTokenIdentifier>();
+        delegationToken.decodeFromUrlString(tokenStr);
+        delegationToken.setService(new Text(tokenService));
+        return delegationToken;
     }
 
     private void closeQuietly(HCatClient client, String delegationToken, boolean close) {
