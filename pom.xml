@@ -1835,12 +1835,12 @@
         <profile>
             <id>hadoop-1</id>
             <activation>
-                <activeByDefault>true</activeByDefault>
+                <activeByDefault>false</activeByDefault>
             </activation>
             <properties>
                 <hadoop.version>1.2.1</hadoop.version>
                 <hadoop.majorversion>1</hadoop.majorversion>
-                <pig.classifier>h2</pig.classifier>
+                <pig.classifier></pig.classifier>
                 <sqoop.classifier>hadoop100</sqoop.classifier>
             </properties>
         </profile>
