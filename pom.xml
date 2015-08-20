@@ -838,12 +838,6 @@
 
             <dependency>
                 <groupId>org.apache.openjpa</groupId>
-                <artifactId>openjpa-jdbc-sqlanywhere</artifactId>
-                <version>${openjpa.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.apache.openjpa</groupId>
                 <artifactId>openjpa-persistence-jdbc</artifactId>
                 <version>${openjpa.version}</version>
             </dependency>
