@@ -22,11 +22,11 @@
     <parent>
         <groupId>org.apache.oozie</groupId>
         <artifactId>oozie-main</artifactId>
-        <version>4.1.0</version>
+        <version>4.1.0.2.2.8.0-3150</version>
     </parent>
     <groupId>org.apache.oozie</groupId>
     <artifactId>oozie-core</artifactId>
-    <version>4.1.0</version>
+    <version>4.1.0.2.2.8.0-3150</version>
     <description>Apache Oozie Core</description>
     <name>Apache Oozie Core</name>
     <packaging>jar</packaging>
