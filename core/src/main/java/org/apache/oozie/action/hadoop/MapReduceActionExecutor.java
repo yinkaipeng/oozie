@@ -337,9 +337,10 @@ public class MapReduceActionExecutor extends JavaActionExecutor {
     protected RunningJob getRunningJob(Context context, WorkflowAction action, JobClient jobClient) throws Exception{
 
         RunningJob runningJob;
+
         String jobId = getActualExternalId(action);
 
-        runningJob = jobClient.getJob(JobID.forName(jobId));
+        runningJob = getJobClientWithRetries(action, jobClient, JobID.forName(jobId));
 
         return runningJob;
     }

@@ -120,6 +120,7 @@ public class JavaActionExecutor extends ActionExecutor {
     public static final String CONF_HADOOP_YARN_UBER_MODE = "oozie.action.launcher." + HADOOP_YARN_UBER_MODE;
     public static final String HADOOP_JOB_CLASSLOADER = "mapreduce.job.classloader";
     public static final String HADOOP_USER_CLASSPATH_FIRST = "mapreduce.user.classpath.first";
+    public static final int maxGetJobRetries;
 
     static {
         DISALLOWED_PROPERTIES.add(HADOOP_USER);
@@ -127,6 +128,12 @@ public class JavaActionExecutor extends ActionExecutor {
         DISALLOWED_PROPERTIES.add(HADOOP_NAME_NODE);
         DISALLOWED_PROPERTIES.add(HADOOP_JOB_TRACKER_2);
         DISALLOWED_PROPERTIES.add(HADOOP_YARN_RM);
+        int retries = 30;
+        try {
+            retries = Integer.parseInt(System.getProperty("oozie.jobclient.getjob.retries", "30"));
+        } catch (NumberFormatException nfe) {
+        }
+        maxGetJobRetries = retries;
     }
 
     public JavaActionExecutor() {
@@ -1330,7 +1337,29 @@ public class JavaActionExecutor extends ActionExecutor {
     }
 
     protected RunningJob getRunningJob(Context context, WorkflowAction action, JobClient jobClient) throws Exception{
-        RunningJob runningJob = jobClient.getJob(JobID.forName(action.getExternalId()));
+        RunningJob runningJob = getJobClientWithRetries(action, jobClient, JobID.forName(action.getExternalId()));
+        return runningJob;
+    }
+
+    protected RunningJob getJobClientWithRetries(WorkflowAction action, JobClient jobClient, JobID jobId) throws IOException {
+        RunningJob runningJob = null;
+        LogUtils.setLogInfo(action);
+
+        int retries = 0;
+        while(retries++ < maxGetJobRetries){
+            LOG.info(XLog.STD, "Trying to get job [{0}], attempt [{1}]", action
+                    .getExternalId(), retries);
+            runningJob = jobClient.getJob(jobId);
+
+            if (runningJob != null){
+                break;
+            }
+
+            try{
+                Thread.sleep(2000);
+            } catch (InterruptedException e) {
+            }
+        }
         return runningJob;
     }
 
