@@ -169,13 +169,11 @@ function Main( $scriptDir )
 
         Write-Log "Copying $extjszip.FullName to $ENV:OOZIE_HOME\..\extra_libs\"
         Copy-Item $extjszip.FullName "$ENV:OOZIE_HOME\..\extra_libs\"
-        
-        Write-Log "Creating credential object for Hadoop user"
-        $hadoopCredential = Get-HadoopUserCredentials -credentialsHash @{"username" = "hadoop"; "password" = $password}
+
         Write-Log "Creating oozie war"
         try
         {
-            $out = Start-Process powershell.exe -Credential $hadoopCredential -ArgumentList " -file $ENV:OOZIE_HOME\bin\oozie-setup.ps1 prepare-war" -Wait -NoNewWindow
+            $out = Start-Process powershell.exe -Credential $serviceCredential -ArgumentList " -file $ENV:OOZIE_HOME\bin\oozie-setup.ps1 prepare-war" -Wait -NoNewWindow
         }
         catch
         {
