@@ -22,28 +22,28 @@
     <parent>
         <groupId>org.apache.oozie</groupId>
         <artifactId>oozie-main</artifactId>
-        <version>4.1.0</version>
+        <version>4.1.0.2.2.9.0-3393</version>
     </parent>
     <groupId>org.apache.oozie</groupId>
     <artifactId>oozie-hadooplibs</artifactId>
-    <version>4.1.0</version>
+    <version>4.1.0.2.2.9.0-3393</version>
     <description>Apache Oozie Hadoop Libs</description>
     <name>Apache Oozie Hadoop Libs</name>
     <packaging>pom</packaging>
 
     <modules>
-        <module>hadoop-1</module>
-        <module>hadoop-distcp-1</module>
-        <module>hadoop-test-1</module>
-        <module>hadoop-utils-1</module>
+        <!-- <module>hadoop-1</module> -->
+        <!-- <module>hadoop-distcp-1</module> -->
+        <!-- <module>hadoop-test-1</module> -->
+        <!-- <module>hadoop-utils-1</module> -->
         <module>hadoop-2</module>
         <module>hadoop-test-2</module>
         <module>hadoop-distcp-2</module>
         <module>hadoop-utils-2</module>
-        <module>hadoop-0.23</module>
-        <module>hadoop-test-0.23</module>
-        <module>hadoop-distcp-0.23</module>
-        <module>hadoop-utils-0.23</module>
+        <!-- <module>hadoop-0.23</module> -->
+        <!-- <module>hadoop-test-0.23</module> -->
+        <!-- <module>hadoop-distcp-0.23</module> -->
+        <!-- <module>hadoop-utils-0.23</module> -->
     </modules>
 
     <build>

@@ -22,11 +22,11 @@
     <parent>
         <groupId>org.apache.oozie</groupId>
         <artifactId>oozie-main</artifactId>
-        <version>4.0.0</version>
+        <version>4.1.0.2.2.9.0-3393</version>
     </parent>
     <groupId>org.apache.oozie</groupId>
     <artifactId>oozie-winpkg</artifactId>
-    <version>4.0.0</version>
+    <version>4.1.0.2.2.9.0-3393</version>
     <description>Apache Oozie WinPkg</description>
     <name>Apache Oozie WinPkg</name>
     <packaging>jar</packaging>
