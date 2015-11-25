@@ -216,12 +216,17 @@ function Configure(
             throw "Configureoozie: Install the oozie before configuring it"
         }
 
+        $additionalConfig = @{
+            "oozie.service.HadoopAccessorService.hadoop.configurations" = "*=$ENV:HADOOP_CONF_DIR";}
+
+        $configs = UpdateConfigWithAdditionalProperties($configs)($additionalConfig)
+
         ###
         ### Apply configuration changes to oozie-site.xml
         ###
         $xmlFile = Join-Path $oozieInstallToDir "$OozieDistroName\conf\oozie-site.xml"
         UpdateXmlConfig $xmlFile $configs
-        
+
         ###
         ### Updating admin file
         ###
@@ -259,6 +264,20 @@ function Configure(
         throw "Configure: Unsupported compoment argument."
     }
 }
+
+
+### Helper function that adds the given properties to config if not already present
+Function UpdateConfigWithAdditionalProperties([hashtable] $configs, [hashtable] $additionalConfig)
+{
+    $additionalConfig.GetEnumerator() | ForEach-Object {
+        if( -not ($configs.ContainsKey($_.Key)))
+        {
+            $configs.Add($_.Key, $_.Value)
+        }
+    }
+    return $configs
+}
+
 
 ###############################################################################
 ###

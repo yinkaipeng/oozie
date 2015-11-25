@@ -30,6 +30,7 @@ import java.util.Properties;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.RunningJob;
 import org.apache.oozie.action.ActionExecutorException;
 import org.apache.oozie.client.WorkflowAction;
@@ -46,7 +47,8 @@ public class Hive2ActionExecutor extends ScriptLanguageActionExecutor {
     static final String HIVE2_SCRIPT = "oozie.hive2.script";
     static final String HIVE2_PARAMS = "oozie.hive2.params";
     static final String HIVE2_ARGS = "oozie.hive2.args";
-
+    public static final String TASK_USER_PRECEDENCE = "mapreduce.task.classpath.user.precedence"; // hadoop-2
+    public static final String TASK_USER_CLASSPATH_PRECEDENCE = "mapreduce.user.classpath.first";  // hadoop-1
     public Hive2ActionExecutor() {
         super("hive2");
     }
@@ -66,6 +68,20 @@ public class Hive2ActionExecutor extends ScriptLanguageActionExecutor {
     @Override
     protected String getLauncherMain(Configuration launcherConf, Element actionXml) {
         return launcherConf.get(CONF_OOZIE_ACTION_MAIN_CLASS, HIVE2_MAIN_CLASS_NAME);
+    }
+
+    @Override
+    JobConf createLauncherConf(FileSystem actionFs, Context context, WorkflowAction action, Element actionXml,
+                               Configuration actionConf) throws ActionExecutorException {
+
+        JobConf launcherJobConf = super.createLauncherConf(actionFs, context, action, actionXml, actionConf);
+        if (launcherJobConf.get("oozie.launcher." + TASK_USER_PRECEDENCE) == null) {
+            launcherJobConf.set(TASK_USER_PRECEDENCE, "true");
+        }
+        if (launcherJobConf.get("oozie.launcher." + TASK_USER_CLASSPATH_PRECEDENCE) == null) {
+            launcherJobConf.set(TASK_USER_CLASSPATH_PRECEDENCE, "true");
+        }
+        return launcherJobConf;
     }
 
     @Override

@@ -21,7 +21,7 @@
     <parent>
         <groupId>org.apache</groupId>
         <artifactId>apache</artifactId>
-        <version>16</version>
+        <version>17</version>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
@@ -300,6 +300,12 @@
                          <groupId>javax.servlet.jsp</groupId>
                      </exclusion>
                  </exclusions>
+             </dependency>
+             
+             <dependency>
+	       <groupId>org.apache.hadoop</groupId>
+	       <artifactId>hadoop-azure</artifactId>
+	       <version>${hadoop.version}</version>
              </dependency>
 
 
@@ -1510,6 +1516,18 @@
                 <version>2.1</version>
             </dependency>
 
+            <dependency>
+                <groupId>org.apache.httpcomponents</groupId>
+                <artifactId>httpcore</artifactId>
+                <version>4.3</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.httpcomponents</groupId>
+                <artifactId>httpclient</artifactId>
+                <version>4.3</version>
+            </dependency>
+
         </dependencies>
     </dependencyManagement>
 
@@ -1985,12 +2003,24 @@
                     <artifactId>hadoop-aws</artifactId>
                     <version>${hadoop.version}</version>
                     <scope>compile</scope>
+                    <exclusions>
+                        <exclusion>
+                            <groupId>org.apache.httpcomponents</groupId>
+                            <artifactId>httpclient</artifactId>
+                        </exclusion>
+                    </exclusions>
                 </dependency>
                 <dependency>
                     <groupId>org.apache.hadoop</groupId>
                    <artifactId>hadoop-azure</artifactId>
                     <version>${hadoop.version}</version>
                     <scope>compile</scope>
+                    <exclusions>
+                        <exclusion>
+                            <groupId>org.apache.httpcomponents</groupId>
+                            <artifactId>httpclient</artifactId>
+                        </exclusion>
+                    </exclusions>
                 </dependency>
            </dependencies>
         </profile>

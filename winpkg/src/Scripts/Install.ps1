@@ -151,6 +151,39 @@ function Main( $scriptDir )
             Write-Log "Creating oozie db schema"
             CreateMetastore
         }
+        
+    $hdpLayoutLocation =  Split-Path -Parent (Resolve-Path $ENV:HDP_LAYOUT)    
+    if ((Test-Path ENV:ENABLE_LZO) -and ($ENV:ENABLE_LZO -ieq "yes"))
+    {
+        $hadoopLzoJar = @(gci -Filter hadoop-lzo*.jar -Path $hdpLayoutLocation)[0]
+
+        Write-Log "Copying $hadoopLzoJar.FullName to $ENV:OOZIE_HOME\..\extra_libs\"
+        Copy-Item $hadoopLzoJar.FullName "$ENV:OOZIE_HOME\..\extra_libs\"
+
+        $params = @{command="prepare-war";d="$ENV:OOZIE_HOME\..\extra_libs"}
+        Invoke-Expression -command "$ENV:OOZIE_HOME/bin/oozie-setup.ps1 @params"
+    }
+    if ((Test-Path ENV:INSTALL_OOZIE_WEBCONSOLE ) -and ($ENV:INSTALL_OOZIE_WEBCONSOLE -ieq "yes"))
+    {
+        $extjszip = @(gci -Filter ext-*.zip -Path $hdpLayoutLocation)[0]
+
+        Write-Log "Copying $extjszip.FullName to $ENV:OOZIE_HOME\..\extra_libs\"
+        Copy-Item $extjszip.FullName "$ENV:OOZIE_HOME\..\extra_libs\"
+
+        Write-Log "Creating oozie war"
+        try
+        {
+            $out = Start-Process powershell.exe -Credential $serviceCredential -ArgumentList " -file $ENV:OOZIE_HOME\bin\oozie-setup.ps1 prepare-war" -Wait -NoNewWindow
+        }
+        catch
+        {
+            throw "Creating oozie war failed"
+        }
+        Remove-Item "$ENV:OOZIE_HOME\..\oozie-server\webapps" -ErrorAction SilentlyContinue -Recurse -Force
+
+    }
+
+    Write-Log "Done Configuring Oozie"
 }
 
 try
