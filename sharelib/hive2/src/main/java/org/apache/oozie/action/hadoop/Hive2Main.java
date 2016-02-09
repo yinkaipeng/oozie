@@ -255,6 +255,8 @@ public class Hive2Main extends LauncherMain {
             while ((line = br.readLine()) != null) {
                 sb.append(line).append(sep);
             }
+	    // Always add a line separator
+            sb.append(sep);
             return sb.toString();
         }
         finally {
