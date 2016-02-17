@@ -547,6 +547,10 @@
                         <groupId>org.apache.hive</groupId>
                         <artifactId>hive-cli</artifactId>
                     </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.hive</groupId>
+                        <artifactId>hive-exec</artifactId>
+                    </exclusion>
                 </exclusions>
             </dependency>
 
