@@ -48,6 +48,10 @@ public abstract class XHCatTestCase extends XFsTestCase {
         super.tearDown();
     }
 
+    protected static String getTestUser() {
+        return System.getProperty(TEST_USER1_PROP, System.getProperty("user.name", "test"));
+    }
+
     protected Configuration getMetaStoreConf() {
         return hcatServer.getMetaStoreConf();
     }

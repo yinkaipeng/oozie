@@ -3853,8 +3853,8 @@ public class TestPurgeXCommand extends XDataTestCase {
         conf.set(OozieClient.USER_NAME, getTestUser());
 
         WorkflowJobBean wfBean = createWorkflow(app, conf, jobStatus, instanceStatus);
-        wfBean.setStartTime(DateUtils.parseDateOozieTZ("2015-12-18T01:00Z"));
-        wfBean.setEndTime(DateUtils.parseDateOozieTZ("2015-12-18T03:00Z"));
+        wfBean.setStartTime(new Date());
+        wfBean.setEndTime(new Date(System.currentTimeMillis() + 60*60*1000));
 
         try {
             JPAService jpaService = Services.get().get(JPAService.class);

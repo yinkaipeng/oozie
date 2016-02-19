@@ -99,7 +99,7 @@ public abstract class PigTestCase extends XFsTestCase implements Callable<Void> 
     public void testPig_withNullExternalID() throws Exception {
         failOnException = false;
         String script = "A = load '$IN' using PigStorage(':');\n"
-                + "store A into '$IN' USING PigStorage();";
+                + "store A into '$OUT' USING PigStorage();";
         pigScript = script;
         writeStats = true;
         try {

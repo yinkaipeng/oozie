@@ -1564,6 +1564,7 @@ public class TestStatusTransitService extends XDataTestCase {
     public void testBundleStatusTransitWithLock() throws Exception {
         setSystemProperty(StatusTransitService.CONF_BACKWARD_SUPPORT_FOR_STATES_WITHOUT_ERROR, "false");
         services = new Services();
+        setClassesToBeExcluded(services.getConf(), excludedServices);
         services.init();
 
         BundleJobBean bundleJob = this.addRecordToBundleJobTable(Job.Status.RUNNING, true);
@@ -1595,6 +1596,7 @@ public class TestStatusTransitService extends XDataTestCase {
     public void testCoordStatusTransitWithLock() throws Exception {
         setSystemProperty(StatusTransitService.CONF_BACKWARD_SUPPORT_FOR_STATES_WITHOUT_ERROR, "false");
         services = new Services();
+        setClassesToBeExcluded(services.getConf(), excludedServices);
         services.init();
 
         final JPAService jpaService = Services.get().get(JPAService.class);
@@ -1610,6 +1612,8 @@ public class TestStatusTransitService extends XDataTestCase {
         final CoordJobGetJPAExecutor coordJobGetCmd = new CoordJobGetJPAExecutor(coordJob.getId());
         JobLock lockThread = new JobLock(coordJob.getId());
         new Thread(lockThread).start();
+
+        sleep(1000);
         Runnable runnable = new StatusTransitRunnable();
         runnable.run();
         sleep(1000);
