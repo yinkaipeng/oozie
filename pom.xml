@@ -16,8 +16,7 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <parent>
         <groupId>org.apache</groupId>
         <artifactId>apache</artifactId>
@@ -27,7 +26,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.apache.oozie</groupId>
     <artifactId>oozie-main</artifactId>
-    <version>4.2.0</version>
+    <version>4.2.0.2.4.0.0-169</version>
     <description>Apache Oozie Main</description>
     <name>Apache Oozie Main</name>
     <packaging>pom</packaging>
@@ -67,7 +66,7 @@
 
         <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
         <maven.test.java.opts>-Xmx1024m -da -XX:MaxPermSize=512m</maven.test.java.opts>
-        <maven.javadoc.opts></maven.javadoc.opts>
+        <maven.javadoc.opts />
 
         <oozie.data.dir>${oozie.test.dir}</oozie.data.dir>
         <oozie.test.db.host>localhost</oozie.test.db.host>
@@ -76,27 +75,27 @@
         </oozie.test.default.config.file>
         <oozie.test.config.file>${oozie.test.default.config.file}</oozie.test.config.file>
 
-        <hadoop.version>1.2.1</hadoop.version>
+        <hadoop.version>2.7.1.2.4.0.0-169</hadoop.version>
         <hadoop.majorversion>2</hadoop.majorversion>
         <hadooplib.version>hadoop-${hadoop.majorversion}-${project.version}</hadooplib.version>
         <oozie.hadoop-utils.version>hadoop-${hadoop.majorversion}-${project.version}</oozie.hadoop-utils.version>
-        <hbase.version>0.94.2</hbase.version>
-        <hbaselib.version>${hbase.version}.oozie-${project.version}</hbaselib.version>
+        <hbase.version>1.1.2.2.4.0.0-169</hbase.version>
+        <hbaselib.version>1.1.2.2.4.0.0-169.oozie-4.2.0.2.4.0.0-169</hbaselib.version>
 
         <clover.license>/home/jenkins/tools/clover/latest/lib/clover.license</clover.license>
 
          <!-- Sharelib component versions -->
-         <hive.version>0.13.1</hive.version>
-         <tez.version>0.3.0-incubating</tez.version>
-         <pig.version>0.10.1</pig.version>
+         <hive.version>1.2.1000.2.4.0.0-169</hive.version>
+         <tez.version>0.7.0.2.4.0.0-169</tez.version>
+         <pig.version>0.15.0.2.4.0.0-169</pig.version>
          <pig.classifier>h2</pig.classifier>
-         <sqoop.version>1.4.3</sqoop.version>
+         <sqoop.version>1.4.6.2.4.0.0-169</sqoop.version>
          <spark.version>1.1.0</spark.version>
          <spark.guava.version>14.0.1</spark.guava.version>
          <sqoop.classifier>hadoop100</sqoop.classifier>
          <streaming.version>${hadoop.version}</streaming.version>
          <distcp.version>${hadoop.version}</distcp.version>
-         <hadoop.auth.version>${hadoop.version}</hadoop.auth.version>
+         <hadoop.auth.version>2.7.1.2.4.0.0-169</hadoop.auth.version>
 
          <!-- Tomcat version -->
          <tomcat.version>6.0.44</tomcat.version>
@@ -106,7 +105,7 @@
          <curator.version>2.5.0</curator.version>
 
         <!-- Native libraries path -->
-        <hadoop.library.path></hadoop.library.path>
+        <hadoop.library.path />
          <jackson.version>1.8.8</jackson.version>
     </properties>
 
@@ -1869,7 +1868,7 @@
                             <source>1.6</source>
                             <target>1.6</target>
                             <compilerArguments>
-                                <Xlint/>
+                                <Xlint />
                                 <Xmaxwarns>9999</Xmaxwarns>
                             </compilerArguments>
                         </configuration>
@@ -1880,10 +1879,10 @@
         <profile>
             <id>hadoop-1</id>
             <activation>
-                <activeByDefault>true</activeByDefault>
+                <activeByDefault>false</activeByDefault>
             </activation>
             <properties>
-                <hadoop.version>1.2.1</hadoop.version>
+                <hadoop.version>2.7.1.2.4.0.0-169</hadoop.version>
                 <hadoop.majorversion>1</hadoop.majorversion>
                 <pig.classifier>h2</pig.classifier>
                 <sqoop.classifier>hadoop100</sqoop.classifier>
@@ -1895,7 +1894,7 @@
                 <activeByDefault>false</activeByDefault>
             </activation>
             <properties>
-                <hadoop.version>0.23.5</hadoop.version>
+                <hadoop.version>2.7.1.2.4.0.0-169</hadoop.version>
                 <hadoop.majorversion>0.23</hadoop.majorversion>
                 <pig.classifier>h2</pig.classifier>
                 <sqoop.classifier>hadoop23</sqoop.classifier>
@@ -1907,7 +1906,7 @@
                 <activeByDefault>false</activeByDefault>
             </activation>
             <properties>
-                <hadoop.version>2.4.0</hadoop.version>
+                <hadoop.version>2.7.1.2.4.0.0-169</hadoop.version>
                 <hadoop.majorversion>2</hadoop.majorversion>
                 <pig.classifier>h2</pig.classifier>
                 <sqoop.classifier>hadoop200</sqoop.classifier>
@@ -1920,7 +1919,7 @@
                 <activeByDefault>false</activeByDefault>
             </activation>
             <properties>
-                <hadoop.version>3.0.0-SNAPSHOT</hadoop.version>
+                <hadoop.version>2.7.1.2.4.0.0-169</hadoop.version>
                 <hadoop.majorversion>3</hadoop.majorversion>
                 <pig.classifier>h2</pig.classifier>
                 <sqoop.classifier>hadoop200</sqoop.classifier>
