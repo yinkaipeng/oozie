@@ -1254,7 +1254,7 @@ public class TestOozieCLI extends DagServletTestCase {
                 String oozieUrl = getContextURL();
                 String[] args = new String[] { "admin", "-sharelibupdate", "-oozie", oozieUrl };
                 String out = runOozieCLIAndGetStderr(args);
-                assertEquals("Error: E0503 : E0503: User [test] does not have admin privileges\n", out);
+                assertEquals("Error: E0503 : E0503: User ["+ getTestUser() +"] does not have admin privileges", out.trim());
 
                 return null;
             }
