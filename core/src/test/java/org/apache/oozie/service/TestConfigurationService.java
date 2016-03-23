@@ -229,7 +229,7 @@ public class TestConfigurationService extends XTestCase {
 
         assertEquals("simple", cl.getConf().get(AuthFilter.OOZIE_PREFIX + AuthFilter.AUTH_TYPE));
         assertEquals("36000", cl.getConf().get(AuthFilter.OOZIE_PREFIX + AuthFilter.AUTH_TOKEN_VALIDITY));
-        assertEquals(" ", cl.getConf().get(AuthFilter.OOZIE_PREFIX + AuthFilter.COOKIE_DOMAIN));
+        assertNull(cl.getConf().get(AuthFilter.OOZIE_PREFIX + AuthFilter.COOKIE_DOMAIN));
         assertEquals("true", cl.getConf().get(AuthFilter.OOZIE_PREFIX + "simple.anonymous.allowed"));
         assertEquals("HTTP/localhost@LOCALHOST", cl.getConf().get(AuthFilter.OOZIE_PREFIX + "kerberos.principal"));
         assertEquals(cl.getConf().get(HadoopAccessorService.KERBEROS_KEYTAB),
