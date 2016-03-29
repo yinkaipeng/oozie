@@ -2253,7 +2253,7 @@ public class TestJavaActionExecutor extends ActionExecutorTestCase {
         // test .jar without fragment where app path is on a different cluster than jar path
         appJarPath = new Path("lib/a.jar");
         appJarFullPath = new Path(appPath, appJarPath);
-        Path appDifferentClusterPath = new Path(new URI(appUri.getScheme(), null, appUri.getHost() + "x",
+        Path appDifferentClusterPath = new Path(new URI(appUri.getScheme(), null, appUri.getHost() + "1",
             appUri.getPort(), appUri.getPath(), appUri.getQuery(), appUri.getFragment()));
         conf.clear();
         conf.set(WorkflowAppService.HADOOP_USER, getTestUser());

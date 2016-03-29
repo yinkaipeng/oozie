@@ -939,7 +939,7 @@ public class TestOozieCLI extends DagServletTestCase {
 
                 args = new String[]{"admin", "-oozie", oozieUrl, "-systemmode", "NORMAL"};
                 out = runOozieCLIAndGetStdout(args);
-                assertEquals("System mode: NORMAL\n", out);
+                assertEquals("System mode: NORMAL", out.trim());
                 return null;
             }
         });
@@ -954,8 +954,8 @@ public class TestOozieCLI extends DagServletTestCase {
                 String oozieUrl = getContextURL();
                 String[] args = new String[]{"admin", "-version", "-oozie", oozieUrl};
                 String out = runOozieCLIAndGetStdout(args);
-                assertEquals("Oozie server build version: " + BuildInfo.getBuildInfo().getProperty(BuildInfo.BUILD_VERSION)+ "\n",
-                        out);
+                assertEquals("Oozie server build version: " + BuildInfo.getBuildInfo().getProperty(BuildInfo.BUILD_VERSION),
+                        out.trim());
 
                 return null;
             }
@@ -965,7 +965,7 @@ public class TestOozieCLI extends DagServletTestCase {
     public void testClientBuildVersion() throws Exception {
         String[] args = new String[]{"version"};
         String out = runOozieCLIAndGetStdout(args);
-        assertEquals("Oozie client build version: " + BuildInfo.getBuildInfo().getProperty(BuildInfo.BUILD_VERSION) + "\n", out);
+        assertEquals("Oozie client build version: " + BuildInfo.getBuildInfo().getProperty(BuildInfo.BUILD_VERSION), out.trim());
     }
 
     public void testJobInfo() throws Exception {
