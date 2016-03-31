@@ -72,7 +72,7 @@ public class TestDistcpMain extends MainTestCase {
 
         // test -D option
         jobConf.set("mapred.job.queue.name", "non-exist");
-        actionXml.delete();
+        new File(getTestCaseDir(), "action.xml").delete();
         os = new FileOutputStream(actionXml);
         jobConf.writeXml(os);
 
