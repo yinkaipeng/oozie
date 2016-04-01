@@ -80,7 +80,7 @@
         <hadoop.majorversion>2</hadoop.majorversion>
         <hadooplib.version>hadoop-${hadoop.majorversion}-${project.version}</hadooplib.version>
         <oozie.hadoop-utils.version>hadoop-${hadoop.majorversion}-${project.version}</oozie.hadoop-utils.version>
-        <hbase.version>0.94.2</hbase.version>
+        <hbase.version>0.94.27</hbase.version>
         <hbaselib.version>${hbase.version}.oozie-${project.version}</hbaselib.version>
 
         <clover.license>/home/jenkins/tools/clover/latest/lib/clover.license</clover.license>
