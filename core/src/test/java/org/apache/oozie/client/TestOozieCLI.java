@@ -935,11 +935,11 @@ public class TestOozieCLI extends DagServletTestCase {
                 String oozieUrl = getContextURL();
                 String[] args = new String[]{"admin", "-status", "-oozie", oozieUrl};
                 String out = runOozieCLIAndGetStdout(args);
-                assertEquals("System mode: NORMAL\n", out);
+                assertEquals("System mode: NORMAL" + System.getProperty("line.separator"), out);
 
                 args = new String[]{"admin", "-oozie", oozieUrl, "-systemmode", "NORMAL"};
                 out = runOozieCLIAndGetStdout(args);
-                assertEquals("System mode: NORMAL", out.trim());
+                assertEquals("System mode: NORMAL" + System.getProperty("line.separator"), out);
                 return null;
             }
         });
@@ -954,8 +954,8 @@ public class TestOozieCLI extends DagServletTestCase {
                 String oozieUrl = getContextURL();
                 String[] args = new String[]{"admin", "-version", "-oozie", oozieUrl};
                 String out = runOozieCLIAndGetStdout(args);
-                assertEquals("Oozie server build version: " + BuildInfo.getBuildInfo().getProperty(BuildInfo.BUILD_VERSION),
-                        out.trim());
+                assertEquals("Oozie server build version: " + BuildInfo.getBuildInfo().getProperty(BuildInfo.BUILD_VERSION) + System.getProperty("line.separator"),
+                        out);
 
                 return null;
             }
@@ -965,7 +965,7 @@ public class TestOozieCLI extends DagServletTestCase {
     public void testClientBuildVersion() throws Exception {
         String[] args = new String[]{"version"};
         String out = runOozieCLIAndGetStdout(args);
-        assertEquals("Oozie client build version: " + BuildInfo.getBuildInfo().getProperty(BuildInfo.BUILD_VERSION), out.trim());
+        assertEquals("Oozie client build version: " + BuildInfo.getBuildInfo().getProperty(BuildInfo.BUILD_VERSION)  + System.getProperty("line.separator"), out);
     }
 
     public void testJobInfo() throws Exception {

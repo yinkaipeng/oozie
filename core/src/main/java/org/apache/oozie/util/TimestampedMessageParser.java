@@ -85,7 +85,7 @@ public class TimestampedMessageParser {
         lastTimestamp = parseTimestamp(nextLine);
         String nextTimestamp = null;
         while (nextTimestamp == null) {
-            message.append(nextLine).append("\n");
+            message.append(nextLine).append(System.getProperty("line.separator"));
             nextLine = parseNextLine();
             if (nextLine != null) {
                 nextTimestamp = parseTimestamp(nextLine);   // exit loop if we have a timestamp, continue if not
