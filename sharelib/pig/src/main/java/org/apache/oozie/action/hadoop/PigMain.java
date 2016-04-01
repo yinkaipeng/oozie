@@ -119,6 +119,9 @@ public class PigMain extends LauncherMain {
 
         pigProperties.setProperty("pig.use.overriden.hadoop.configs","true");
 
+        String contextId = "oozie:" + System.getProperty("oozie.job.id");
+        pigProperties.setProperty("pig.log.trace.id", contextId);
+
         OutputStream os = new FileOutputStream("pig.properties");
         pigProperties.store(os, "");
         os.close();
