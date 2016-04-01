@@ -119,6 +119,7 @@ public class PigMain extends LauncherMain {
 
         pigProperties.setProperty("pig.use.overriden.hadoop.configs","true");
 
+        //setting oozie workflow id as caller context id for pig
         String contextId = "oozie:" + System.getProperty("oozie.job.id");
         pigProperties.setProperty("pig.log.trace.id", contextId);
 
