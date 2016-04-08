@@ -1,5 +1,6 @@
 -- Oozie 4.2.0 release
 
+OOZIE-2490 Oozie can't set hadoop.security.token.service.use_ip (rkanter)
 OOZIE-2350 Package changes for release (shwethags)
 OOZIE-2240 add configuration to disable email attachment support (egashira via shwethags)
 OOZIE-1963 Create a Hive Server 2 example (qwertymaniac via shwethags)
@@ -189,7 +190,7 @@ OOZIE-1877 Setting to fail oozie server startup in case of sharelib misconfigura
 OOZIE-1388 Add a admin servlet to show thread stack trace and CPU usage per thread (rohini)
 OOZIE-1893 Recovery service will never recover bundle action if CoordSubmitXCommand command is lost (puru via rohini)
 OOZIE-1878 Can't execute dryrun on the CLI (puru via rohini)
-OOZIE-1741 Add new coord EL function to get input partitions value string (satish.mittal via rohini) 
+OOZIE-1741 Add new coord EL function to get input partitions value string (satish.mittal via rohini)
 OOZIE-1817 Oozie timers are not biased (rkanter)
 OOZIE-1807 Make bundle change command synchronous (puru via rohini)
 OOZIE-1678 HA support for SLA (ryota)
@@ -231,7 +232,7 @@ OOZIE-1243 libtools dir should not include hadoop JARs (satish.mittal via rohini
 OOZIE-1806 Java Action type jobs are failing with hadoop-0.20.0 and earlier versions on oozie trunk (satish.mittal via rohini)
 OOZIE-1823 OozieSharelibCLI shouldn't load ext services (rkanter)
 OOZIE-1762 Sharelib with oozie.action.ship.launcher.jar=true should copy oozie-hadoop-utils.jar (puru via mona)
-OOZIE-1709 CoordELFunctions.getCurrentInstance() is expensive (shwethags via rohini) 
+OOZIE-1709 CoordELFunctions.getCurrentInstance() is expensive (shwethags via rohini)
 OOZIE-1787 parameterize interval of SLAService updating SlaStatus (ryota)
 OOZIE-1777 duplicated log message in Pig launcher's stdout (ryota)
 OOZIE-1748 When using cron-like syntax, the "Time Unit" field says "MINUTE"
