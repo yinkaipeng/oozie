@@ -83,6 +83,7 @@ public class LauncherMapper<K1, V1, K2, V2> implements Mapper<K1, V1, K2, V2>, R
     public static final String HADOOP2_WORKAROUND_DISTRIBUTED_CACHE = "oozie.hadoop-2.0.2-alpha.workaround.for.distributed.cache";
     public static final String PROPAGATION_CONF_XML = "propagation-conf.xml";
     public static final String OOZIE_LAUNCHER_JOB_ID = "oozie.launcher.job.id";
+    public static final String ROOT_LOGGER_LEVEL = "rootlogger.log.level";
 
     private void setRecoveryId(Configuration launcherConf, Path actionDir, String recoveryId) throws LauncherException {
         try {
@@ -474,8 +475,10 @@ public class LauncherMapper<K1, V1, K2, V2> implements Mapper<K1, V1, K2, V2>, R
         System.setProperty(ACTION_PREFIX + ACTION_DATA_NEW_ID, new File(ACTION_DATA_NEW_ID).getAbsolutePath());
         System.setProperty(ACTION_PREFIX + ACTION_DATA_OUTPUT_PROPS, new File(ACTION_DATA_OUTPUT_PROPS).getAbsolutePath());
         System.setProperty(ACTION_PREFIX + ACTION_DATA_ERROR_PROPS, new File(ACTION_DATA_ERROR_PROPS).getAbsolutePath());
-        System.setProperty(LauncherMainHadoopUtils.OOZIE_JOB_LAUNCH_TIME,
-                getJobConf().get(LauncherMainHadoopUtils.OOZIE_JOB_LAUNCH_TIME));
+        if (getJobConf().get(LauncherMainHadoopUtils.OOZIE_JOB_LAUNCH_TIME) != null) {
+            System.setProperty(LauncherMainHadoopUtils.OOZIE_JOB_LAUNCH_TIME,
+                    getJobConf().get(LauncherMainHadoopUtils.OOZIE_JOB_LAUNCH_TIME));
+        }
 
         String actionConfigClass = getJobConf().get(OOZIE_ACTION_CONFIG_CLASS);
         if (actionConfigClass != null) {

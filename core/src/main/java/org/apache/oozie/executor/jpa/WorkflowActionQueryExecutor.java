@@ -131,6 +131,7 @@ public class WorkflowActionQueryExecutor extends
                 query.setParameter("pendingAge", actionBean.getPendingAgeTimestamp());
                 query.setParameter("errorCode", actionBean.getErrorCode());
                 query.setParameter("errorMessage", actionBean.getErrorMessage());
+                query.setParameter("status", actionBean.getStatusStr());
                 query.setParameter("id", actionBean.getId());
                 break;
             case UPDATE_ACTION_START:
@@ -371,12 +372,22 @@ public class WorkflowActionQueryExecutor extends
 
     @Override
     public WorkflowActionBean get(WorkflowActionQuery namedQuery, Object... parameters) throws JPAExecutorException {
+        WorkflowActionBean bean = getIfExist(namedQuery, parameters);
+        if (bean == null) {
+            throw new JPAExecutorException(ErrorCode.E0605, getSelectQuery(namedQuery,
+                    Services.get().get(JPAService.class).getEntityManager(), parameters).toString());
+        }
+        return bean;
+    }
+
+    @Override
+    public WorkflowActionBean getIfExist(WorkflowActionQuery namedQuery, Object... parameters) throws JPAExecutorException {
         JPAService jpaService = Services.get().get(JPAService.class);
         EntityManager em = jpaService.getEntityManager();
         Query query = getSelectQuery(namedQuery, em, parameters);
         Object ret = jpaService.executeGet(namedQuery.name(), query, em);
         if (ret == null) {
-            throw new JPAExecutorException(ErrorCode.E0605, query.toString());
+            return null;
         }
         WorkflowActionBean bean = constructBean(namedQuery, ret);
         return bean;

@@ -65,14 +65,14 @@ public class BundleStatusTransitXCommand extends StatusTransitXCommand {
     protected void loadState() throws CommandException {
         try {
             bundleJob = BundleJobQueryExecutor.getInstance().get(
-                    BundleJobQuery.GET_BUNDLE_JOB_ID_STATUS_PENDING_MODTIME, jobId);
+                    BundleJobQuery.GET_BUNDLE_JOB_ID_STATUS_PENDING_MOD_PAUSE_SUSPEND_TIME, jobId);
 
             bundleActions = BundleActionQueryExecutor.getInstance().getList(
                     BundleActionQuery.GET_BUNDLE_UNIGNORED_ACTION_STATUS_PENDING_FOR_BUNDLE, jobId);
             for (BundleActionBean bAction : bundleActions) {
                 int counter = 0;
                 if (bundleActionStatus.containsKey(bAction.getStatus())) {
-                    counter = bundleActionStatus.get(bAction.getStatus()) + 1;
+                    counter = getActionStatusCount(bAction.getStatus()) + 1;
                 }
                 else {
                     ++counter;
@@ -82,7 +82,7 @@ public class BundleStatusTransitXCommand extends StatusTransitXCommand {
                         && (bAction.getStatus() == Job.Status.FAILED || bAction.getStatus() == Job.Status.KILLED) ) {
                     new BundleKillXCommand(jobId).call();
                     bundleJob = BundleJobQueryExecutor.getInstance().get(
-                            BundleJobQuery.GET_BUNDLE_JOB_ID_STATUS_PENDING_MODTIME, jobId);
+                            BundleJobQuery.GET_BUNDLE_JOB_ID_STATUS_PENDING_MOD_PAUSE_SUSPEND_TIME, jobId);
                     bundleJob.setStatus(Job.Status.FAILED);
                     bundleJob.setLastModifiedTime(new Date());
                     BundleJobQueryExecutor.getInstance().executeUpdate(BundleJobQuery.UPDATE_BUNDLE_JOB_STATUS,
@@ -150,13 +150,16 @@ public class BundleStatusTransitXCommand extends StatusTransitXCommand {
 
     @Override
     protected boolean isPausedState() {
-
-        if (bundleJob.getStatus() == Job.Status.PAUSED || bundleJob.getStatus() == Job.Status.PAUSEDWITHERROR) {
+        //If bundle is paused then timestamp will be set.
+        //If bundleJob.getPauseTime() is not set, that means that status has to be computed from bottom-up.
+        if (bundleJob.getStatus() == Job.Status.PAUSED || bundleJob.getStatus() == Job.Status.PAUSEDWITHERROR
+                && bundleJob.getPauseTime() != null) {
             return true;
         }
         else {
             return getBottomUpPauseStatus() != null;
         }
+
     }
 
     @Override
@@ -177,7 +180,10 @@ public class BundleStatusTransitXCommand extends StatusTransitXCommand {
 
     @Override
     protected boolean isSuspendedState() {
-        if (bundleJob.getStatus() == Job.Status.SUSPENDED || bundleJob.getStatus() == Job.Status.SUSPENDEDWITHERROR) {
+        //If bundle is suspended then timestamp will be set.
+        //If bundleJob.getSuspendedTimestamp() is not set, that means that status has to be computed from bottom-up.
+        if ((bundleJob.getStatus() == Job.Status.SUSPENDED || bundleJob.getStatus() == Job.Status.SUSPENDEDWITHERROR)
+                && bundleJob.getSuspendedTimestamp() != null) {
             return true;
         }
 
@@ -224,6 +230,7 @@ public class BundleStatusTransitXCommand extends StatusTransitXCommand {
         // Check for backward support when RUNNINGWITHERROR, SUSPENDEDWITHERROR and
         // PAUSEDWITHERROR is not supported
         bundleJob.setStatus(StatusUtils.getStatusIfBackwardSupportTrue(bundleStatus));
+        bundleJob.setLastModifiedTime(new Date());
         if (foundPending) {
             bundleJob.setPending();
             LOG.info("Bundle job [" + jobId + "] Pending set to TRUE");
@@ -245,7 +252,7 @@ public class BundleStatusTransitXCommand extends StatusTransitXCommand {
     private Job.Status getBottomUpPauseStatus() {
 
         if (bundleActionStatus.containsKey(Job.Status.PAUSED)
-                && bundleActions.size() == bundleActionStatus.get(Job.Status.PAUSED)) {
+                && bundleActions.size() == getActionStatusCount(Job.Status.PAUSED)) {
             return Job.Status.PAUSED;
 
         }
@@ -273,7 +280,7 @@ public class BundleStatusTransitXCommand extends StatusTransitXCommand {
                 return Job.Status.SUSPENDED;
             }
             else if (bundleActions.size() == getActionStatusCount(Job.Status.SUSPENDEDWITHERROR)
-                    + bundleActionStatus.get(Job.Status.SUSPENDED) + getActionStatusCount(Job.Status.SUCCEEDED)
+                    + getActionStatusCount(Job.Status.SUSPENDED) + getActionStatusCount(Job.Status.SUCCEEDED)
                     + getActionStatusCount(Job.Status.KILLED) + getActionStatusCount(Job.Status.FAILED)
                     + getActionStatusCount(Job.Status.DONEWITHERROR)) {
                 return Job.Status.SUSPENDEDWITHERROR;
@@ -291,7 +298,7 @@ public class BundleStatusTransitXCommand extends StatusTransitXCommand {
 
     private boolean isPrepRunningState() {
         return !foundPending && bundleActionStatus.containsKey(Job.Status.PREP)
-                && bundleActions.size() > bundleActionStatus.get(Job.Status.PREP);
+                && bundleActions.size() > getActionStatusCount(Job.Status.PREP);
     }
 
     private Status getPrepRunningStatus() {

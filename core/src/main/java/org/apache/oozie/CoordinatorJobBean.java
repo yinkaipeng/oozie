@@ -92,9 +92,9 @@ import org.json.simple.JSONObject;
 
         @NamedQuery(name = "GET_COORD_JOB_USER_APPNAME", query = "select w.user, w.appName from CoordinatorJobBean w where w.id = :id"),
 
-        @NamedQuery(name = "GET_COORD_JOB_INPUT_CHECK", query = "select w.user, w.appName, w.statusStr, w.appNamespace, w.execution, w.frequency, w.timeUnitStr, w.timeZone, w.endTimestamp from CoordinatorJobBean w where w.id = :id"),
+        @NamedQuery(name = "GET_COORD_JOB_INPUT_CHECK", query = "select w.user, w.appName, w.statusStr, w.appNamespace, w.execution, w.frequency, w.timeUnitStr, w.timeZone, w.startTimestamp, w.endTimestamp, w.jobXml from CoordinatorJobBean w where w.id = :id"),
 
-        @NamedQuery(name = "GET_COORD_JOB_ACTION_READY", query = "select w.id, w.user, w.group, w.appName, w.statusStr, w.execution, w.concurrency from CoordinatorJobBean w where w.id = :id"),
+        @NamedQuery(name = "GET_COORD_JOB_ACTION_READY", query = "select w.id, w.user, w.group, w.appName, w.statusStr, w.execution, w.concurrency, w.frequency, w.timeUnitStr, w.timeZone, w.startTimestamp, w.endTimestamp, w.jobXml from CoordinatorJobBean w where w.id = :id"),
 
         @NamedQuery(name = "GET_COORD_JOB_ACTION_KILL", query = "select w.id, w.user, w.group, w.appName, w.statusStr from CoordinatorJobBean w where w.id = :id"),
 
@@ -684,9 +684,7 @@ public class CoordinatorJobBean implements Writable, CoordinatorJob, JsonBean {
     }
 
     /**
-     * Get status
-     *
-     * @return status
+     * Set status
      */
     public void setStatusStr(String status) {
         this.statusStr = status;
@@ -744,9 +742,7 @@ public class CoordinatorJobBean implements Writable, CoordinatorJob, JsonBean {
     }
 
     /**
-     * Get execution
-     *
-     * @return execution
+     * Set execution order
      */
     public void setExecution(String order) {
         this.execution = order;

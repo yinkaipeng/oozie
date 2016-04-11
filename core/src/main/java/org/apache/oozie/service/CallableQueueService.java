@@ -29,14 +29,16 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Future;
+import java.util.concurrent.RunnableFuture;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.oozie.client.OozieClient.SYSTEM_MODE;
-import org.apache.oozie.command.XCommand;
 import org.apache.oozie.util.Instrumentable;
 import org.apache.oozie.util.Instrumentation;
 import org.apache.oozie.util.PollablePriorityDelayQueue;
@@ -47,20 +49,20 @@ import org.apache.oozie.util.PriorityDelayQueue.QueueElement;
 
 /**
  * The callable queue service queues {@link XCallable}s for asynchronous execution.
- * <p/>
+ * <p>
  * Callables can be queued for immediate execution or for delayed execution (some time in the future).
- * <p/>
+ * <p>
  * Callables are consumed from the queue for execution based on their priority.
- * <p/>
+ * <p>
  * When the queues (for immediate execution and for delayed execution) are full, the callable queue service stops
  * queuing callables.
- * <p/>
+ * <p>
  * A thread-pool is used to execute the callables asynchronously.
- * <p/>
+ * <p>
  * The following configuration parameters control the callable queue service:
- * <p/>
+ * <p>
  * {@link #CONF_QUEUE_SIZE} size of the immediate execution queue. Defaulf value is 10000.
- * <p/>
+ * <p>
  * {@link #CONF_THREADS} number of threads in the thread-pool used for asynchronous command execution. When this number
  * of threads is reached, commands remain the queue until threads become available. Sets up a priority queue for the
  * execution of Commands via a ThreadPool. Sets up a Delayed Queue to handle actions which will be ready for execution
@@ -144,10 +146,10 @@ public class CallableQueueService implements Service, Instrumentable {
     // and instrumentation.
     // The wrapper implements Runnable and Comparable to be able to work with an
     // executor and a priority queue.
-    class CallableWrapper extends PriorityDelayQueue.QueueElement<XCallable<?>> implements Runnable {
+    public class CallableWrapper<E> extends PriorityDelayQueue.QueueElement<E> implements Runnable, Callable<E> {
         private Instrumentation.Cron cron;
 
-        public CallableWrapper(XCallable<?> callable, long delay) {
+        public CallableWrapper(XCallable<E> callable, long delay) {
             super(callable, callable.getPriority(), delay, TimeUnit.MILLISECONDS);
             cron = new Instrumentation.Cron();
             cron.start();
@@ -172,7 +174,8 @@ public class CallableQueueService implements Service, Instrumentable {
                     log.trace("executing callable [{0}]", callable.getName());
 
                     try {
-                        callable.call();
+                        //FutureTask.run() will invoke cllable.call()
+                        super.run();
                         incrCounter(INSTR_EXECUTED_COUNTER, 1);
                         log.trace("executed callable [{0}]", callable.getName());
                     }
@@ -203,9 +206,9 @@ public class CallableQueueService implements Service, Instrumentable {
 
         /**
          * Filter the duplicate callables from the list before queue this.
-         * <p/>
+         * <p>
          * If it is single callable, checking if key is in unique map or not.
-         * <p/>
+         * <p>
          * If it is composite callable, remove duplicates callables from the composite.
          *
          * @return true if this callable should be queued
@@ -244,6 +247,13 @@ public class CallableQueueService implements Service, Instrumentable {
             else {
                 uniqueCallables.remove(callable.getKey());
             }
+        }
+
+        //this will not get called, bcz  newTaskFor of threadpool will convert it in futureTask which is a runnable.
+        // futureTask  will call the cllable.call from run method. so we override run to call super.run method.
+        @Override
+        public E call() throws Exception {
+            return null;
         }
     }
 
@@ -498,6 +508,9 @@ public class CallableQueueService implements Service, Instrumentable {
                 super.beforeExecute(t,r);
                 XLog.Info.get().clear();
             }
+            protected <T> RunnableFuture<T> newTaskFor(Callable<T> callable) {
+                return (RunnableFuture<T>)callable;
+            }
         };
 
         for (int i = 0; i < threads; i++) {
@@ -591,9 +604,9 @@ public class CallableQueueService implements Service, Instrumentable {
 
     /**
      * Queue a list of callables for serial execution.
-     * <p/>
+     * <p>
      * Useful to serialize callables that may compete with each other for resources.
-     * <p/>
+     * <p>
      * All callables will be processed with the priority of the highest priority of all callables.
      *
      * @param callables callables to be executed by the composite callable.
@@ -635,9 +648,9 @@ public class CallableQueueService implements Service, Instrumentable {
 
     /**
      * Queue a list of callables for serial execution sometime in the future.
-     * <p/>
+     * <p>
      * Useful to serialize callables that may compete with each other for resources.
-     * <p/>
+     * <p>
      * All callables will be processed with the priority of the highest priority of all callables.
      *
      * @param callables callables to be executed by the composite callable.
@@ -768,6 +781,12 @@ public class CallableQueueService implements Service, Instrumentable {
             list.add(entry.toString());
         }
         return list;
+    }
+
+    // Refer executor.invokeAll
+    public <T> List<Future<T>> invokeAll(List<CallableWrapper<T>> tasks)
+            throws InterruptedException {
+        return executor.invokeAll(tasks);
     }
 
 }

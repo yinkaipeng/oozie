@@ -67,6 +67,7 @@ public class CoordActionStartXCommand extends CoordinatorXCommand<Void> {
     public static final String COULD_NOT_START = "COULD_NOT_START";
     public static final String START_DATA_MISSING = "START_DATA_MISSING";
     public static final String EXEC_DATA_MISSING = "EXEC_DATA_MISSING";
+    public static final String OOZIE_COORD_ACTION_NOMINAL_TIME = "oozie.coord.action.nominal_time";
 
     private final XLog log = getLog();
     private String actionId = null;
@@ -198,6 +199,7 @@ public class CoordActionStartXCommand extends CoordinatorXCommand<Void> {
                     insertList.add(slaEvent);
                 }
                 if (OozieJobInfo.isJobInfoEnabled()) {
+                    conf.set(OozieJobInfo.COORD_ID, actionId);
                     conf.set(OozieJobInfo.COORD_NAME, appName);
                     conf.set(OozieJobInfo.COORD_NOMINAL_TIME, coordAction.getNominalTimestamp().toString());
                 }
@@ -207,6 +209,8 @@ public class CoordActionStartXCommand extends CoordinatorXCommand<Void> {
                     conf.setBoolean(OozieClient.RERUN_FAIL_NODES, true);
                     dagEngine.reRun(coordAction.getExternalId(), conf);
                 } else {
+                    // Pushing the nominal time in conf to use for launcher tag search
+                    conf.set(OOZIE_COORD_ACTION_NOMINAL_TIME,String.valueOf(coordAction.getNominalTime().getTime()));
                     String wfId = dagEngine.submitJobFromCoordinator(conf, actionId);
                     coordAction.setExternalId(wfId);
                 }

@@ -33,4 +33,7 @@ public class CoordELConstants {
     public static final int SUBMIT_DAYS = 24 * 60;
 
     public static final String DEFAULT_DONE_FLAG = "_SUCCESS";
+    final public static String RESOLVED_PATH = "resolved_path";
+
+    final public static String IS_RESOLVED = "is_resolved";
 }

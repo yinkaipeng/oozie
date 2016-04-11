@@ -18,17 +18,13 @@
 
 package org.apache.oozie.coord;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.StringReader;
 import java.util.Date;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.test.XTestCase;
 import org.apache.oozie.util.DateUtils;
-
-import java.io.StringReader;
-
 import org.apache.oozie.util.ELEvaluator;
 import org.apache.oozie.util.XConfiguration;
 import org.apache.oozie.util.XmlUtils;

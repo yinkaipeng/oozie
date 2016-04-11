@@ -44,25 +44,34 @@ public class LauncherMainHadoopUtils {
 
     private static Set<ApplicationId> getChildYarnJobs(Configuration actionConf) {
         System.out.println("Fetching child yarn jobs");
+        Set<ApplicationId> childYarnJobs = new HashSet<ApplicationId>();
+        String tag = actionConf.get(CHILD_MAPREDUCE_JOB_TAGS);
+        if (tag == null) {
+            System.out.print("Could not find Yarn tags property " + CHILD_MAPREDUCE_JOB_TAGS);
+            return childYarnJobs;
+        }
+        System.out.println("tag id : " + tag);
         long startTime = 0L;
         try {
-            startTime = Long.parseLong((System.getProperty("oozie.job.launch.time")));
+            startTime = Long.parseLong((System.getProperty(OOZIE_JOB_LAUNCH_TIME)));
         } catch(NumberFormatException nfe) {
             throw new RuntimeException("Could not find Oozie job launch time", nfe);
         }
 
-        Set<ApplicationId> childYarnJobs = new HashSet<ApplicationId>();
-        if (actionConf.get(CHILD_MAPREDUCE_JOB_TAGS) == null) {
-            System.out.print("Could not find Yarn tags property " + CHILD_MAPREDUCE_JOB_TAGS);
-            return childYarnJobs;
-        }
-
-        String tag = actionConf.get(CHILD_MAPREDUCE_JOB_TAGS);
-        System.out.println("tag id : " + tag);
         GetApplicationsRequest gar = GetApplicationsRequest.newInstance();
         gar.setScope(ApplicationsRequestScope.OWN);
         gar.setApplicationTags(Collections.singleton(tag));
-        gar.setStartRange(startTime, System.currentTimeMillis());
+        long endTime = System.currentTimeMillis();
+        if (startTime > endTime) {
+            System.out.println("WARNING: Clock skew between the Oozie server host and this host detected.  Please fix this.  " +
+                    "Attempting to work around...");
+            // We don't know which one is wrong (relative to the RM), so to be safe, let's assume they're both wrong and add an
+            // offset in both directions
+            long diff = 2 * (startTime - endTime);
+            startTime = startTime - diff;
+            endTime = endTime + diff;
+        }
+        gar.setStartRange(startTime, endTime);
         try {
             ApplicationClientProtocol proxy = ClientRMProxy.createRMProxy(actionConf, ApplicationClientProtocol.class);
             GetApplicationsResponse apps = proxy.getApplications(gar);

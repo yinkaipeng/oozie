@@ -31,7 +31,6 @@ import java.util.Set;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.conf.HiveConf;
-import org.apache.hadoop.hive.shims.Utils;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hive.hcatalog.api.ConnectionFailureException;
 import org.apache.hive.hcatalog.api.HCatClient;
@@ -48,6 +47,9 @@ import org.apache.oozie.service.Services;
 import org.apache.oozie.service.URIHandlerService;
 import org.apache.oozie.util.HCatURI;
 import org.apache.oozie.util.XLog;
+import org.apache.hadoop.hive.thrift.DelegationTokenIdentifier;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.security.token.Token;
 
 public class HCatURIHandler implements URIHandler {
 
@@ -209,6 +211,11 @@ public class HCatURIHandler implements URIHandler {
     }
 
     @Override
+    public String getURIWithoutDoneFlag(String uri, String doneFlag) throws URIHandlerException {
+        return uri;
+    }
+
+    @Override
     public void validate(String uri) throws URIHandlerException {
         try {
             new HCatURI(uri); // will fail if uri syntax is incorrect
@@ -270,12 +277,15 @@ public class HCatURIHandler implements URIHandler {
                     delegationToken = tokenClient.getDelegationToken(user, UserGroupInformation.getLoginUser()
                             .getUserName());
                     // Store Delegation token in the UGI
-                    Utils.setTokenStr(ugi, delegationToken,
-                            hiveConf.get("hive.metastore.token.signature"));
+                    Token<DelegationTokenIdentifier> token = new Token<DelegationTokenIdentifier>();
+                    token.decodeFromUrlString(delegationToken);
+                    token.setService(new Text(hiveConf.get("hive.metastore.token.signature")));
+                    ugi.addToken(token);
                 }
                 finally {
-                    if (tokenClient != null)
+                    if (tokenClient != null) {
                         tokenClient.close();
+                    }
                 }
             }
             XLog.getLog(HCatURIHandler.class).info(
@@ -410,8 +420,16 @@ public class HCatURIHandler implements URIHandler {
         @Override
         public void destroy() {
             try {
-                hcatClient.close();
+                if (delegationToken != null && !delegationToken.isEmpty()) {
+                    hcatClient.cancelDelegationToken(delegationToken);
+                }
                 delegationToken = null;
+            }
+            catch (Exception ignore) {
+                XLog.getLog(HCatContext.class).warn("Error cancelling delegation token", ignore);
+            }
+            try {
+                hcatClient.close();
             }
             catch (Exception ignore) {
                 XLog.getLog(HCatContext.class).warn("Error closing hcat client", ignore);

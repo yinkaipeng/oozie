@@ -92,8 +92,6 @@ public interface URIHandler {
      *
      * @param uri The URI to be removed from missing dependency
      * @param actionID The id of action which was dependent on the uri.
-     *
-     * @throws URIHandlerException
      */
     public boolean unregisterFromNotification(URI uri, String actionID);
 
@@ -171,9 +169,21 @@ public interface URIHandler {
     public String getURIWithDoneFlag(String uri, String doneFlag) throws URIHandlerException;
 
     /**
+     * Get the URI path from path which has done flag
+     *
+     * @param uri URI of the dependency
+     * @param doneFlag flag that determines URI availability
+     *
+     * @return the final URI without the doneFlag incorporated
+     *
+     * @throws URIHandlerException
+     */
+    public String getURIWithoutDoneFlag(String uri, String doneFlag) throws URIHandlerException;
+
+
+    /**
      * Check whether the URI is valid or not
      * @param uri
-     * @return
      * @throws URIHandlerException
      */
     public void validate(String uri) throws URIHandlerException;
@@ -222,5 +232,6 @@ public interface URIHandler {
         }
 
     }
+
 
 }

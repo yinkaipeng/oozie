@@ -43,7 +43,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Extends Hadoop Configuration providing a new constructor which reads an XML configuration from an InputStream. <p/>
+ * Extends Hadoop Configuration providing a new constructor which reads an XML configuration from an InputStream. <p>
  * OConfiguration(InputStream is).
  */
 public class XConfiguration extends Configuration {
@@ -51,7 +51,7 @@ public class XConfiguration extends Configuration {
     public static final String CONFIGURATION_SUBSTITUTE_DEPTH = "oozie.configuration.substitute.depth";
 
     /**
-     * Create an empty configuration. <p/> Default values are not loaded.
+     * Create an empty configuration. <p> Default values are not loaded.
      */
     public XConfiguration() {
         super(false);
@@ -59,7 +59,7 @@ public class XConfiguration extends Configuration {
     }
 
     /**
-     * Create a configuration from an InputStream. <p/> Code canibalized from <code>Configuration.loadResource()</code>.
+     * Create a configuration from an InputStream. <p> Code canibalized from <code>Configuration.loadResource()</code>.
      *
      * @param is inputstream to read the configuration from.
      * @throws IOException thrown if the configuration could not be read.
@@ -70,7 +70,7 @@ public class XConfiguration extends Configuration {
     }
 
     /**
-     * Create a configuration from an Reader. <p/> Code canibalized from <code>Configuration.loadResource()</code>.
+     * Create a configuration from an Reader. <p> Code canibalized from <code>Configuration.loadResource()</code>.
      *
      * @param reader reader to read the configuration from.
      * @throws IOException thrown if the configuration could not be read.
@@ -188,7 +188,7 @@ public class XConfiguration extends Configuration {
     }
 
     /**
-     * This is a stop gap fix for <link href="https://issues.apache.org/jira/browse/HADOOP-4416">HADOOP-4416</link>.
+     * This is a stop gap fix for HADOOP-4416.
      */
     public Class<?> getClassByName(String name) throws ClassNotFoundException {
         return super.getClassByName(name.trim());
@@ -296,7 +296,7 @@ public class XConfiguration extends Configuration {
     // Canibalized from Hadoop <code>Configuration.loadResource()</code>.
     private void parseDocument(Document doc) throws IOException {
         Element root = doc.getDocumentElement();
-        if (!"configuration".equals(root.getTagName())) {
+        if (!"configuration".equals(root.getLocalName())) {
             throw new IOException("bad conf file: top-level element not <configuration>");
         }
         processNodes(root);
@@ -312,11 +312,11 @@ public class XConfiguration extends Configuration {
                     continue;
                 }
                 Element prop = (Element) propNode;
-                if (prop.getTagName().equals("configuration")) {
+                if (prop.getLocalName().equals("configuration")) {
                     processNodes(prop);
                     continue;
                 }
-                if (!"property".equals(prop.getTagName())) {
+                if (!"property".equals(prop.getLocalName())) {
                     throw new IOException("bad conf file: element not <property>");
                 }
                 NodeList fields = prop.getChildNodes();
@@ -328,10 +328,10 @@ public class XConfiguration extends Configuration {
                         continue;
                     }
                     Element field = (Element) fieldNode;
-                    if ("name".equals(field.getTagName()) && field.hasChildNodes()) {
+                    if ("name".equals(field.getLocalName()) && field.hasChildNodes()) {
                         attr = ((Text) field.getFirstChild()).getData().trim();
                     }
-                    if ("value".equals(field.getTagName()) && field.hasChildNodes()) {
+                    if ("value".equals(field.getLocalName()) && field.hasChildNodes()) {
                         value = ((Text) field.getFirstChild()).getData();
                     }
                 }

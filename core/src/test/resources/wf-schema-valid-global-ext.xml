@@ -50,7 +50,7 @@
             <param>OUTPUT=/tmp/hive</param>
         </hive>
         <ok to="b"/>
-        <error to="c"/>
+        <error to="c1"/>
     </action>
 
     <action name="b">
@@ -75,10 +75,20 @@
             <arg>/tmp2/data.txt</arg>
         </distcp>
         <ok to="d"/>
-        <error to="c"/>
+        <error to="c1"/>
     </action>
 
-    <kill name="c">
+    <action name="c1">
+        <email xmlns="uri:oozie:email-action:0.2">
+            <to>foo@bar.com</to>
+            <subject>foo</subject>
+            <body>bar</body>
+        </email>
+        <ok to="c2"/>
+        <error to="c2"/>
+    </action>
+
+    <kill name="c2">
         <message>fail</message>
     </kill>
 

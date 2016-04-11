@@ -53,7 +53,7 @@ public class AuthOozieClient extends XOozieClient {
 
     /**
      * File constant that defines the location of the authentication token cache file.
-     * <p/>
+     * <p>
      * It resolves to <code>${user.home}/.oozie-auth-token</code>.
      */
     public static final File AUTH_TOKEN_CACHE_FILE = new File(System.getProperty("user.home"), ".oozie-auth-token");
@@ -86,10 +86,10 @@ public class AuthOozieClient extends XOozieClient {
 
     /**
      * Create an authenticated connection to the Oozie server.
-     * <p/>
+     * <p>
      * It uses Hadoop-auth client authentication which by default supports
      * Kerberos HTTP SPNEGO, Pseudo/Simple and anonymous.
-     * <p/>
+     * <p>
      * if the Java system property {@link #USE_AUTH_TOKEN_CACHE_SYS_PROP} is set to true Hadoop-auth
      * authentication token will be cached/used in/from the '.oozie-auth-token' file in the user
      * home directory.
@@ -103,53 +103,108 @@ public class AuthOozieClient extends XOozieClient {
     @Override
     protected HttpURLConnection createConnection(URL url, String method) throws IOException, OozieClientException {
         boolean useAuthFile = System.getProperty(USE_AUTH_TOKEN_CACHE_SYS_PROP, "false").equalsIgnoreCase("true");
-        AuthenticatedURL.Token readToken = new AuthenticatedURL.Token();
-        AuthenticatedURL.Token currentToken = new AuthenticatedURL.Token();
+        AuthenticatedURL.Token readToken = null;
+        AuthenticatedURL.Token currentToken = null;
 
+        // Read the token in from the file
         if (useAuthFile) {
             readToken = readAuthToken();
-            if (readToken != null) {
-                currentToken = new AuthenticatedURL.Token(readToken.toString());
+        }
+        if (readToken == null) {
+            currentToken = new AuthenticatedURL.Token();
+        } else {
+            currentToken = new AuthenticatedURL.Token(readToken.toString());
+        }
+
+        // To prevent rare race conditions and to save a call to the Server, lets check the token's expiration time locally, and
+        // consider it expired if its expiration time has passed or will pass in the next 5 minutes (or if there's a problem parsing
+        // it)
+        if (currentToken.isSet()) {
+            long expires = getExpirationTime(currentToken);
+            if (expires < System.currentTimeMillis() + 300000) {
+                if (useAuthFile) {
+                    AUTH_TOKEN_CACHE_FILE.delete();
+                }
+                currentToken = new AuthenticatedURL.Token();
             }
         }
 
+        // If we have a token, double check with the Server to make sure it hasn't expired yet
         if (currentToken.isSet()) {
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("OPTIONS");
             AuthenticatedURL.injectToken(conn, currentToken);
-            AUTH_TOKEN_CACHE_FILE.delete();
-            currentToken = new AuthenticatedURL.Token();
+            if (conn.getResponseCode() == HttpURLConnection.HTTP_UNAUTHORIZED
+                    || conn.getResponseCode() == HttpURLConnection.HTTP_FORBIDDEN) {
+                if (useAuthFile) {
+                    AUTH_TOKEN_CACHE_FILE.delete();
+                }
+                currentToken = new AuthenticatedURL.Token();
+            } else {
+                // After HADOOP-10301, with Kerberos the above token expiration check will now send 200 even with an expired token
+                // if you still have valid Kerberos credentials.  Previously, it would send 401 so the client knows that it needs to
+                // use the KerberosAuthenticator to get a new token.  Now, it may even provide a token back from this call, so we
+                // need to check for a new token and update ours.  If no new token was given and we got a 20X code, this will do a
+                // no-op.
+                // With Pseudo, the above token expiration check will now send 403 instead of the 401; we're now checking for either
+                // response code above.  However, unlike with Kerberos, Pseudo doesn't give us a new token here; we'll have to get
+                // one later.
+                try {
+                    AuthenticatedURL.extractToken(conn, currentToken);
+                } catch (AuthenticationException ex) {
+                    if (useAuthFile) {
+                        AUTH_TOKEN_CACHE_FILE.delete();
+                    }
+                    currentToken = new AuthenticatedURL.Token();
+                }
+            }
         }
 
+        // If we didn't have a token, or it had expired, let's get a new one from the Server using the configured Authenticator
         if (!currentToken.isSet()) {
             Authenticator authenticator = getAuthenticator();
             try {
-                new AuthenticatedURL(authenticator).openConnection(url, currentToken);
-                HttpURLConnection conn = new AuthenticatedURL(authenticator).openConnection(url, currentToken);
-                if (conn.getRequestProperty("Cookie") == null) {
-                    authOption = "SIMPLE";
-                    new AuthenticatedURL(getAuthenticator()).openConnection(url, currentToken);
-                }
+                authenticator.authenticate(url, currentToken);
             }
             catch (AuthenticationException ex) {
-                AUTH_TOKEN_CACHE_FILE.delete();
+                if (useAuthFile) {
+                    AUTH_TOKEN_CACHE_FILE.delete();
+                }
                 throw new OozieClientException(OozieClientException.AUTHENTICATION,
                                                "Could not authenticate, " + ex.getMessage(), ex);
             }
         }
+
+        // If we got a new token, save it to the cache file
         if (useAuthFile && currentToken.isSet() && !currentToken.equals(readToken)) {
             writeAuthToken(currentToken);
         }
+
+        // Now create a connection using the token and return it to the caller
         HttpURLConnection conn = super.createConnection(url, method);
         AuthenticatedURL.injectToken(conn, currentToken);
-
         return conn;
     }
 
+    private static long getExpirationTime(AuthenticatedURL.Token token) {
+        long expires = 0L;
+        String[] splits = token.toString().split("&");
+        for (String split : splits) {
+            if (split.startsWith("e=")) {
+                try {
+                    expires = Long.parseLong(split.substring(2));
+                } catch (Exception e) {
+                    // token is somehow invalid, assume it expired already
+                    break;
+                }
+            }
+        }
+        return expires;
+    }
 
     /**
      * Read a authentication token cached in the user home directory.
-     * <p/>
+     * <p>
      *
      * @return the authentication token cached in the user home directory, NULL if none.
      */
@@ -173,9 +228,9 @@ public class AuthOozieClient extends XOozieClient {
 
     /**
      * Write the current authentication token to the user home directory.authOption
-     * <p/>
+     * <p>
      * The file is written with user only read/write permissions.
-     * <p/>
+     * <p>
      * If the file cannot be updated or the user only ready/write permissions cannot be set the file is deleted.
      *
      * @param authToken the authentication token to cache.
@@ -200,10 +255,10 @@ public class AuthOozieClient extends XOozieClient {
 
     /**
      * Return the Hadoop-auth Authenticator to use.
-     * <p/>
+     * <p>
      * It first looks for value of command line option 'auth', if not set it continues to check
      * {@link #AUTHENTICATOR_CLASS_SYS_PROP} Java system property for Authenticator.
-     * <p/>
+     * <p>
      * It the value of the {@link #AUTHENTICATOR_CLASS_SYS_PROP} is not set it uses
      * Hadoop-auth <code>KerberosAuthenticator</code> which supports both Kerberos HTTP SPNEGO and Pseudo/simple
      * authentication.
@@ -266,12 +321,11 @@ public class AuthOozieClient extends XOozieClient {
     /**
      * Get the map for classes of Authenticator.
      * Default values are:
-     * null -> KerberosAuthenticator
-     * SIMPLE -> PseudoAuthenticator
-     * KERBEROS -> KerberosAuthenticator
+     * null : KerberosAuthenticator
+     * SIMPLE : PseudoAuthenticator
+     * KERBEROS : KerberosAuthenticator
      *
      * @return the map for classes of Authenticator
-     * @throws OozieClientException
      */
     protected Map<String, Class<? extends Authenticator>> getAuthenticators() {
         Map<String, Class<? extends Authenticator>> authClasses = new HashMap<String, Class<? extends Authenticator>>();

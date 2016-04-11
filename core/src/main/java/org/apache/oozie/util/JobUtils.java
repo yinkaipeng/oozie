@@ -28,6 +28,7 @@ import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.oozie.ErrorCode;
+import org.apache.oozie.action.hadoop.JavaActionExecutor;
 import org.apache.oozie.client.OozieClient;
 import org.apache.oozie.client.XOozieClient;
 import org.apache.oozie.command.CommandException;
@@ -42,7 +43,7 @@ public class JobUtils {
     /**
      * Normalize appPath in job conf with the provided user/group - If it's not jobs via proxy submission, after
      * normalization appPath always points to job's Xml definition file.
-     * <p/>
+     * <p>
      *
      * @param user user
      * @param group group
@@ -96,7 +97,7 @@ public class JobUtils {
      * key1=value1;key2=value2
      *
      * @param changeValue change value.
-     * @return This returns the hash with hash<[key1,value1],[key2,value2]>
+     * @return This returns the hash with hash&lt;[key1,value1],[key2,value2]&gt;
      * @throws CommandException thrown if changeValue cannot be parsed properly.
      */
     public static Map<String, String> parseChangeValue(String changeValue) throws CommandException {
@@ -145,26 +146,26 @@ public class JobUtils {
      * @throws IOException
      */
     public static void addFileToClassPath(Path file, Configuration conf, FileSystem fs) throws IOException {
-      Configuration defaultConf = new Configuration();
-      XConfiguration.copy(conf, defaultConf);
-      if (fs == null) {
-        // it fails with conf, therefore we pass defaultConf instead
-        fs = file.getFileSystem(defaultConf);
-      }
-      // Hadoop 0.20/1.x.
-      if (defaultConf.get("yarn.resourcemanager.webapp.address") == null) {
-          // Duplicate hadoop 1.x code to workaround MAPREDUCE-2361 in Hadoop 0.20
-          // Refer OOZIE-1806.
-          String filepath = file.toUri().getPath();
-          String classpath = conf.get("mapred.job.classpath.files");
-          conf.set("mapred.job.classpath.files", classpath == null
-              ? filepath
-              : classpath + System.getProperty("path.separator") + filepath);
-          URI uri = fs.makeQualified(file).toUri();
-          DistributedCache.addCacheFile(uri, conf);
-      }
-      else { // Hadoop 0.23/2.x
-          DistributedCache.addFileToClassPath(file, conf, fs);
-      }
+        if (fs == null) {
+            Configuration defaultConf = Services.get().get(HadoopAccessorService.class)
+                    .createJobConf(conf.get(JavaActionExecutor.HADOOP_JOB_TRACKER));
+            XConfiguration.copy(conf, defaultConf);
+            // it fails with conf, therefore we pass defaultConf instead
+            fs = file.getFileSystem(defaultConf);
+        }
+        // Hadoop 0.20/1.x.
+        if (Services.get().get(HadoopAccessorService.class).getCachedConf().get("yarn.resourcemanager.webapp.address") == null) {
+            // Duplicate hadoop 1.x code to workaround MAPREDUCE-2361 in Hadoop 0.20
+            // Refer OOZIE-1806.
+            String filepath = file.toUri().getPath();
+            String classpath = conf.get("mapred.job.classpath.files");
+            conf.set("mapred.job.classpath.files",
+                    classpath == null ? filepath : classpath + System.getProperty("path.separator") + filepath);
+            URI uri = fs.makeQualified(file).toUri();
+            DistributedCache.addCacheFile(uri, conf);
+        }
+        else { // Hadoop 0.23/2.x
+            DistributedCache.addFileToClassPath(file, conf, fs);
+        }
     }
 }

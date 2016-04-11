@@ -34,12 +34,15 @@ import javax.persistence.Lob;
 import javax.persistence.NamedQueries;
 import javax.persistence.NamedQuery;
 import javax.persistence.Table;
+import javax.persistence.Transient;
 
 import org.apache.hadoop.io.Writable;
 import org.apache.oozie.client.CoordinatorAction;
 import org.apache.oozie.client.rest.JsonBean;
 import org.apache.oozie.client.rest.JsonTags;
 import org.apache.oozie.client.rest.JsonUtils;
+import org.apache.oozie.coord.input.dependency.CoordInputDependency;
+import org.apache.oozie.coord.input.dependency.CoordInputDependencyFactory;
 import org.apache.oozie.util.DateUtils;
 import org.apache.oozie.util.WritableUtils;
 import org.apache.openjpa.persistence.jdbc.Index;
@@ -89,7 +92,7 @@ import org.json.simple.JSONObject;
         // Select Query used by Timeout and skip commands
         @NamedQuery(name = "GET_COORD_ACTION_FOR_TIMEOUT", query = "select a.id, a.jobId, a.statusStr, a.runConf, a.pending, a.nominalTimestamp, a.createdTimestamp from CoordinatorActionBean a where a.id = :id"),
         // Select query used by InputCheck command
-        @NamedQuery(name = "GET_COORD_ACTION_FOR_INPUTCHECK", query = "select a.id, a.jobId, a.statusStr, a.runConf, a.nominalTimestamp, a.createdTimestamp, a.actionXml, a.missingDependencies, a.pushMissingDependencies, a.timeOut, a.externalId from CoordinatorActionBean a where a.id = :id"),
+        @NamedQuery(name = "GET_COORD_ACTION_FOR_INPUTCHECK", query = "select a.id, a.actionNumber, a.jobId, a.statusStr, a.runConf, a.nominalTimestamp, a.createdTimestamp, a.actionXml, a.missingDependencies, a.pushMissingDependencies, a.timeOut, a.externalId from CoordinatorActionBean a where a.id = :id"),
         // Select query used by CoordActionUpdate command
         @NamedQuery(name = "GET_COORD_ACTION_FOR_EXTERNALID", query = "select a.id, a.jobId, a.statusStr, a.pending, a.externalId, a.lastModifiedTimestamp, a.slaXml, a.nominalTimestamp, a.createdTimestamp from CoordinatorActionBean a where a.externalId = :externalId"),
         // Select query used by Check command
@@ -97,9 +100,9 @@ import org.json.simple.JSONObject;
         // Select query used by Start command
         @NamedQuery(name = "GET_COORD_ACTION_FOR_START", query = "select a.id, a.jobId, a.statusStr, a.pending, a.createdConf, a.slaXml, a.actionXml, a.externalId, a.errorMessage, a.errorCode, a.nominalTimestamp, a.createdTimestamp from CoordinatorActionBean a where a.id = :id"),
 
-        @NamedQuery(name = "GET_COORD_ACTIONS_FOR_JOB_FIFO", query = "select a.id, a.jobId, a.statusStr, a.pending, a.nominalTimestamp, a.createdTimestamp from CoordinatorActionBean a where a.jobId = :jobId AND a.statusStr = 'READY' order by a.nominalTimestamp"),
+        @NamedQuery(name = "GET_COORD_ACTIONS_FOR_JOB_FIFO", query = "select a.id, a.actionNumber, a.jobId, a.statusStr, a.pending, a.nominalTimestamp, a.createdTimestamp from CoordinatorActionBean a where a.jobId = :jobId AND a.statusStr = 'READY' order by a.nominalTimestamp"),
 
-        @NamedQuery(name = "GET_COORD_ACTIONS_FOR_JOB_LIFO", query = "select a.id, a.jobId, a.statusStr, a.pending, a.nominalTimestamp, a.createdTimestamp from CoordinatorActionBean a where a.jobId = :jobId AND a.statusStr = 'READY' order by a.nominalTimestamp desc"),
+        @NamedQuery(name = "GET_COORD_ACTIONS_FOR_JOB_LIFO", query = "select a.id, a.actionNumber, a.jobId, a.statusStr, a.pending, a.nominalTimestamp, a.createdTimestamp from CoordinatorActionBean a where a.jobId = :jobId AND a.statusStr = 'READY' order by a.nominalTimestamp desc"),
 
         @NamedQuery(name = "GET_COORD_RUNNING_ACTIONS_COUNT", query = "select count(a) from CoordinatorActionBean a where a.jobId = :jobId AND (a.statusStr = 'RUNNING' OR a.statusStr='SUBMITTED')"),
 
@@ -143,7 +146,7 @@ import org.json.simple.JSONObject;
 
         @NamedQuery(name = "GET_RUNNING_ACTIONS_OLDER_THAN", query = "select a.id from CoordinatorActionBean a where a.statusStr = 'RUNNING' AND a.lastModifiedTimestamp <= :lastModifiedTime"),
 
-        @NamedQuery(name = "GET_COORD_ACTIONS_WAITING_SUBMITTED_OLDER_THAN", query = "select a.id, a.jobId, a.statusStr, a.externalId, a.pushMissingDependencies from CoordinatorActionBean a where (a.statusStr = 'WAITING' OR a.statusStr = 'SUBMITTED') AND a.lastModifiedTimestamp <= :lastModifiedTime"),
+        @NamedQuery(name = "GET_COORD_ACTIONS_WAITING_READY_SUBMITTED_OLDER_THAN", query = "select a.id, a.jobId, a.statusStr, a.externalId, a.pushMissingDependencies from CoordinatorActionBean a where (a.statusStr = 'WAITING' OR a.statusStr = 'SUBMITTED' OR a.statusStr = 'READY') AND a.lastModifiedTimestamp <= :lastModifiedTime and a.nominalTimestamp <= :currentTime and a.jobId in ( select w.id from CoordinatorJobBean w where w.statusStr = 'RUNNING' or w.statusStr = 'RUNNINGWITHERROR')"),
 
         @NamedQuery(name = "GET_COORD_ACTIONS_FOR_RECOVERY_OLDER_THAN", query = "select a.id, a.jobId, a.statusStr, a.externalId, a.pending from CoordinatorActionBean a where a.pending > 0 AND (a.statusStr = 'SUSPENDED' OR a.statusStr = 'KILLED' OR a.statusStr = 'RUNNING') AND a.lastModifiedTimestamp <= :lastModifiedTime"),
         // Select query used by rerun, requires almost all columns so select * is used
@@ -160,8 +163,6 @@ import org.json.simple.JSONObject;
         @NamedQuery(name = "GET_COORD_ACTIONS_COUNT_RUNNING_FOR_RANGE", query = "select count(w) from CoordinatorActionBean w where w.statusStr = 'RUNNING' and w.jobId= :jobId and w.id >= :startAction AND w.id <= :endAction"),
 
         @NamedQuery(name = "GET_COORD_ACTIONS_MAX_MODIFIED_DATE_FOR_RANGE", query = "select max(w.lastModifiedTimestamp) from CoordinatorActionBean w where w.jobId= :jobId and w.id >= :startAction AND w.id <= :endAction"),
-
-         @NamedQuery(name = "GET_READY_ACTIONS_GROUP_BY_JOBID", query = "select a.jobId, min(a.lastModifiedTimestamp) from CoordinatorActionBean a where a.statusStr = 'READY' group by a.jobId having min(a.lastModifiedTimestamp) < :lastModifiedTime"),
 
          @NamedQuery(name = "GET_ACTIVE_ACTIONS_IDS_FOR_SLA_CHANGE", query = "select a.id, a.nominalTimestamp, a.createdTimestamp, a.actionXml  from CoordinatorActionBean a where a.id in (:ids) and (a.statusStr <> 'FAILED' AND a.statusStr <> 'KILLED' AND a.statusStr <> 'SUCCEEDED' AND a.statusStr <> 'TIMEDOUT'  AND a.statusStr <> 'IGNORED')"),
 
@@ -286,6 +287,13 @@ public class CoordinatorActionBean implements
     public JSONObject toJSONObject() {
         return toJSONObject("GMT");
     }
+
+    @Transient
+    private CoordInputDependency coordPushInputDependency;
+
+    @Transient
+    private CoordInputDependency coordPullInputDependency;
+
 
     public CoordinatorActionBean() {
     }
@@ -747,23 +755,21 @@ public class CoordinatorActionBean implements
         json.put(JsonTags.COORDINATOR_ACTION_TYPE, type);
         json.put(JsonTags.COORDINATOR_ACTION_NUMBER, actionNumber);
         json.put(JsonTags.COORDINATOR_ACTION_CREATED_CONF, getCreatedConf());
-        json.put(JsonTags.COORDINATOR_ACTION_CREATED_TIME, JsonUtils
-                .formatDateRfc822(getCreatedTime(), timeZoneId));
-        json.put(JsonTags.COORDINATOR_ACTION_NOMINAL_TIME, JsonUtils
-                .formatDateRfc822(getNominalTime(), timeZoneId));
+        json.put(JsonTags.COORDINATOR_ACTION_CREATED_TIME, JsonUtils.formatDateRfc822(getCreatedTime(), timeZoneId));
+        json.put(JsonTags.COORDINATOR_ACTION_NOMINAL_TIME, JsonUtils.formatDateRfc822(getNominalTime(), timeZoneId));
         json.put(JsonTags.COORDINATOR_ACTION_EXTERNALID, externalId);
         // json.put(JsonTags.COORDINATOR_ACTION_START_TIME, JsonUtils
         // .formatDateRfc822(startTime), timeZoneId);
         json.put(JsonTags.COORDINATOR_ACTION_STATUS, statusStr);
         json.put(JsonTags.COORDINATOR_ACTION_RUNTIME_CONF, getRunConf());
-        json.put(JsonTags.COORDINATOR_ACTION_LAST_MODIFIED_TIME, JsonUtils
-                .formatDateRfc822(getLastModifiedTime(), timeZoneId));
+        json.put(JsonTags.COORDINATOR_ACTION_LAST_MODIFIED_TIME,
+                JsonUtils.formatDateRfc822(getLastModifiedTime(), timeZoneId));
         // json.put(JsonTags.COORDINATOR_ACTION_START_TIME, JsonUtils
         // .formatDateRfc822(startTime), timeZoneId);
         // json.put(JsonTags.COORDINATOR_ACTION_END_TIME, JsonUtils
         // .formatDateRfc822(endTime), timeZoneId);
-        json.put(JsonTags.COORDINATOR_ACTION_MISSING_DEPS, getMissingDependencies());
-        json.put(JsonTags.COORDINATOR_ACTION_PUSH_MISSING_DEPS, getPushMissingDependencies());
+        json.put(JsonTags.COORDINATOR_ACTION_MISSING_DEPS, getPullInputDependencies().getMissingDependencies());
+        json.put(JsonTags.COORDINATOR_ACTION_PUSH_MISSING_DEPS, getPushInputDependencies().getMissingDependencies());
         json.put(JsonTags.COORDINATOR_ACTION_EXTERNAL_STATUS, externalStatus);
         json.put(JsonTags.COORDINATOR_ACTION_TRACKER_URI, trackerUri);
         json.put(JsonTags.COORDINATOR_ACTION_CONSOLE_URL, consoleUrl);
@@ -820,5 +826,27 @@ public class CoordinatorActionBean implements
         return true;
     }
 
+    public CoordInputDependency getPullInputDependencies() {
+        if (coordPullInputDependency == null) {
+            coordPullInputDependency = CoordInputDependencyFactory.getPullInputDependencies(missingDependencies);
+        }
+        return coordPullInputDependency;
+
+    }
+
+    public CoordInputDependency getPushInputDependencies() {
+        if (coordPushInputDependency == null) {
+            coordPushInputDependency = CoordInputDependencyFactory.getPushInputDependencies(pushMissingDependencies);
+        }
+        return coordPushInputDependency;
+    }
+
+    public void setPullInputDependencies(CoordInputDependency coordPullInputDependency) {
+        this.coordPullInputDependency = coordPullInputDependency;
+    }
+
+    public void setPushInputDependencies(CoordInputDependency coordPushInputDependency) {
+        this.coordPushInputDependency = coordPushInputDependency;
+    }
 
 }

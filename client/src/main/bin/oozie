@@ -33,6 +33,23 @@ done
 BASEDIR=`dirname ${PRG}`
 BASEDIR=`cd ${BASEDIR}/..;pwd`
 
+if [ -r "${BASEDIR}/conf/oozie-client-env.sh" ]; then
+  source "${BASEDIR}/conf/oozie-client-env.sh"
+fi
+
+if [ "${OOZIE_URL}" = "" ]; then
+  export OOZIE_URL="http://$(hostname -f):11000/oozie"
+fi
+
+#Create lib directory from war if lib doesn't exist
+if [ ! -d "${BASEDIR}/lib" ]; then
+  mkdir ${BASEDIR}/lib
+  unzip ${BASEDIR}/oozie.war WEB-INF/lib/*.jar -d ${BASEDIR}/lib > /dev/null
+  mv ${BASEDIR}/lib/WEB-INF/lib/*.jar ${BASEDIR}/lib/
+  rmdir ${BASEDIR}/lib/WEB-INF/lib
+  rmdir ${BASEDIR}/lib/WEB-INF
+fi
+
 OOZIECPPATH=""
 for i in "${BASEDIR}/lib/"*.jar; do
   OOZIECPPATH="${OOZIECPPATH}:$i"

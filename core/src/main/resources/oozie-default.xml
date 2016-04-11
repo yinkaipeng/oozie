@@ -37,6 +37,39 @@
     </property>
 
     <property>
+        <name>oozie.external_monitoring.enable</name>
+        <value>false</value>
+        <description>
+            If the oozie functional metrics needs to be exposed to the metrics-server backend, set it to true
+            If set to true, the following properties has to be specified : oozie.metrics.server.name,
+            oozie.metrics.host, oozie.metrics.prefix, oozie.metrics.report.interval.sec, oozie.metrics.port
+        </description>
+    </property>
+
+    <property>
+        <name>oozie.external_monitoring.type</name>
+        <value>graphite</value>
+        <description>
+            The name of the server to which we want to send the metrics, would be graphite or ganglia.
+        </description>
+    </property>
+
+    <property>
+        <name>oozie.external_monitoring.address</name>
+        <value>http://localhost:2020</value>
+    </property>
+
+    <property>
+        <name>oozie.external_monitoring.metricPrefix</name>
+        <value>oozie</value>
+    </property>
+
+    <property>
+        <name>oozie.external_monitoring.reporterIntervalSecs</name>
+        <value>60</value>
+    </property>
+
+    <property>
         <name>oozie.action.mapreduce.uber.jar.enable</name>
         <value>false</value>
         <description>
@@ -130,7 +163,8 @@
             org.apache.oozie.service.ProxyUserService,
             org.apache.oozie.service.XLogStreamingService,
             org.apache.oozie.service.JvmPauseMonitorService,
-            org.apache.oozie.service.SparkConfigurationService
+            org.apache.oozie.service.SparkConfigurationService,
+            org.apache.oozie.service.SchemaCheckerService
         </value>
         <description>
             All services to be created and managed by Oozie Services singleton.
@@ -549,7 +583,7 @@
     <!--  List of supported groups for ELService -->
 	<property>
         <name>oozie.service.ELService.groups</name>
-        <value>job-submit,workflow,wf-sla-submit,coord-job-submit-freq,coord-job-submit-nofuncs,coord-job-submit-data,coord-job-submit-instances,coord-sla-submit,coord-action-create,coord-action-create-inst,coord-sla-create,coord-action-start,coord-job-wait-timeout</value>
+        <value>job-submit,workflow,wf-sla-submit,coord-job-submit-freq,coord-job-submit-nofuncs,coord-job-submit-data,coord-job-submit-instances,coord-sla-submit,coord-action-create,coord-action-create-inst,coord-sla-create,coord-action-start,coord-job-wait-timeout,bundle-submit,coord-job-submit-initial-instance</value>
         <description>List of groups for different ELServices</description>
     </property>
 
@@ -764,6 +798,18 @@
     </property>
 
     <property>
+        <name>oozie.service.ELService.functions.coord-job-submit-initial-instance</name>
+        <value>
+            ${oozie.service.ELService.functions.coord-job-submit-nofuncs},
+            coord:dateOffset=org.apache.oozie.coord.CoordELFunctions#ph2_coord_dateOffset,
+            coord:dateTzOffset=org.apache.oozie.coord.CoordELFunctions#ph2_coord_dateTzOffset
+        </value>
+        <description>
+            EL functions for coord job submit initial instance, separated by commas, format is [PREFIX:]NAME=CLASS#METHOD.
+        </description>
+    </property>
+
+    <property>
         <name>oozie.service.ELService.ext.functions.coord-job-submit-freq</name>
         <value>
         </value>
@@ -898,7 +944,9 @@
             coord:conf=org.apache.oozie.coord.CoordELFunctions#coord_conf,
             coord:user=org.apache.oozie.coord.CoordELFunctions#coord_user,
             coord:absolute=org.apache.oozie.coord.CoordELFunctions#ph1_coord_absolute_echo,
-            hadoop:conf=org.apache.oozie.action.hadoop.HadoopELFunctions#hadoop_conf
+            hadoop:conf=org.apache.oozie.action.hadoop.HadoopELFunctions#hadoop_conf,
+            coord:dateOffset=org.apache.oozie.coord.CoordELFunctions#ph1_coord_dateOffset_echo,
+            coord:dateTzOffset=org.apache.oozie.coord.CoordELFunctions#ph1_coord_dateTzOffset_echo
         </value>
         <description>
             EL functions declarations, separated by commas, format is [PREFIX:]NAME=CLASS#METHOD.
@@ -1000,6 +1048,11 @@
             This property is a convenience property to add extensions to the built in executors without having to
             include all the built in ones.
         </description>
+    </property>
+
+    <property>
+        <name>oozie.service.ELService.functions.bundle-submit</name>
+        <value>bundle:conf=org.apache.oozie.bundle.BundleELFunctions#bundle_conf</value>
     </property>
 
     <property>
@@ -1133,7 +1186,9 @@
             coord:user=org.apache.oozie.coord.CoordELFunctions#coord_user,
             coord:absolute=org.apache.oozie.coord.CoordELFunctions#ph2_coord_absolute_echo,
             coord:absoluteRange=org.apache.oozie.coord.CoordELFunctions#ph2_coord_absolute_range,
-            hadoop:conf=org.apache.oozie.action.hadoop.HadoopELFunctions#hadoop_conf
+            hadoop:conf=org.apache.oozie.action.hadoop.HadoopELFunctions#hadoop_conf,
+            coord:dateOffset=org.apache.oozie.coord.CoordELFunctions#ph2_coord_dateOffset,
+            coord:dateTzOffset=org.apache.oozie.coord.CoordELFunctions#ph2_coord_dateTzOffset
         </value>
         <description>
             EL functions declarations, separated by commas, format is [PREFIX:]NAME=CLASS#METHOD.
@@ -1436,12 +1491,12 @@
             oozie-workflow-0.4.5.xsd,oozie-workflow-0.5.xsd,
             shell-action-0.1.xsd,shell-action-0.2.xsd,shell-action-0.3.xsd,
             email-action-0.1.xsd,email-action-0.2.xsd,
-            hive-action-0.2.xsd,hive-action-0.3.xsd,hive-action-0.4.xsd,hive-action-0.5.xsd,
+            hive-action-0.2.xsd,hive-action-0.3.xsd,hive-action-0.4.xsd,hive-action-0.5.xsd,hive-action-0.6.xsd,
             sqoop-action-0.2.xsd,sqoop-action-0.3.xsd,sqoop-action-0.4.xsd,
             ssh-action-0.1.xsd,ssh-action-0.2.xsd,
             distcp-action-0.1.xsd,distcp-action-0.2.xsd,
             oozie-sla-0.1.xsd,oozie-sla-0.2.xsd,
-            hive2-action-0.1.xsd,
+            hive2-action-0.1.xsd, hive2-action-0.2.xsd,
             spark-action-0.1.xsd
         </value>
         <description>
@@ -1461,7 +1516,7 @@
         <name>oozie.service.SchemaService.coord.schemas</name>
         <value>
             oozie-coordinator-0.1.xsd,oozie-coordinator-0.2.xsd,oozie-coordinator-0.3.xsd,oozie-coordinator-0.4.xsd,
-            oozie-sla-0.1.xsd,oozie-sla-0.2.xsd
+            oozie-coordinator-0.5.xsd,oozie-sla-0.1.xsd,oozie-sla-0.2.xsd
         </value>
         <description>
             List of schemas for coordinators (separated by commas).
@@ -1679,7 +1734,7 @@
 
     <property>
         <name>oozie.action.fs.glob.max</name>
-        <value>1000</value>
+        <value>50000</value>
         <description>
             Maximum number of globbed files.
         </description>
@@ -1687,6 +1742,16 @@
 
     <!-- JavaActionExecutor -->
     <!-- This is common to the subclasses of action executors for Java (e.g. map-reduce, pig, hive, java, etc) -->
+
+    <property>
+        <name>oozie.action.launcher.am.restart.kill.childjobs</name>
+        <value>true</value>
+        <description>
+            Multiple instances of launcher jobs can happen due to RM non-work preserving recovery on RM restart, AM recovery
+            due to crashes or AM network connectivity loss. This could also lead to orphaned child jobs of the old AM attempts
+            leading to conflicting runs. This kills child jobs of previous attempts using YARN application tags.
+        </description>
+    </property>
 
     <property>
         <name>oozie.action.launcher.mapreduce.job.ubertask.enable</name>
@@ -1714,6 +1779,20 @@
     </property>
 
     <property>
+        <name>oozie.action.shell.setup.hadoop.conf.dir</name>
+        <value>false</value>
+        <description>
+            The Shell action is commonly used to run programs that rely on HADOOP_CONF_DIR (e.g. hive, beeline, sqoop, etc).  With
+            YARN, HADOO_CONF_DIR is set to the NodeManager's copies of Hadoop's *-site.xml files, which can be problematic because
+            (a) they are for meant for the NM, not necessarily clients, and (b) they won't have any of the configs that Oozie, or
+            the user through Oozie, sets.  When this property is set to true, The Shell action will prepare the *-site.xml files
+            based on the correct config and set HADOOP_CONF_DIR to point to it.  Setting it to false will make Oozie leave
+            HADOOP_CONF_DIR alone.  This can also be set at the Action level by putting it in the Shell Action's configuration
+            section, which also has priorty.  That all said, it's recommended to use the appropriate action type when possible.
+        </description>
+    </property>
+
+    <property>
         <name>oozie.action.launcher.yarn.timeline-service.enabled</name>
         <value>false</value>
         <description>
@@ -1722,6 +1801,14 @@
             distributed cache.
             This can be overridden on a per-action basis by setting
             oozie.launcher.yarn.timeline-service.enabled in an action's configuration section in a workflow.
+        </description>
+    </property>
+
+    <property>
+        <name>oozie.action.rootlogger.log.level</name>
+        <value>INFO</value>
+        <description>
+            Logging level for root logger
         </description>
     </property>
 
@@ -1901,6 +1988,14 @@
             A list of credential class mapping for CredentialsProvider
         </description>
     </property>
+    <property>
+        <name>oozie.credentials.skip</name>
+        <value>false</value>
+        <description>
+            This determines if Oozie should skip getting credentials from the credential providers.  This can be overwritten at a
+            job-level or action-level.
+        </description>
+    </property>
 
     <property>
         <name>oozie.actions.main.classnames</name>
@@ -2017,7 +2112,7 @@
 
     <property>
       <name>oozie.authentication.cookie.domain</name>
-      <value> </value>
+      <value></value>
       <description>
         The domain to use for the HTTP cookie that stores the authentication token.
         In order to authentiation to work correctly across multiple hosts
@@ -2087,6 +2182,15 @@
 			If true, fork and join should be validated at wf submission time.
 		</description>
 	</property>
+
+    <property>
+        <name>oozie.workflow.parallel.fork.action.start</name>
+        <value>true</value>
+        <description>
+            Determines how Oozie processes starting of forked actions. If true, forked actions and their job submissions
+            are done in parallel which is best for performance. If false, they are submitted sequentially.
+        </description>
+    </property>
 
 	<property>
 		<name>oozie.coord.action.get.all.attributes</name>
@@ -2564,6 +2668,16 @@
     </property>
 
     <property>
+        <name>oozie.service.SparkConfigurationService.spark.configurations.ignore.spark.yarn.jar</name>
+        <value>true</value>
+        <description>
+            If true, Oozie will ignore the "spark.yarn.jar" property from any Spark configurations specified in
+            oozie.service.SparkConfigurationService.spark.configurations.  If false, Oozie will not ignore it.  It is recommended
+            to leave this as true because it can interfere with the jars in the Spark sharelib.
+        </description>
+    </property>
+
+    <property>
         <name>oozie.email.attachment.enabled</name>
         <value>true</value>
         <description>
@@ -2571,4 +2685,99 @@
             Set it false if there is any security concern.
         </description>
     </property>
+
+    <property>
+      <name>oozie.email.smtp.host</name>
+      <value>localhost</value>
+      <description>
+          The host where the email action may find the SMTP server.
+      </description>
+    </property>
+
+    <property>
+      <name>oozie.email.smtp.port</name>
+      <value>25</value>
+      <description>
+          The port to connect to for the SMTP server, for email actions.
+      </description>
+    </property>
+
+    <property>
+      <name>oozie.email.smtp.auth</name>
+      <value>false</value>
+      <description>
+          Boolean property that toggles if authentication is to be done or not when using email actions.
+      </description>
+    </property>
+
+    <property>
+      <name>oozie.email.smtp.username</name>
+      <value></value>
+      <description>
+          If authentication is enabled for email actions, the username to login as (to the SMTP server).
+      </description>
+    </property>
+
+    <property>
+      <name>oozie.email.smtp.password</name>
+      <value></value>
+      <description>
+          If authentication is enabled for email actions, the password to login with (to the SMTP server).
+      </description>
+    </property>
+
+    <property>
+      <name>oozie.email.from.address</name>
+      <value>oozie@localhost</value>
+      <description>
+          The from address to be used for mailing all emails done via the email action.
+      </description>
+    </property>
+
+    <property>
+      <name>oozie.email.smtp.socket.timeout.ms</name>
+      <value>10000</value>
+      <description>
+          The timeout to apply over all SMTP server socket operations done during the email action.
+      </description>
+    </property>
+
+    <property>
+        <name>oozie.actions.default.name-node</name>
+        <value> </value>
+        <description>
+            The default value to use for the &lt;name-node&gt; element in applicable action types.  This value will be used when
+            neither the action itself nor the global section specifies a &lt;name-node&gt;.  As expected, it should be of the form
+            "hdfs://HOST:PORT".
+        </description>
+    </property>
+
+    <property>
+        <name>oozie.actions.default.job-tracker</name>
+        <value> </value>
+        <description>
+            The default value to use for the &lt;job-tracker&gt; element in applicable action types.  This value will be used when
+            neither the action itself nor the global section specifies a &lt;job-tracker&gt;.  As expected, it should be of the form
+            "HOST:PORT".
+        </description>
+    </property>
+
+    <property>
+        <name>oozie.service.SchemaCheckerService.check.interval</name>
+        <value>168</value>
+        <description>
+            This is the interval at which Oozie will check the database schema, in hours.
+            A zero or negative value will disable the checker.
+        </description>
+    </property>
+
+    <property>
+        <name>oozie.service.SchemaCheckerService.ignore.extras</name>
+        <value>false</value>
+        <description>
+            When set to false, the schema checker will consider extra (unused) tables, columns, and indexes to be incorrect.  When
+            set to true, these will be ignored.
+        </description>
+    </property>
+
 </configuration>
