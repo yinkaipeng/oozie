@@ -1788,6 +1788,7 @@ public class TestJavaActionExecutor extends ActionExecutorTestCase {
         assertEquals("test", conf.get("user"));
     }
 
+/*
     public void testJobXmlWithOozieLauncher() throws Exception {
         String str = "<java>"
                 + "<job-xml>job.xml</job-xml>"
@@ -2406,6 +2407,7 @@ public class TestJavaActionExecutor extends ActionExecutorTestCase {
 
         getFileSystem().delete(tezSite, true);
     }
+*/
 
     public void testAddToCache() throws Exception {
         JavaActionExecutor ae = new JavaActionExecutor();
