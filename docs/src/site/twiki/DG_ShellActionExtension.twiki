@@ -35,7 +35,7 @@ must not be present in the inline configuration.
 
 As with Hadoop =map-reduce= jobs, it is possible to add files and
 archives in order to make them available to the Shell job. Refer to the
-[WorkflowFunctionalSpec#FilesAchives][Adding Files and Archives for the Job]
+[WorkflowFunctionalSpec#FilesArchives][Adding Files and Archives for the Job]
 section for more information about this feature.
 
 The output (STDOUT) of the Shell job can be made available to the workflow job after the Shell job ends. This information
@@ -218,6 +218,10 @@ jobTracker=localhost:8021
 nameNode=hdfs://localhost:8020
 queueName=default
 </verbatim>
+
+---+++ Shell Action Configuration
+
+=oozie.action.shell.setup.hadoop.conf.dir= - Generates a config directory with various core/hdfs/yarn/mapred-site.xml files and points =HADOOP_CONF_DIR= and =YARN_CONF_DIR= env-vars to it, before the Script is invoked. XML is sourced from the action configuration. Useful when the Shell script passed uses various =hadoop= commands. Default is false.
 
 ---+++ Shell Action Logging
 

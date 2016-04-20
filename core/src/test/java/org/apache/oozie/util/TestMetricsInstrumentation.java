@@ -24,6 +24,8 @@ import com.codahale.metrics.Timer;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+
+import org.apache.oozie.service.Services;
 import org.apache.oozie.test.XTestCase;
 
 // Most tests adpated from TestInstrumentation
@@ -37,6 +39,12 @@ public class TestMetricsInstrumentation extends XTestCase {
             return !name.startsWith("jvm.memory");
         }
     };
+
+    @Override
+    protected void setUp() throws Exception {
+        super.setUp();
+        new Services().init();
+    }
 
     public void testInstrumentationCounter() throws Exception {
         MetricsInstrumentation inst = new MetricsInstrumentation();
@@ -156,7 +164,8 @@ public class TestMetricsInstrumentation extends XTestCase {
 
             assertEquals(1D, inst.getMetricRegistry().getHistograms().get("a.1.histogram").getSnapshot().getMean(), 0.01D);
             assertEquals(2D, inst.getMetricRegistry().getHistograms().get("a.2.histogram").getSnapshot().getMean(), 0.02D);
-            assertEquals(4D, inst.getMetricRegistry().getHistograms().get("b.1.histogram").getSnapshot().getMean(), 0.5D);
+            assertEquals(4.5D, inst.getMetricRegistry().getHistograms().get("b.1.histogram").getSnapshot().getMean(),
+                    0.5D);
         } finally {
             scheduledExecutorService.shutdownNow();
         }

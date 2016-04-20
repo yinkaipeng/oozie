@@ -15,6 +15,9 @@ Map/Reduce and Pig jobs.
 
 ---++ Changelog
 
+---+++!! 2016FEB19
+
+   * #3.2.7 Updated notes on System.exit(int n) behavior
 ---+++!! 2015APR29
 
    * #3.2.1.4 Added notes about Java action retries
@@ -587,7 +590,7 @@ Streaming and inline property values can be parameterized (templatized) using EL
 The Hadoop =mapred.job.tracker= and =fs.default.name= properties must not be present in the job-xml and inline
 configuration.
 
-#FilesAchives
+#FilesArchives
 ---+++++ 3.2.2.1 Adding Files and Archives for the Job
 
 The =file=, =archive= elements make available, to map-reduce jobs, files and archives. If the specified path is
@@ -948,7 +951,7 @@ The Hadoop =mapred.job.tracker= and =fs.default.name= properties must not be pre
 configuration.
 
 As with Hadoop map-reduce jobs, it  is possible to add files and archives to be available to the Pig job, refer to
-section [#FilesAchives][Adding Files and Archives for the Job].
+section [#FilesArchives][Adding Files and Archives for the Job].
 
 *Syntax for Pig actions in Oozie schema 0.2:*
 <verbatim>
@@ -1158,7 +1161,7 @@ executed. Thus there is less chance of an error occurring while the =fs= action 
     ...
     <action name="[NODE-NAME]">
         <fs>
-            <delete path='[PATH]'/>
+            <delete path='[PATH]' skip-trash='[true/false]'/>
             ...
             <mkdir path='[PATH]'/>
             ...
@@ -1178,7 +1181,9 @@ executed. Thus there is less chance of an error occurring while the =fs= action 
 </verbatim>
 
 The =delete= command deletes the specified path, if it is a directory it deletes recursively all its content and then
-deletes the directory.
+deletes the directory. By default it does skip trash. It can be moved to trash by setting the value of skip-trash to
+'false'. It can also be used to drop hcat partitions. This is the only FS command which supports HCatalog URIs as well.
+For eg: <verbatim><delete path='hcat://[metastore server]:[port]/[database name]/[table name]/[partkey1]=[value];[partkey2]=[value];...'/></verbatim>
 
 The =mkdir= command creates the specified directory, it creates all missing directories in the path. If the directory
 already exist it does a no-op.
@@ -1437,8 +1442,8 @@ To indicate an =ok= action transition, the main Java class must complete gracefu
 
 To indicate an =error= action transition, the main Java class must throw an exception.
 
-The main Java class must not call =System.exit(int n)= as this will make the =java= action to do an =error= transition
-regardless of the used exit code.
+The main Java class can call =System.exit(int n)=. Exit code zero is regarded as OK, while non-zero exit codes will 
+cause the =java= action to do an =error= transition and exit.
 
 A =java= action can be configured to perform HDFS files/directories cleanup or HCatalog partitions cleanup before
 starting the Java application. This capability enables Oozie to retry a Java application in the situation of a transient
@@ -1449,7 +1454,7 @@ A =java= action can create a Hadoop configuration for interacting with a cluster
 Oozie prepares a Hadoop configuration file which includes the environments site configuration files (e.g. hdfs-site.xml, 
 mapred-site.xml, etc) plus the properties added to the =<configuration>= section of the =java= action. The Hadoop configuration 
 file is made available as a local file to the Java application in its running directory. It can be added to the =java= actions 
-Hadoop configuration by referencing the system property: =oozie-action.conf.xml=. For example:
+Hadoop configuration by referencing the system property: =oozie.action.conf.xml=. For example:
 
 <verbatim>
 // loading action conf prepared by Oozie
@@ -1466,7 +1471,7 @@ The Hadoop =mapred.job.tracker= (=job-tracker=) and =fs.default.name= (=name-nod
 the =job-xml= and in the inline configuration.
 
 As with =map-reduce= and =pig= actions, it  is possible to add files and archives to be available to the Java
-application. Refer to section [#FilesAchives][Adding Files and Archives for the Job].
+application. Refer to section [#FilesArchives][Adding Files and Archives for the Job].
 
 The =capture-output= element can be used to propagate values back into Oozie context, which can then be accessed via
 EL-functions. This needs to be written out as a java properties format file. The filename is obtained via a System 
@@ -2216,7 +2221,7 @@ For all the functions in this section the path must include the FS URI. For exam
 
 *boolean fs:exists(String path)*
 
-It returns =true= or =false= depending if the specified path URI exists or not.
+It returns =true= or =false= depending if the specified path URI exists or not. If a glob pattern is used for the URI, it returns true when there is at least one matching path.
 
 *boolean fs:isDir(String path)*
 
@@ -2868,6 +2873,7 @@ to be executed.
 
     <xs:complexType name="DELETE">
         <xs:attribute name="path" type="xs:string" use="required"/>
+        <xs:attribute name="skip-trash" type="xs:boolean" use="optional"/>
     </xs:complexType>
 
     <xs:complexType name="MKDIR">

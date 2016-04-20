@@ -282,7 +282,9 @@ public class CoordJobQueryExecutor extends QueryExecutor<CoordinatorJobBean, Coo
                 bean.setFrequency((String) arr[5]);
                 bean.setTimeUnitStr((String) arr[6]);
                 bean.setTimeZone((String) arr[7]);
-                bean.setEndTime(DateUtils.toDate((Timestamp) arr[8]));
+                bean.setStartTime(DateUtils.toDate((Timestamp) arr[8]));
+                bean.setEndTime(DateUtils.toDate((Timestamp) arr[9]));
+                bean.setJobXmlBlob((StringBlob) arr[10]);
                 break;
             case GET_COORD_JOB_ACTION_READY:
                 bean = new CoordinatorJobBean();
@@ -294,6 +296,12 @@ public class CoordJobQueryExecutor extends QueryExecutor<CoordinatorJobBean, Coo
                 bean.setStatusStr((String) arr[4]);
                 bean.setExecution((String) arr[5]);
                 bean.setConcurrency((Integer) arr[6]);
+                bean.setFrequency((String) arr[7]);
+                bean.setTimeUnitStr((String) arr[8]);
+                bean.setTimeZone((String) arr[9]);
+                bean.setStartTime(DateUtils.toDate((Timestamp) arr[10]));
+                bean.setEndTime(DateUtils.toDate((Timestamp) arr[11]));
+                bean.setJobXmlBlob((StringBlob) arr[12]);
                 break;
             case GET_COORD_JOB_ACTION_KILL:
                 bean = new CoordinatorJobBean();
@@ -399,14 +407,11 @@ public class CoordJobQueryExecutor extends QueryExecutor<CoordinatorJobBean, Coo
 
     @Override
     public CoordinatorJobBean get(CoordJobQuery namedQuery, Object... parameters) throws JPAExecutorException {
-        JPAService jpaService = Services.get().get(JPAService.class);
-        EntityManager em = jpaService.getEntityManager();
-        Query query = getSelectQuery(namedQuery, em, parameters);
-        Object ret = jpaService.executeGet(namedQuery.name(), query, em);
-        if (ret == null) {
-            throw new JPAExecutorException(ErrorCode.E0604, query.toString());
+        CoordinatorJobBean bean = getIfExist(namedQuery, parameters);
+        if (bean == null) {
+            throw new JPAExecutorException(ErrorCode.E0605, getSelectQuery(namedQuery,
+                    Services.get().get(JPAService.class).getEntityManager(), parameters).toString());
         }
-        CoordinatorJobBean bean = constructBean(namedQuery, ret, parameters);
         return bean;
     }
 
@@ -428,5 +433,18 @@ public class CoordJobQueryExecutor extends QueryExecutor<CoordinatorJobBean, Coo
     @Override
     public Object getSingleValue(CoordJobQuery namedQuery, Object... parameters) throws JPAExecutorException {
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public CoordinatorJobBean getIfExist(CoordJobQuery namedQuery, Object... parameters) throws JPAExecutorException {
+        JPAService jpaService = Services.get().get(JPAService.class);
+        EntityManager em = jpaService.getEntityManager();
+        Query query = getSelectQuery(namedQuery, em, parameters);
+        Object ret = jpaService.executeGet(namedQuery.name(), query, em);
+        if (ret == null) {
+            return null;
+        }
+        CoordinatorJobBean bean = constructBean(namedQuery, ret, parameters);
+        return bean;
     }
 }

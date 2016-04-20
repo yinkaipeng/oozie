@@ -26,7 +26,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.oozie.BuildInfo;
 import org.apache.oozie.cli.CLIParser;
-import org.apache.oozie.service.HadoopAccessorService;
+import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.JPAService;
 import org.apache.oozie.service.Services;
 
@@ -170,13 +170,12 @@ public class OozieDBCLI {
         String url = conf.get(JPAService.CONF_URL);
         jdbcConf.put("url", url);
         jdbcConf.put("user", conf.get(JPAService.CONF_USERNAME));
-        jdbcConf.put("password", conf.get(JPAService.CONF_PASSWORD));
+        jdbcConf.put("password", ConfigurationService.getPassword(conf, JPAService.CONF_PASSWORD));
         services.getConf().set(Services.CONF_SERVICE_CLASSES,
                 "org.apache.oozie.service.HadoopAccessorService");
         services.getConf().set(Services.CONF_SERVICE_EXT_CLASSES, "");
         services.init();
-        jdbcConf.put("password", services.get(HadoopAccessorService.class).getPasswordFromHadoopConf(conf,
-                JPAService.CONF_PASSWORD));
+        jdbcConf.put("password", ConfigurationService.getPassword(conf, JPAService.CONF_PASSWORD));
         String dbType = url.substring("jdbc:".length());
         if (dbType.indexOf(":") <= 0) {
             throw new RuntimeException("Invalid JDBC URL, missing vendor 'jdbc:[VENDOR]:...'");

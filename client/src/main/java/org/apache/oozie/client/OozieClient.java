@@ -35,6 +35,8 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -59,21 +61,21 @@ import java.util.concurrent.Callable;
 
 /**
  * Client API to submit and manage Oozie workflow jobs against an Oozie intance.
- * <p/>
+ * <p>
  * This class is thread safe.
- * <p/>
+ * <p>
  * Syntax for filter for the {@link #getJobsInfo(String)} {@link #getJobsInfo(String, int, int)} methods:
  * <code>[NAME=VALUE][;NAME=VALUE]*</code>.
- * <p/>
+ * <p>
  * Valid filter names are:
- * <p/>
- * <ul/>
+ * <p>
+ * <ul>
  * <li>name: the workflow application name from the workflow definition.</li>
  * <li>user: the user that submitted the job.</li>
  * <li>group: the group for the job.</li>
  * <li>status: the status of the job.</li>
  * </ul>
- * <p/>
+ * <p>
  * The query will do an AND among all the filter names. The query will do an OR among all the filter values for the same
  * name. Multiple values must be specified as different name value pairs.
  */
@@ -209,7 +211,7 @@ public class OozieClient {
     }
 
     /**
-     * debugMode =0 means no debugging. > 0 means debugging on.
+     * debugMode =0 means no debugging. 1 means debugging on.
      */
     public int debugMode = 0;
 
@@ -227,7 +229,7 @@ public class OozieClient {
     /**
      * Allows to impersonate other users in the Oozie server. The current user
      * must be configured as a proxyuser in Oozie.
-     * <p/>
+     * <p>
      * IMPORTANT: impersonation happens only with Oozie client requests done within
      * doAs() calls.
      *
@@ -265,7 +267,7 @@ public class OozieClient {
 
     /**
      * Return the Oozie URL of the workflow client instance.
-     * <p/>
+     * <p>
      * This URL is the base URL fo the Oozie system, with not protocol versioning.
      *
      * @return the Oozie URL of the workflow client instance.
@@ -276,7 +278,7 @@ public class OozieClient {
 
     /**
      * Return the Oozie URL used by the client and server for WS communications.
-     * <p/>
+     * <p>
      * This URL is the original URL plus the versioning element path.
      *
      * @return the Oozie URL used by the client and server for communication.
@@ -297,7 +299,7 @@ public class OozieClient {
     /**
      * Set debug mode.
      *
-     * @param debugMode : 0 means no debugging. > 0 means debugging
+     * @param debugMode : 0 means no debugging. 1 means debugging
      */
     public void setDebugMode(int debugMode) {
         this.debugMode = debugMode;
@@ -498,7 +500,6 @@ public class OozieClient {
      * @param method
      * @return connection
      * @throws IOException
-     * @throws OozieClientException
      */
     protected HttpURLConnection createRetryableConnection(final URL url, final String method) throws IOException{
         return (HttpURLConnection) new ConnectionRetriableClient(getRetryCount()) {
@@ -1259,7 +1260,7 @@ public class OozieClient {
 
         /**
          * Return a reader as string.
-         * <p/>
+         * <p>
          *
          * @param reader reader to read into a string.
          * @param maxLen max content length allowed, if -1 there is no limit.
@@ -1714,7 +1715,7 @@ public class OozieClient {
 
     /**
      * Return the info of the workflow jobs that match the filter.
-     * <p/>
+     * <p>
      * It returns the first 100 jobs that match the filter.
      *
      * @param filter job filter. Refer to the {@link OozieClient} for the filter syntax.
@@ -1729,7 +1730,7 @@ public class OozieClient {
      * Sla enable alert.
      *
      * @param jobIds the job ids
-     * @param actionIds comma separated list of action ids or action id ranges
+     * @param actions comma separated list of action ids or action id ranges
      * @param dates comma separated list of the nominal times
      * @throws OozieClientException the oozie client exception
      */
@@ -1741,7 +1742,7 @@ public class OozieClient {
      * Sla enable alert for bundle with coord name/id.
      *
      * @param bundleId the bundle id
-     * @param actionIds comma separated list of action ids or action id ranges
+     * @param actions comma separated list of action ids or action id ranges
      * @param dates comma separated list of the nominal times
      * @param coords the coordinators
      * @throws OozieClientException the oozie client exception
@@ -1755,7 +1756,7 @@ public class OozieClient {
      * Sla disable alert.
      *
      * @param jobIds the job ids
-     * @param actionIds comma separated list of action ids or action id ranges
+     * @param actions comma separated list of action ids or action id ranges
      * @param dates comma separated list of the nominal times
      * @throws OozieClientException the oozie client exception
      */
@@ -1767,7 +1768,7 @@ public class OozieClient {
      * Sla disable alert for bundle with coord name/id.
      *
      * @param bundleId the bundle id
-     * @param actionIds comma separated list of action ids or action id ranges
+     * @param actions comma separated list of action ids or action id ranges
      * @param dates comma separated list of the nominal times
      * @param coords the coordinators
      * @throws OozieClientException the oozie client exception
@@ -1779,10 +1780,10 @@ public class OozieClient {
 
     /**
      * Sla change definations.
-     * SLA change definition parameters can be [<key>=<value>,...<key>=<value>]
+     * SLA change definition parameters can be [&lt;key&gt;=&lt;value&gt;,...&lt;key&gt;=&lt;value&gt;]
      * Supported parameter key names are should-start, should-end and max-duration
      * @param jobIds the job ids
-     * @param actionIds comma separated list of action ids or action id ranges.
+     * @param actions comma separated list of action ids or action id ranges.
      * @param dates comma separated list of the nominal times
      * @param newSlaParams the new sla params
      * @throws OozieClientException the oozie client exception
@@ -1793,10 +1794,10 @@ public class OozieClient {
 
     /**
      * Sla change defination for bundle with coord name/id.
-     * SLA change definition parameters can be [<key>=<value>,...<key>=<value>]
+     * SLA change definition parameters can be [&lt;key&gt;=&lt;value&gt;,...&lt;key&gt;=&lt;value&gt;]
      * Supported parameter key names are should-start, should-end and max-duration
      * @param bundleId the bundle id
-     * @param actionIds comma separated list of action ids or action id ranges
+     * @param actions comma separated list of action ids or action id ranges
      * @param dates comma separated list of the nominal times
      * @param coords the coords
      * @param newSlaParams the new sla params
@@ -1811,7 +1812,7 @@ public class OozieClient {
      * Sla change with new sla param as hasmap.
      * Supported parameter key names are should-start, should-end and max-duration
      * @param bundleId the bundle id
-     * @param actionIds comma separated list of action ids or action id ranges
+     * @param actions comma separated list of action ids or action id ranges
      * @param dates comma separated list of the nominal times
      * @param coords the coords
      * @param newSlaParams the new sla params
@@ -1924,7 +1925,7 @@ public class OozieClient {
 
     /**
      * Return the workflow job Id for an external Id.
-     * <p/>
+     * <p>
      * The external Id must have provided at job creation time.
      *
      * @param externalId external Id given at job creation time.
@@ -2016,6 +2017,42 @@ public class OozieClient {
                 Reader reader = new InputStreamReader(conn.getInputStream());
                 JSONObject json = (JSONObject) JSONValue.parse(reader);
                 return (String) json.get(JsonTags.BUILD_VERSION);
+            }
+            else {
+                handleError(conn);
+            }
+            return null;
+        }
+    }
+
+    private class ValidateXML extends ClientCallable<String> {
+
+        String file = null;
+
+        ValidateXML(String file, String user) {
+            super("POST", RestConstants.VALIDATE, "",
+                    prepareParams(RestConstants.FILE_PARAM, file, RestConstants.USER_PARAM, user));
+            this.file = file;
+        }
+
+        @Override
+        protected String call(HttpURLConnection conn) throws IOException, OozieClientException {
+            conn.setRequestProperty("content-type", RestConstants.XML_CONTENT_TYPE);
+            if (file.startsWith("/")) {
+                FileInputStream fi = new FileInputStream(new File(file));
+                byte[] buffer = new byte[1024];
+                int n = 0;
+                while (-1 != (n = fi.read(buffer))) {
+                    conn.getOutputStream().write(buffer, 0, n);
+                }
+            }
+            if ((conn.getResponseCode() == HttpURLConnection.HTTP_OK)) {
+                Reader reader = new InputStreamReader(conn.getInputStream());
+                JSONObject json = (JSONObject) JSONValue.parse(reader);
+                return (String) json.get(JsonTags.VALIDATE);
+            }
+            else if ((conn.getResponseCode() == HttpURLConnection.HTTP_NOT_FOUND)) {
+                return null;
             }
             else {
                 handleError(conn);
@@ -2121,6 +2158,32 @@ public class OozieClient {
      */
     public String getClientBuildVersion() {
         return BuildInfo.getBuildInfo().getProperty(BuildInfo.BUILD_VERSION);
+    }
+
+    /**
+     * Return the workflow application is valid.
+     *
+     * @param file local file or hdfs file.
+     * @return the workflow application is valid.
+     * @throws OozieClientException throw if it the workflow application's validation could not be retrieved.
+     */
+    public String validateXML(String file) throws OozieClientException {
+        String fileName = file;
+        if (file.startsWith("file://")) {
+            fileName = file.substring(7, file.length());
+        }
+        if (!fileName.contains("://")) {
+            File f = new File(fileName);
+            if (!f.isFile()) {
+                throw new OozieClientException("File error", "File does not exist : " + f.getAbsolutePath());
+            }
+            fileName = f.getAbsolutePath();
+        }
+        String user = USER_NAME_TL.get();
+        if (user == null) {
+            user = System.getProperty("user.name");
+        }
+        return new ValidateXML(fileName, user).call();
     }
 
     /**

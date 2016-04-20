@@ -18,8 +18,11 @@
 
 package org.apache.oozie.workflow.lite;
 
+import org.apache.commons.codec.binary.Base64;
+import org.apache.hadoop.io.Writable;
+import org.apache.oozie.action.hadoop.FsActionExecutor;
+import org.apache.oozie.action.oozie.SubWorkflowActionExecutor;
 import org.apache.oozie.service.ConfigurationService;
-import org.apache.oozie.workflow.WorkflowException;
 import org.apache.oozie.util.ELUtils;
 import org.apache.oozie.util.IOUtils;
 import org.apache.oozie.util.XConfiguration;
@@ -27,7 +30,9 @@ import org.apache.oozie.util.XmlUtils;
 import org.apache.oozie.util.ParamChecker;
 import org.apache.oozie.util.ParameterVerifier;
 import org.apache.oozie.util.ParameterVerifierException;
+import org.apache.oozie.util.WritableUtils;
 import org.apache.oozie.ErrorCode;
+import org.apache.oozie.workflow.WorkflowException;
 import org.apache.oozie.action.ActionExecutor;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.service.ActionService;
@@ -46,6 +51,12 @@ import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.io.ByteArrayOutputStream;
+import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.DataOutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Deque;
@@ -54,6 +65,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.zip.*;
 
 /**
  * Class to parse and validate workflow xml
@@ -93,6 +105,15 @@ public class LiteWorkflowAppParser {
     public static final String VALIDATE_FORK_JOIN = "oozie.validate.ForkJoin";
     public static final String WF_VALIDATE_FORK_JOIN = "oozie.wf.validate.ForkJoin";
 
+    public static final String DEFAULT_NAME_NODE = "oozie.actions.default.name-node";
+    public static final String DEFAULT_JOB_TRACKER = "oozie.actions.default.job-tracker";
+    public static final String OOZIE_GLOBAL = "oozie.wf.globalconf";
+
+    private static final String JOB_TRACKER = "job-tracker";
+    private static final String NAME_NODE = "name-node";
+    private static final String JOB_XML = "job-xml";
+    private static final String CONFIGURATION = "configuration";
+
     private Schema schema;
     private Class<? extends ControlNodeHandler> controlNodeHandler;
     private Class<? extends DecisionNodeHandler> decisionHandlerClass;
@@ -121,6 +142,9 @@ public class LiteWorkflowAppParser {
     private List<NodeAndTopDecisionParent> visitedOkNodes = new ArrayList<NodeAndTopDecisionParent>();
     private List<String> visitedJoinNodes = new ArrayList<String>();
 
+    private String defaultNameNode;
+    private String defaultJobTracker;
+
     public LiteWorkflowAppParser(Schema schema,
                                  Class<? extends ControlNodeHandler> controlNodeHandler,
                                  Class<? extends DecisionNodeHandler> decisionHandlerClass,
@@ -129,6 +153,21 @@ public class LiteWorkflowAppParser {
         this.controlNodeHandler = controlNodeHandler;
         this.decisionHandlerClass = decisionHandlerClass;
         this.actionHandlerClass = actionHandlerClass;
+
+        defaultNameNode = ConfigurationService.get(DEFAULT_NAME_NODE);
+        if (defaultNameNode != null) {
+            defaultNameNode = defaultNameNode.trim();
+            if (defaultNameNode.isEmpty()) {
+                defaultNameNode = null;
+            }
+        }
+        defaultJobTracker = ConfigurationService.get(DEFAULT_JOB_TRACKER);
+        if (defaultJobTracker != null) {
+            defaultJobTracker = defaultJobTracker.trim();
+            if (defaultJobTracker.isEmpty()) {
+                defaultJobTracker = null;
+            }
+        }
     }
 
     public LiteWorkflowApp validateAndParse(Reader reader, Configuration jobConf) throws WorkflowException {
@@ -391,118 +430,133 @@ public class LiteWorkflowAppParser {
             throws WorkflowException {
         Namespace ns = root.getNamespace();
         LiteWorkflowApp def = null;
-        Element global = null;
+        GlobalSectionData gData = jobConf.get(OOZIE_GLOBAL) == null ?
+                null : getGlobalFromString(jobConf.get(OOZIE_GLOBAL));
+        boolean serializedGlobalConf = false;
         for (Element eNode : (List<Element>) root.getChildren()) {
             if (eNode.getName().equals(START_E)) {
                 def = new LiteWorkflowApp(root.getAttributeValue(NAME_A), strDef,
                                           new StartNodeDef(controlNodeHandler, eNode.getAttributeValue(TO_A)));
-            }
-            else {
-                if (eNode.getName().equals(END_E)) {
-                    def.addNode(new EndNodeDef(eNode.getAttributeValue(NAME_A), controlNodeHandler));
+            } else if (eNode.getName().equals(END_E)) {
+                def.addNode(new EndNodeDef(eNode.getAttributeValue(NAME_A), controlNodeHandler));
+            } else if (eNode.getName().equals(KILL_E)) {
+                def.addNode(new KillNodeDef(eNode.getAttributeValue(NAME_A),
+                                            eNode.getChildText(KILL_MESSAGE_E, ns), controlNodeHandler));
+            } else if (eNode.getName().equals(FORK_E)) {
+                List<String> paths = new ArrayList<String>();
+                for (Element tran : (List<Element>) eNode.getChildren(FORK_PATH_E, ns)) {
+                    paths.add(tran.getAttributeValue(FORK_START_A));
                 }
-                else {
-                    if (eNode.getName().equals(KILL_E)) {
-                        def.addNode(new KillNodeDef(eNode.getAttributeValue(NAME_A),
-                                                    eNode.getChildText(KILL_MESSAGE_E, ns), controlNodeHandler));
-                    }
-                    else {
-                        if (eNode.getName().equals(FORK_E)) {
-                            List<String> paths = new ArrayList<String>();
-                            for (Element tran : (List<Element>) eNode.getChildren(FORK_PATH_E, ns)) {
-                                paths.add(tran.getAttributeValue(FORK_START_A));
-                            }
-                            def.addNode(new ForkNodeDef(eNode.getAttributeValue(NAME_A), controlNodeHandler, paths));
+                def.addNode(new ForkNodeDef(eNode.getAttributeValue(NAME_A), controlNodeHandler, paths));
+            } else if (eNode.getName().equals(JOIN_E)) {
+                def.addNode(new JoinNodeDef(eNode.getAttributeValue(NAME_A), controlNodeHandler, eNode.getAttributeValue(TO_A)));
+            } else if (eNode.getName().equals(DECISION_E)) {
+                Element eSwitch = eNode.getChild(DECISION_SWITCH_E, ns);
+                List<String> transitions = new ArrayList<String>();
+                for (Element e : (List<Element>) eSwitch.getChildren(DECISION_CASE_E, ns)) {
+                    transitions.add(e.getAttributeValue(TO_A));
+                }
+                transitions.add(eSwitch.getChild(DECISION_DEFAULT_E, ns).getAttributeValue(TO_A));
+
+                String switchStatement = XmlUtils.prettyPrint(eSwitch).toString();
+                def.addNode(new DecisionNodeDef(eNode.getAttributeValue(NAME_A), switchStatement, decisionHandlerClass,
+                                                transitions));
+            } else if (ACTION_E.equals(eNode.getName())) {
+                String[] transitions = new String[2];
+                Element eActionConf = null;
+                for (Element elem : (List<Element>) eNode.getChildren()) {
+                    if (ACTION_OK_E.equals(elem.getName())) {
+                        transitions[0] = elem.getAttributeValue(TO_A);
+                    } else if (ACTION_ERROR_E.equals(elem.getName())) {
+                        transitions[1] = elem.getAttributeValue(TO_A);
+                    } else if (SLA_INFO.equals(elem.getName()) || CREDENTIALS.equals(elem.getName())) {
+                        continue;
+                    } else {
+                        if (!serializedGlobalConf && elem.getName().equals(SubWorkflowActionExecutor.ACTION_TYPE) &&
+                                elem.getChild(("propagate-configuration"), ns) != null && gData != null) {
+                            serializedGlobalConf = true;
+                            jobConf.set(OOZIE_GLOBAL, getGlobalString(gData));
                         }
-                        else {
-                            if (eNode.getName().equals(JOIN_E)) {
-                                def.addNode(new JoinNodeDef(eNode.getAttributeValue(NAME_A), controlNodeHandler,
-                                                            eNode.getAttributeValue(TO_A)));
-                            }
-                            else {
-                                if (eNode.getName().equals(DECISION_E)) {
-                                    Element eSwitch = eNode.getChild(DECISION_SWITCH_E, ns);
-                                    List<String> transitions = new ArrayList<String>();
-                                    for (Element e : (List<Element>) eSwitch.getChildren(DECISION_CASE_E, ns)) {
-                                        transitions.add(e.getAttributeValue(TO_A));
-                                    }
-                                    transitions.add(eSwitch.getChild(DECISION_DEFAULT_E, ns).getAttributeValue(TO_A));
-
-                                    String switchStatement = XmlUtils.prettyPrint(eSwitch).toString();
-                                    def.addNode(new DecisionNodeDef(eNode.getAttributeValue(NAME_A), switchStatement, decisionHandlerClass,
-                                                                    transitions));
-                                }
-                                else {
-                                    if (ACTION_E.equals(eNode.getName())) {
-                                        String[] transitions = new String[2];
-                                        Element eActionConf = null;
-                                        for (Element elem : (List<Element>) eNode.getChildren()) {
-                                            if (ACTION_OK_E.equals(elem.getName())) {
-                                                transitions[0] = elem.getAttributeValue(TO_A);
-                                            }
-                                            else {
-                                                if (ACTION_ERROR_E.equals(elem.getName())) {
-                                                    transitions[1] = elem.getAttributeValue(TO_A);
-                                                }
-                                                else {
-                                                    if (SLA_INFO.equals(elem.getName()) || CREDENTIALS.equals(elem.getName())) {
-                                                        continue;
-                                                    }
-                                                    else {
-                                                        eActionConf = elem;
-                                                        handleGlobal(ns, global, configDefault, elem);
-                                                        }
-                                                }
-                                            }
-                                        }
-
-                                        String credStr = eNode.getAttributeValue(CRED_A);
-                                        String userRetryMaxStr = eNode.getAttributeValue(USER_RETRY_MAX_A);
-                                        String userRetryIntervalStr = eNode.getAttributeValue(USER_RETRY_INTERVAL_A);
-                                        try {
-                                            if (!StringUtils.isEmpty(userRetryMaxStr)) {
-                                                userRetryMaxStr = ELUtils.resolveAppName(userRetryMaxStr, jobConf);
-                                            }
-                                            if (!StringUtils.isEmpty(userRetryIntervalStr)) {
-                                                userRetryIntervalStr = ELUtils.resolveAppName(userRetryIntervalStr,
-                                                        jobConf);
-                                            }
-                                        }
-                                        catch (Exception e) {
-                                            throw new WorkflowException(ErrorCode.E0703, e.getMessage());
-                                        }
-
-                                        String actionConf = XmlUtils.prettyPrint(eActionConf).toString();
-                                        def.addNode(new ActionNodeDef(eNode.getAttributeValue(NAME_A), actionConf, actionHandlerClass,
-                                                                      transitions[0], transitions[1], credStr,
-                                                                      userRetryMaxStr, userRetryIntervalStr));
-                                    }
-                                    else {
-                                        if (SLA_INFO.equals(eNode.getName()) || CREDENTIALS.equals(eNode.getName())) {
-                                            // No operation is required
-                                        }
-                                        else {
-                                            if (eNode.getName().equals(GLOBAL)) {
-                                                global = eNode;
-                                            }
-                                            else {
-                                                if (eNode.getName().equals(PARAMETERS)) {
-                                                    // No operation is required
-                                                }
-                                                else {
-                                                    throw new WorkflowException(ErrorCode.E0703, eNode.getName());
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        eActionConf = elem;
+                        handleDefaultsAndGlobal(gData, configDefault, elem);
                     }
                 }
+
+                String credStr = eNode.getAttributeValue(CRED_A);
+                String userRetryMaxStr = eNode.getAttributeValue(USER_RETRY_MAX_A);
+                String userRetryIntervalStr = eNode.getAttributeValue(USER_RETRY_INTERVAL_A);
+                try {
+                    if (!StringUtils.isEmpty(userRetryMaxStr)) {
+                        userRetryMaxStr = ELUtils.resolveAppName(userRetryMaxStr, jobConf);
+                    }
+                    if (!StringUtils.isEmpty(userRetryIntervalStr)) {
+                        userRetryIntervalStr = ELUtils.resolveAppName(userRetryIntervalStr, jobConf);
+                    }
+                }
+                catch (Exception e) {
+                    throw new WorkflowException(ErrorCode.E0703, e.getMessage());
+                }
+
+                String actionConf = XmlUtils.prettyPrint(eActionConf).toString();
+                def.addNode(new ActionNodeDef(eNode.getAttributeValue(NAME_A), actionConf, actionHandlerClass,
+                                              transitions[0], transitions[1], credStr,
+                                              userRetryMaxStr, userRetryIntervalStr));
+            } else if (SLA_INFO.equals(eNode.getName()) || CREDENTIALS.equals(eNode.getName())) {
+                // No operation is required
+            } else if (eNode.getName().equals(GLOBAL)) {
+                if(jobConf.get(OOZIE_GLOBAL) != null) {
+                    gData = getGlobalFromString(jobConf.get(OOZIE_GLOBAL));
+                    handleDefaultsAndGlobal(gData, null, eNode);
+                }
+                gData = parseGlobalSection(ns, eNode);
+            } else if (eNode.getName().equals(PARAMETERS)) {
+                // No operation is required
+            } else {
+                throw new WorkflowException(ErrorCode.E0703, eNode.getName());
             }
         }
         return def;
+    }
+
+    /**
+     * Read the GlobalSectionData from Base64 string.
+     * @param globalStr
+     * @return GlobalSectionData
+     * @throws WorkflowException
+     */
+    private GlobalSectionData getGlobalFromString(String globalStr) throws WorkflowException {
+        GlobalSectionData globalSectionData = new GlobalSectionData();
+        try {
+            byte[] data = Base64.decodeBase64(globalStr);
+            Inflater inflater = new Inflater();
+            DataInputStream ois = new DataInputStream(new InflaterInputStream(new ByteArrayInputStream(data), inflater));
+            globalSectionData.readFields(ois);
+            ois.close();
+        } catch (Exception ex) {
+            throw new WorkflowException(ErrorCode.E0700, "Error while processing global section conf");
+        }
+        return globalSectionData;
+    }
+
+
+    /**
+     * Write the GlobalSectionData to a Base64 string.
+     * @param globalSectionData
+     * @return String
+     * @throws WorkflowException
+     */
+    private String getGlobalString(GlobalSectionData globalSectionData) throws WorkflowException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        DataOutputStream oos = null;
+        try {
+            Deflater def = new Deflater();
+            oos = new DataOutputStream(new DeflaterOutputStream(baos, def));
+            globalSectionData.write(oos);
+            oos.close();
+        } catch (IOException e) {
+            throw new WorkflowException(ErrorCode.E0700, "Error while processing global section conf");
+        }
+        return Base64.encodeBase64String(baos.toByteArray());
     }
 
     /**
@@ -575,85 +629,193 @@ public class LiteWorkflowAppParser {
         traversed.put(node.getName(), VisitStatus.VISITED);
     }
 
-    /**
-     * Handle the global section
-     *
-     * @param ns
-     * @param global
-     * @param eActionConf
-     * @throws WorkflowException
-     */
+    private void addChildElement(Element parent, Namespace ns, String childName, String childValue) {
+        Element child = new Element(childName, ns);
+        child.setText(childValue);
+        parent.addContent(child);
+    }
 
-    @SuppressWarnings("unchecked")
-    private void handleGlobal(Namespace ns, Element global, Configuration configDefault, Element eActionConf)
+    private class GlobalSectionData implements Writable {
+        String jobTracker;
+        String nameNode;
+        List<String> jobXmls;
+        Configuration conf;
+
+        public GlobalSectionData() {
+        }
+
+        public GlobalSectionData(String jobTracker, String nameNode, List<String> jobXmls, Configuration conf) {
+            this.jobTracker = jobTracker;
+            this.nameNode = nameNode;
+            this.jobXmls = jobXmls;
+            this.conf = conf;
+        }
+
+        @Override
+        public void write(DataOutput dataOutput) throws IOException {
+            WritableUtils.writeStr(dataOutput, jobTracker);
+            WritableUtils.writeStr(dataOutput, nameNode);
+
+            if(jobXmls != null && !jobXmls.isEmpty()) {
+                dataOutput.writeInt(jobXmls.size());
+                for (String content : jobXmls) {
+                    WritableUtils.writeStr(dataOutput, content);
+                }
+            } else {
+                dataOutput.writeInt(0);
+            }
+            if(conf != null) {
+                WritableUtils.writeStr(dataOutput, XmlUtils.prettyPrint(conf).toString());
+            } else {
+                WritableUtils.writeStr(dataOutput, null);
+            }
+        }
+
+        @Override
+        public void readFields(DataInput dataInput) throws IOException {
+            jobTracker = WritableUtils.readStr(dataInput);
+            nameNode = WritableUtils.readStr(dataInput);
+            int length = dataInput.readInt();
+            if (length > 0) {
+                jobXmls = new ArrayList<String>();
+                for (int i = 0; i < length; i++) {
+                    jobXmls.add(WritableUtils.readStr(dataInput));
+                }
+            }
+            String confString = WritableUtils.readStr(dataInput);
+            if(confString != null) {
+                conf = new XConfiguration(new StringReader(confString));
+            }
+        }
+    }
+
+    private GlobalSectionData parseGlobalSection(Namespace ns, Element global) throws WorkflowException {
+        GlobalSectionData gData = null;
+        if (global != null) {
+            String globalJobTracker = null;
+            Element globalJobTrackerElement = global.getChild(JOB_TRACKER, ns);
+            if (globalJobTrackerElement != null) {
+                globalJobTracker = globalJobTrackerElement.getValue();
+            }
+
+            String globalNameNode = null;
+            Element globalNameNodeElement = global.getChild(NAME_NODE, ns);
+            if (globalNameNodeElement != null) {
+                globalNameNode = globalNameNodeElement.getValue();
+            }
+
+            List<String> globalJobXmls = null;
+            @SuppressWarnings("unchecked")
+            List<Element> globalJobXmlElements = global.getChildren(JOB_XML, ns);
+            if (!globalJobXmlElements.isEmpty()) {
+                globalJobXmls = new ArrayList<String>(globalJobXmlElements.size());
+                for(Element jobXmlElement: globalJobXmlElements) {
+                    globalJobXmls.add(jobXmlElement.getText());
+                }
+            }
+
+            Configuration globalConf = null;
+            Element globalConfigurationElement = global.getChild(CONFIGURATION, ns);
+            if (globalConfigurationElement != null) {
+                try {
+                    globalConf = new XConfiguration(new StringReader(XmlUtils.prettyPrint(globalConfigurationElement).toString()));
+                } catch (IOException ioe) {
+                    throw new WorkflowException(ErrorCode.E0700, "Error while processing global section conf");
+                }
+            }
+            gData = new GlobalSectionData(globalJobTracker, globalNameNode, globalJobXmls, globalConf);
+        }
+        return gData;
+    }
+
+    private void handleDefaultsAndGlobal(GlobalSectionData gData, Configuration configDefault, Element actionElement)
             throws WorkflowException {
 
-        // Use the action's namespace when getting children of the action (will
-        // be different than ns for extension actions)
-        Namespace actionNs = eActionConf.getNamespace();
+        ActionExecutor ae = Services.get().get(ActionService.class).getExecutor(actionElement.getName());
+        if (ae == null && !GLOBAL.equals(actionElement.getName())) {
+            throw new WorkflowException(ErrorCode.E0723, actionElement.getName(), ActionService.class.getName());
+        }
 
-        if (global != null) {
-            Element globalJobTracker = global.getChild("job-tracker", ns);
-            Element globalNameNode = global.getChild("name-node", ns);
-            List<Element> globalJobXml = global.getChildren("job-xml", ns);
-            Element globalConfiguration = global.getChild("configuration", ns);
+        Namespace actionNs = actionElement.getNamespace();
 
-            if (globalJobTracker != null && eActionConf.getChild("job-tracker", actionNs) == null) {
-                Element jobTracker = new Element("job-tracker", actionNs);
-                jobTracker.setText(globalJobTracker.getText());
-                eActionConf.addContent(jobTracker);
+        // If this is the global section or ActionExecutor.requiresNameNodeJobTracker() returns true, we parse the action's
+        // <name-node> and <job-tracker> fields.  If those aren't defined, we take them from the <global> section.  If those
+        // aren't defined, we take them from the oozie-site defaults.  If those aren't defined, we throw a WorkflowException.
+        // However, for the SubWorkflow and FS Actions, as well as the <global> section, we don't throw the WorkflowException.
+        // Also, we only parse the NN (not the JT) for the FS Action.
+        if (SubWorkflowActionExecutor.ACTION_TYPE.equals(actionElement.getName()) ||
+                FsActionExecutor.ACTION_TYPE.equals(actionElement.getName()) ||
+                GLOBAL.equals(actionElement.getName()) || ae.requiresNameNodeJobTracker()) {
+            if (actionElement.getChild(NAME_NODE, actionNs) == null) {
+                if (gData != null && gData.nameNode != null) {
+                    addChildElement(actionElement, actionNs, NAME_NODE, gData.nameNode);
+                } else if (defaultNameNode != null) {
+                    addChildElement(actionElement, actionNs, NAME_NODE, defaultNameNode);
+                } else if (!(SubWorkflowActionExecutor.ACTION_TYPE.equals(actionElement.getName()) ||
+                        FsActionExecutor.ACTION_TYPE.equals(actionElement.getName()) ||
+                        GLOBAL.equals(actionElement.getName()))) {
+                    throw new WorkflowException(ErrorCode.E0701, "No " + NAME_NODE + " defined");
+                }
             }
-
-            if (globalNameNode != null && eActionConf.getChild("name-node", actionNs) == null) {
-                Element nameNode = new Element("name-node", actionNs);
-                nameNode.setText(globalNameNode.getText());
-                eActionConf.addContent(nameNode);
+            if (actionElement.getChild(JOB_TRACKER, actionNs) == null &&
+                    !FsActionExecutor.ACTION_TYPE.equals(actionElement.getName())) {
+                if (gData != null && gData.jobTracker != null) {
+                    addChildElement(actionElement, actionNs, JOB_TRACKER, gData.jobTracker);
+                } else if (defaultJobTracker != null) {
+                    addChildElement(actionElement, actionNs, JOB_TRACKER, defaultJobTracker);
+                } else if (!(SubWorkflowActionExecutor.ACTION_TYPE.equals(actionElement.getName()) ||
+                        GLOBAL.equals(actionElement.getName()))) {
+                    throw new WorkflowException(ErrorCode.E0701, "No " + JOB_TRACKER + " defined");
+                }
             }
+        }
 
-            if (!globalJobXml.isEmpty()) {
-                List<Element> actionJobXml = eActionConf.getChildren("job-xml", actionNs);
-                for(Element jobXml: globalJobXml){
+        // If this is the global section or ActionExecutor.supportsConfigurationJobXML() returns true, we parse the action's
+        // <configuration> and <job-xml> fields.  We also merge this with those from the <global> section, if given.  If none are
+        // defined, empty values are placed.  Exceptions are thrown if there's an error parsing, but not if they're not given.
+        if ( GLOBAL.equals(actionElement.getName()) || ae.supportsConfigurationJobXML()) {
+            @SuppressWarnings("unchecked")
+            List<Element> actionJobXmls = actionElement.getChildren(JOB_XML, actionNs);
+            if (gData != null && gData.jobXmls != null) {
+                for(String gJobXml : gData.jobXmls) {
                     boolean alreadyExists = false;
-                    for(Element actionXml: actionJobXml){
-                        if(jobXml.getText().equals(actionXml.getText())){
+                    for (Element actionXml : actionJobXmls) {
+                        if (gJobXml.equals(actionXml.getText())) {
                             alreadyExists = true;
                             break;
                         }
                     }
-
-                    if (!alreadyExists){
-                        Element ejobXml = new Element("job-xml", actionNs);
-                        ejobXml.setText(jobXml.getText());
-                        eActionConf.addContent(ejobXml);
+                    if (!alreadyExists) {
+                        Element ejobXml = new Element(JOB_XML, actionNs);
+                        ejobXml.setText(gJobXml);
+                        actionElement.addContent(ejobXml);
                     }
-
                 }
             }
+
             try {
                 XConfiguration actionConf = new XConfiguration();
                 if (configDefault != null)
                     XConfiguration.copy(configDefault, actionConf);
-                if (globalConfiguration != null) {
-                    Configuration globalConf = new XConfiguration(new StringReader(XmlUtils.prettyPrint(
-                            globalConfiguration).toString()));
-                    XConfiguration.copy(globalConf, actionConf);
+                if (gData != null && gData.conf != null) {
+                    XConfiguration.copy(gData.conf, actionConf);
                 }
-                Element actionConfiguration = eActionConf.getChild("configuration", actionNs);
+                Element actionConfiguration = actionElement.getChild(CONFIGURATION, actionNs);
                 if (actionConfiguration != null) {
                     //copy and override
-                    XConfiguration.copy(new XConfiguration(new StringReader(XmlUtils.prettyPrint(
-                            actionConfiguration).toString())), actionConf);
+                    XConfiguration.copy(new XConfiguration(new StringReader(XmlUtils.prettyPrint(actionConfiguration).toString())),
+                            actionConf);
                 }
-                int position = eActionConf.indexOf(actionConfiguration);
-                eActionConf.removeContent(actionConfiguration); //replace with enhanced one
+                int position = actionElement.indexOf(actionConfiguration);
+                actionElement.removeContent(actionConfiguration); //replace with enhanced one
                 Element eConfXml = XmlUtils.parseXml(actionConf.toXmlString(false));
                 eConfXml.detach();
                 eConfXml.setNamespace(actionNs);
                 if (position > 0) {
-                    eActionConf.addContent(position, eConfXml);
+                    actionElement.addContent(position, eConfXml);
                 }
                 else {
-                    eActionConf.addContent(eConfXml);
+                    actionElement.addContent(eConfXml);
                 }
             }
             catch (IOException e) {
@@ -663,21 +825,5 @@ public class LiteWorkflowAppParser {
                 throw new WorkflowException(ErrorCode.E0700, "Error while processing action conf");
             }
         }
-        else {
-            ActionExecutor ae = Services.get().get(ActionService.class).getExecutor(eActionConf.getName());
-            if (ae == null) {
-                throw new WorkflowException(ErrorCode.E0723, eActionConf.getName(), ActionService.class.getName());
-            }
-            if (ae.requiresNNJT) {
-
-                if (eActionConf.getChild("name-node", actionNs) == null) {
-                    throw new WorkflowException(ErrorCode.E0701, "No name-node defined");
-                }
-                if (eActionConf.getChild("job-tracker", actionNs) == null) {
-                    throw new WorkflowException(ErrorCode.E0701, "No job-tracker defined");
-                }
-            }
-        }
     }
-
 }

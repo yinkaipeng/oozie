@@ -34,6 +34,7 @@ import org.apache.oozie.ErrorCode;
 import org.apache.oozie.WorkflowActionBean;
 import org.apache.oozie.WorkflowJobBean;
 import org.apache.oozie.action.ActionExecutor;
+import org.apache.oozie.client.Job;
 import org.apache.oozie.client.WorkflowAction;
 import org.apache.oozie.client.WorkflowJob;
 import org.apache.oozie.command.CommandException;
@@ -56,7 +57,7 @@ import org.apache.oozie.workflow.lite.LiteWorkflowInstance;
  * Base class for Action execution commands. Provides common functionality to handle different types of errors while
  * attempting to start or end an action.
  */
-public abstract class ActionXCommand<T> extends WorkflowXCommand<Void> {
+public abstract class ActionXCommand<T> extends WorkflowXCommand<T> {
     private static final String INSTRUMENTATION_GROUP = "action.executors";
 
     protected static final String RECOVERY_ID_SEPARATOR = "@";
@@ -132,9 +133,9 @@ public abstract class ActionXCommand<T> extends WorkflowXCommand<Void> {
     }
 
     /**
-     * Takes care of errors. </p> For errors while attempting to start the action, the job state is updated and an
-     * {@link ActionEndCommand} is queued. </p> For errors while attempting to end the action, the job state is updated.
-     * </p>
+     * Takes care of errors. <p> For errors while attempting to start the action, the job state is updated and an
+     * {@link ActionEndXCommand} is queued. <p> For errors while attempting to end the action, the job state is updated.
+     * <p>
      *
      * @param context the execution context.
      * @param executor the executor instance being used.
@@ -207,7 +208,7 @@ public abstract class ActionXCommand<T> extends WorkflowXCommand<Void> {
     /**
      * Execute retry for action if this action is eligible for user-retry
      *
-     * @param context the execution context.
+     * @param action the Workflow action bean
      * @return true if user-retry has to be handled for this action
      * @throws CommandException thrown if unable to fail job
      */
@@ -281,8 +282,10 @@ public abstract class ActionXCommand<T> extends WorkflowXCommand<Void> {
         private boolean started;
         private boolean ended;
         private boolean executed;
+        private boolean shouldEndWF;
+        private Job.Status jobStatus;
 
-		/**
+        /**
 		 * Constructing the ActionExecutorContext, setting the private members
 		 * and constructing the proto configuration
 		 */
@@ -498,6 +501,23 @@ public abstract class ActionXCommand<T> extends WorkflowXCommand<Void> {
         public void setErrorInfo(String str, String exMsg) {
             action.setErrorInfo(str, exMsg);
         }
+
+        public boolean isShouldEndWF() {
+            return shouldEndWF;
+        }
+
+        public void setShouldEndWF(boolean shouldEndWF) {
+            this.shouldEndWF = shouldEndWF;
+        }
+
+        public Job.Status getJobStatus() {
+            return jobStatus;
+        }
+
+        public void setJobStatus(Job.Status jobStatus) {
+            this.jobStatus = jobStatus;
+        }
+
     }
 
 }

@@ -28,26 +28,27 @@ import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.DelayQueue;
 import java.util.concurrent.Delayed;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * A Queue implementation that support queuing elements into the future and priority queuing.
- * <p/>
+ * <p>
  * The {@link PriorityDelayQueue} avoids starvation by raising elements priority as they age.
- * <p/>
+ * <p>
  * To support queuing elements into the future, the JDK <code>DelayQueue</code> is used.
- * <p/>
+ * <p>
  * To support priority queuing, an array of <code>DelayQueue</code> sub-queues is used. Elements are consumed from the
  * higher priority sub-queues first. From a sub-queue, elements are available based on their age.
- * <p/>
+ * <p>
  * To avoid starvation, there is is maximum wait time for an an element in a sub-queue, after the maximum wait time has
  * elapsed, the element is promoted to the next higher priority sub-queue. Eventually it will reach the maximum priority
  * sub-queue and it will be consumed when it is the oldest element in the that sub-queue.
- * <p/>
+ * <p>
  * Every time an element is promoted to a higher priority sub-queue, a new maximum wait time applies.
- * <p/>
+ * <p>
  * This class does not use a separate thread for anti-starvation check, instead, the check is performed on polling and
  * seeking operations. This check is performed, the most every 1/2 second.
  */
@@ -56,11 +57,11 @@ public class PriorityDelayQueue<E> extends AbstractQueue<PriorityDelayQueue.Queu
 
     /**
      * Element wrapper required by the queue.
-     * <p/>
+     * <p>
      * This wrapper keeps track of the priority and the age of a queue element.
      */
-    public static class QueueElement<E> implements Delayed {
-        private E element;
+    public static class QueueElement<E> extends FutureTask<E> implements Delayed {
+        private XCallable<E> element;
         private int priority;
         private long baseTime;
         boolean inQueue;
@@ -76,7 +77,8 @@ public class PriorityDelayQueue<E> extends AbstractQueue<PriorityDelayQueue.Queu
          * @throws IllegalArgumentException if the element is <tt>NULL</tt>, the priority is negative or if the delay is
          * negative.
          */
-        public QueueElement(E element, int priority, long delay, TimeUnit unit) {
+        public QueueElement(XCallable<E> element, int priority, long delay, TimeUnit unit) {
+            super(element);
             if (element == null) {
                 throw new IllegalArgumentException("element cannot be null");
             }
@@ -92,20 +94,11 @@ public class PriorityDelayQueue<E> extends AbstractQueue<PriorityDelayQueue.Queu
         }
 
         /**
-         * Create an Element wrapper with no delay and minimum priority.
-         *
-         * @param element element.
-         */
-        public QueueElement(E element) {
-            this(element, 0, 0, TimeUnit.MILLISECONDS);
-        }
-
-        /**
          * Return the element from the wrapper.
          *
          * @return the element.
          */
-        public E getElement() {
+        public XCallable<E> getElement() {
             return element;
         }
 
@@ -364,7 +357,7 @@ public class PriorityDelayQueue<E> extends AbstractQueue<PriorityDelayQueue.Queu
 
     /**
      * Insert the specified element into the queue.
-     * <p/>
+     * <p>
      * The element is added with minimun priority and no delay.
      *
      * @param queueElement the element to add.
@@ -382,9 +375,9 @@ public class PriorityDelayQueue<E> extends AbstractQueue<PriorityDelayQueue.Queu
     /**
      * Retrieve and remove the head of this queue, or return <tt>null</tt> if this queue has no elements with an expired
      * delay.
-     * <p/>
+     * <p>
      * The retrieved element is the oldest one from the highest priority sub-queue.
-     * <p/>
+     * <p>
      * Invocations to this method run the anti-starvation (once every interval check).
      *
      * @return the head of this queue, or <tt>null</tt> if this queue has no elements with an expired delay.
@@ -480,7 +473,7 @@ public class PriorityDelayQueue<E> extends AbstractQueue<PriorityDelayQueue.Queu
 
     /**
      * Run the anti-starvation check every {@link #ANTI_STARVATION_INTERVAL} milliseconds.
-     * <p/>
+     * <p>
      * It promotes elements beyond max wait time to the next higher priority sub-queue.
      */
     protected void antiStarvation() {
@@ -527,9 +520,9 @@ public class PriorityDelayQueue<E> extends AbstractQueue<PriorityDelayQueue.Queu
 
     /**
      * Method for debugging purposes. This implementation is a <tt>NOP</tt>.
-     * <p/>
+     * <p>
      * This method should be overriden for logging purposes.
-     * <p/>
+     * <p>
      * Message templates used by this class are in JDK's <tt>MessageFormat</tt> syntax.
      *
      * @param msgTemplate message template.
@@ -541,8 +534,8 @@ public class PriorityDelayQueue<E> extends AbstractQueue<PriorityDelayQueue.Queu
     /**
      * Insert the specified element into this queue, waiting if necessary
      * for space to become available.
-     * <p/>
-     * NOTE: This method is to fulfill the <tt>BlockingQueue<tt/> interface. Not implemented in the most optimal way.
+     * <p>
+     * NOTE: This method is to fulfill the <tt>BlockingQueue</tt> interface. Not implemented in the most optimal way.
      *
      * @param e the element to add
      * @throws InterruptedException if interrupted while waiting
@@ -562,11 +555,11 @@ public class PriorityDelayQueue<E> extends AbstractQueue<PriorityDelayQueue.Queu
     /**
      * Insert the specified element into this queue, waiting up to the
      * specified wait time if necessary for space to become available.
-     * <p/>
+     * <p>
      * IMPORTANT: This implementation forces the addition of the element to the queue regardless
      * of the queue current size. The timeout value is ignored as the element is added immediately.
-     * <p/>
-     * NOTE: This method is to fulfill the <tt>BlockingQueue<tt/> interface. Not implemented in the most optimal way.
+     * <p>
+     * NOTE: This method is to fulfill the <tt>BlockingQueue</tt> interface. Not implemented in the most optimal way.
      *
      * @param e the element to add
      * @param timeout how long to wait before giving up, in units of
@@ -590,11 +583,11 @@ public class PriorityDelayQueue<E> extends AbstractQueue<PriorityDelayQueue.Queu
     /**
      * Retrieve and removes the head of this queue, waiting if necessary
      * until an element becomes available.
-     * <p/>
+     * <p>
      * IMPORTANT: This implementation has a delay of up to 10ms (when the queue is empty) to detect a new element
      * is available. It is doing a 10ms sleep.
-     * <p/>
-     * NOTE: This method is to fulfill the <tt>BlockingQueue<tt/> interface. Not implemented in the most optimal way.
+     * <p>
+     * NOTE: This method is to fulfill the <tt>BlockingQueue</tt> interface. Not implemented in the most optimal way.
      *
      * @return the head of this queue
      * @throws InterruptedException if interrupted while waiting
@@ -612,8 +605,8 @@ public class PriorityDelayQueue<E> extends AbstractQueue<PriorityDelayQueue.Queu
     /**
      * Retrieve and removes the head of this queue, waiting up to the
      * specified wait time if necessary for an element to become available.
-     * <p/>
-     * NOTE: This method is to fulfill the <tt>BlockingQueue<tt/> interface. Not implemented in the most optimal way.
+     * <p>
+     * NOTE: This method is to fulfill the <tt>BlockingQueue</tt> interface. Not implemented in the most optimal way.
      *
      * @param timeout how long to wait before giving up, in units of
      *        <tt>unit</tt>
@@ -644,8 +637,8 @@ public class PriorityDelayQueue<E> extends AbstractQueue<PriorityDelayQueue.Queu
      * an element will succeed by inspecting <tt>remainingCapacity</tt>
      * because it may be the case that another thread is about to
      * insert or remove an element.
-     * <p/>
-     * NOTE: This method is to fulfill the <tt>BlockingQueue<tt/> interface. Not implemented in the most optimal way.
+     * <p>
+     * NOTE: This method is to fulfill the <tt>BlockingQueue</tt> interface. Not implemented in the most optimal way.
      *
      * @return the remaining capacity
      */
@@ -665,8 +658,8 @@ public class PriorityDelayQueue<E> extends AbstractQueue<PriorityDelayQueue.Queu
      * <tt>IllegalArgumentException</tt>. Further, the behavior of
      * this operation is undefined if the specified collection is
      * modified while the operation is in progress.
-     * <p/>
-     * NOTE: This method is to fulfill the <tt>BlockingQueue<tt/> interface. Not implemented in the most optimal way.
+     * <p>
+     * NOTE: This method is to fulfill the <tt>BlockingQueue</tt> interface. Not implemented in the most optimal way.
      *
      * @param c the collection to transfer elements into
      * @return the number of elements transferred
@@ -698,8 +691,8 @@ public class PriorityDelayQueue<E> extends AbstractQueue<PriorityDelayQueue.Queu
      * <tt>IllegalArgumentException</tt>. Further, the behavior of
      * this operation is undefined if the specified collection is
      * modified while the operation is in progress.
-     * <p/>
-     * NOTE: This method is to fulfill the <tt>BlockingQueue<tt/> interface. Not implemented in the most optimal way.
+     * <p>
+     * NOTE: This method is to fulfill the <tt>BlockingQueue</tt> interface. Not implemented in the most optimal way.
      *
      * @param c the collection to transfer elements into
      * @param maxElements the maximum number of elements to transfer

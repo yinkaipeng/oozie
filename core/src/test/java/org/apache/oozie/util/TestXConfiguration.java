@@ -107,6 +107,19 @@ public class TestXConfiguration extends XTestCase {
         bw.close();
     }
 
+    public void testWithNamespacePrefix() throws Exception {
+        String configPath = "test-oozie-with-prefix.xml";
+        InputStream is = null;
+        try {
+            is = IOUtils.getResourceAsStream(configPath, -1);
+            XConfiguration conf = new XConfiguration(is);
+            assertEquals("DEFAULT", conf.get("oozie.dummy"));
+        } finally {
+            if (is != null) {
+                is.close();
+            }
+        }
+    }
 
     public void testInvalidParsing() throws Exception {
         try {
@@ -207,6 +220,7 @@ public class TestXConfiguration extends XTestCase {
         services.init();
         int depth = ConfigurationService.getInt(XConfiguration.CONFIGURATION_SUBSTITUTE_DEPTH);
 
+        XConfiguration.initalized = false;
         XConfiguration conf = new XConfiguration();
         conf.set("key0", "hello");
         for (int i = 1; i < depth + 5; i++) {
@@ -229,13 +243,13 @@ public class TestXConfiguration extends XTestCase {
     }
 
     public void testSubstituteVarUnlimited() throws ServiceException {
-        XConfiguration.initalized = false;
         Services services = new Services();
         services.get(ConfigurationService.class).getConf().set(XConfiguration.CONFIGURATION_SUBSTITUTE_DEPTH, "-1");
         services.init();
         int depth = ConfigurationService.getInt(XConfiguration.CONFIGURATION_SUBSTITUTE_DEPTH);
         assertEquals(-1, depth);
 
+        XConfiguration.initalized = false;
         XConfiguration conf = new XConfiguration();
         conf.set("key0", "hello");
         int testMax = 100;

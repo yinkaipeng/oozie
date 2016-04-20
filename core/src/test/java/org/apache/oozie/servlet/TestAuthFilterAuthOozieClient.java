@@ -18,10 +18,12 @@
 
 package org.apache.oozie.servlet;
 
+import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.authentication.client.AuthenticatedURL;
 import org.apache.hadoop.security.authentication.client.AuthenticationException;
 import org.apache.hadoop.security.authentication.client.PseudoAuthenticator;
+import org.apache.hadoop.security.authentication.server.AuthenticationToken;
 import org.apache.oozie.cli.OozieCLI;
 import org.apache.oozie.client.AuthOozieClient;
 import org.apache.oozie.client.HeaderTestingVersionServlet;
@@ -34,9 +36,14 @@ import org.apache.oozie.test.XTestCase;
 import org.apache.oozie.util.IOUtils;
 
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.nio.charset.Charset;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
@@ -44,6 +51,7 @@ import java.util.concurrent.Callable;
  *
  */
 public class TestAuthFilterAuthOozieClient extends XTestCase {
+    private static final String SECRET = "secret";
     private EmbeddedServletContainer container;
 
     protected String getContextURL() {
@@ -157,7 +165,34 @@ public class TestAuthFilterAuthOozieClient extends XTestCase {
 
     public void testClientAuthTokenCache() throws Exception {
         Configuration conf = new Configuration(false);
-        conf.set("oozie.authentication.signature.secret", "secret");
+        // This test requires a constant secret.
+        // In Hadoop 2.5.0, you can set a secret string directly with oozie.authentication.signature.secret and the
+        // AuthenticationFilter will use it.
+        // In Hadoop 2.6.0 (HADOOP-10868), this was abstracted out to SecretProviders that have differnet implementations.  By
+        // default, if a String was given for the secret, the StringSignerSecretProvider would be automatically used and
+        // oozie.authentication.signature.secret would still be loaded.
+        // In Hadoop 2.7.0 (HADOOP-11748), this automatic behavior was removed for security reasons, and the class was made package
+        // private and moved to the hadoop-auth test artifact.  So, not only can we not simply set
+        // oozie.authentication.signature.secret, but we also can't manually configure the StringSignerSecretProvider either.
+        // However, Hadoop 2.7.0  (HADOOP-10670) also added a FileSignerSecretProvider, which we'll use if it exists
+        try {
+            if (Class.forName("org.apache.hadoop.security.authentication.util.FileSignerSecretProvider") != null) {
+                String secretFile = getTestCaseConfDir() + "/auth-secret";
+                conf.set("oozie.authentication.signature.secret.file", secretFile);
+                FileWriter fw = null;
+                try {
+                    fw = new FileWriter(secretFile);
+                    fw.write(SECRET);
+                } finally {
+                    if (fw != null) {
+                        fw.close();
+                    }
+                }
+            }
+        } catch (ClassNotFoundException cnfe) {
+            // ignore
+        }
+        conf.set("oozie.authentication.signature.secret", SECRET);
         conf.set("oozie.authentication.simple.anonymous.allowed", "false");
 
         //not using cache
@@ -199,6 +234,58 @@ public class TestAuthFilterAuthOozieClient extends XTestCase {
             }
         }, conf);
         assertTrue(AuthOozieClient.AUTH_TOKEN_CACHE_FILE.exists());
+        String newCache = IOUtils.getReaderAsString(new FileReader(AuthOozieClient.AUTH_TOKEN_CACHE_FILE), -1);
+        assertEquals(currentCache, newCache);
+
+        //re-using cache with token that will expire within 5 minutes
+        currentCache = writeTokenCache(System.currentTimeMillis() + 300000);
+        setSystemProperty("oozie.auth.token.cache", "true");
+        runTest(new Callable<Void>() {
+            public Void call() throws Exception {
+                String oozieUrl = getContextURL();
+                String[] args = new String[]{"admin", "-status", "-oozie", oozieUrl};
+                assertEquals(0, new OozieCLI().run(args));
+                return null;
+            }
+        }, conf);
+        assertTrue(AuthOozieClient.AUTH_TOKEN_CACHE_FILE.exists());
+        newCache = IOUtils.getReaderAsString(new FileReader(AuthOozieClient.AUTH_TOKEN_CACHE_FILE), -1);
+        assertFalse("Almost expired token should have been updated but was not", currentCache.equals(newCache));
+
+        //re-using cache with expired token
+        currentCache = writeTokenCache(System.currentTimeMillis() - 1000);
+        setSystemProperty("oozie.auth.token.cache", "true");
+        runTest(new Callable<Void>() {
+            public Void call() throws Exception {
+                String oozieUrl = getContextURL();
+                String[] args = new String[]{"admin", "-status", "-oozie", oozieUrl};
+                assertEquals(0, new OozieCLI().run(args));
+                return null;
+            }
+        }, conf);
+        assertTrue(AuthOozieClient.AUTH_TOKEN_CACHE_FILE.exists());
+        newCache = IOUtils.getReaderAsString(new FileReader(AuthOozieClient.AUTH_TOKEN_CACHE_FILE), -1);
+        assertFalse("Expired token should have been updated but was not", currentCache.equals(newCache));
+    }
+
+    private static String writeTokenCache(long expirationTime) throws Exception {
+        AuthenticationToken authToken = new AuthenticationToken(getOozieUser(), getOozieUser(), "simple");
+        authToken.setExpires(expirationTime);
+        String signedTokenStr = computeSignature(SECRET.getBytes(Charset.forName("UTF-8")), authToken.toString());
+        signedTokenStr = authToken.toString() + "&s=" + signedTokenStr;
+        PrintWriter pw = new PrintWriter(AuthOozieClient.AUTH_TOKEN_CACHE_FILE);
+        pw.write(signedTokenStr);
+        pw.close();
+        return signedTokenStr;
+    }
+
+    // Borrowed from org.apache.hadoop.security.authentication.util.Signer#computeSignature
+    private static String computeSignature(byte[] secret, String str) throws NoSuchAlgorithmException {
+        MessageDigest md = MessageDigest.getInstance("SHA");
+        md.update(str.getBytes());
+        md.update(secret);
+        byte[] digest = md.digest();
+        return new Base64(0).encodeToString(digest);
     }
 
     /**

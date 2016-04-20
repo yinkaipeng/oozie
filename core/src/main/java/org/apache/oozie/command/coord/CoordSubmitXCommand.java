@@ -53,8 +53,10 @@ import org.apache.oozie.command.SubmitTransitionXCommand;
 import org.apache.oozie.command.bundle.BundleStatusUpdateXCommand;
 import org.apache.oozie.coord.CoordELEvaluator;
 import org.apache.oozie.coord.CoordELFunctions;
+import org.apache.oozie.coord.CoordUtils;
 import org.apache.oozie.coord.CoordinatorJobException;
 import org.apache.oozie.coord.TimeUnit;
+import org.apache.oozie.coord.input.logic.CoordInputLogicEvaluator;
 import org.apache.oozie.executor.jpa.CoordJobQueryExecutor;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
 import org.apache.oozie.service.CoordMaterializeTriggerService;
@@ -90,9 +92,9 @@ import org.xml.sax.SAXException;
 /**
  * This class provides the functionalities to resolve a coordinator job XML and write the job information into a DB
  * table.
- * <p/>
+ * <p>
  * Specifically it performs the following functions: 1. Resolve all the variables or properties using job
- * configurations. 2. Insert all datasets definition as part of the <data-in> and <data-out> tags. 3. Validate the XML
+ * configurations. 2. Insert all datasets definition as part of the &lt;data-in&gt; and &lt;data-out&gt; tags. 3. Validate the XML
  * at runtime.
  */
 public class CoordSubmitXCommand extends SubmitTransitionXCommand {
@@ -143,6 +145,7 @@ public class CoordSubmitXCommand extends SubmitTransitionXCommand {
     private ELEvaluator evalAction = null;
     private ELEvaluator evalSla = null;
     private ELEvaluator evalTimeout = null;
+    private ELEvaluator evalInitialInstance = null;
 
     static {
         String[] badUserProps = { PropertiesUtils.YEAR, PropertiesUtils.MONTH, PropertiesUtils.DAY,
@@ -661,6 +664,8 @@ public class CoordSubmitXCommand extends SubmitTransitionXCommand {
         evalInst = CoordELEvaluator.createELEvaluatorForGroup(conf, "coord-job-submit-instances");
         evalAction = CoordELEvaluator.createELEvaluatorForGroup(conf, "coord-action-start");
         evalTimeout = CoordELEvaluator.createELEvaluatorForGroup(conf, "coord-job-wait-timeout");
+        evalInitialInstance = CoordELEvaluator.createELEvaluatorForGroup(conf, "coord-job-submit-initial-instance");
+
     }
 
     /**
@@ -796,6 +801,11 @@ public class CoordSubmitXCommand extends SubmitTransitionXCommand {
         resolveIODataset(eAppXml);
         resolveIOEvents(eAppXml, dataNameList);
 
+        if (CoordUtils.isInputLogicSpecified(eAppXml)) {
+            resolveInputLogic(eAppXml.getChild(CoordInputLogicEvaluator.INPUT_LOGIC, eAppXml.getNamespace()), evalInst,
+                    dataNameList);
+        }
+
         resolveTagContents("app-path", eAppXml.getChild("action", eAppXml.getNamespace()).getChild("workflow",
                 eAppXml.getNamespace()), evalNofuncs);
         // TODO: If action or workflow tag is missing, NullPointerException will
@@ -893,6 +903,26 @@ public class CoordSubmitXCommand extends SubmitTransitionXCommand {
 
     }
 
+    private void resolveInputLogic(Element root, ELEvaluator evalInputLogic, HashMap<String, String> dataNameList)
+            throws Exception {
+        for (Object event : root.getChildren()) {
+            Element inputElement = (Element) event;
+            resolveAttribute("dataset", inputElement, evalInputLogic);
+            String name=resolveAttribute("name", inputElement, evalInputLogic);
+            resolveAttribute("or", inputElement, evalInputLogic);
+            resolveAttribute("and", inputElement, evalInputLogic);
+            resolveAttribute("combine", inputElement, evalInputLogic);
+
+            if (name != null) {
+                dataNameList.put(name, "data-in");
+            }
+
+            if (!inputElement.getChildren().isEmpty()) {
+                resolveInputLogic(inputElement, evalInputLogic, dataNameList);
+            }
+        }
+    }
+
     /**
      * Resolve input-events/dataset and output-events/dataset tags.
      *
@@ -969,7 +999,7 @@ public class CoordSubmitXCommand extends SubmitTransitionXCommand {
                     .toString() : ((TimeUnit) evalFreq.getVariable("timeunit")).toString());
             addAnAttribute("end_of_duration", dsElem, evalFreq.getVariable("endOfDuration") == null ? TimeUnit.NONE
                     .toString() : ((TimeUnit) evalFreq.getVariable("endOfDuration")).toString());
-            val = resolveAttribute("initial-instance", dsElem, evalNofuncs);
+            val = resolveAttribute("initial-instance", dsElem, evalInitialInstance);
             ParamChecker.checkDateOozieTZ(val, "initial-instance");
             checkInitialInstance(val);
             val = resolveAttribute("timezone", dsElem, evalNofuncs);

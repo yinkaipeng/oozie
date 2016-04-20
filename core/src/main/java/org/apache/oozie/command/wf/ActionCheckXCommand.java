@@ -49,7 +49,7 @@ import org.apache.oozie.util.LogUtils;
 import org.apache.oozie.util.XLog;
 
 /**
- * Executes the check command for ActionHandlers. </p> Ensures the action is in
+ * Executes the check command for ActionHandlers. <p> Ensures the action is in
  * RUNNING state before executing
  * {@link ActionExecutor#check(org.apache.oozie.action.ActionExecutor.Context, org.apache.oozie.client.WorkflowAction)}
  */
@@ -241,7 +241,7 @@ public class ActionCheckXCommand extends ActionXCommand<Void> {
                     generateEvent(wfAction, wfJob.getUser());
                 }
                 if (execSynchronous) {
-                    new ActionEndXCommand(wfAction.getId(), wfAction.getType()).call(getEntityKey());
+                    new ActionEndXCommand(wfAction.getId(), wfAction.getType()).call();
                 }
             }
             catch (JPAExecutorException e) {

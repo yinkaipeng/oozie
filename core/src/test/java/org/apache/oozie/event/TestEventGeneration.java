@@ -23,6 +23,7 @@ import java.io.Reader;
 import java.io.Writer;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 
@@ -85,7 +86,6 @@ import org.apache.oozie.service.LiteWorkflowStoreService;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.service.UUIDService;
 import org.apache.oozie.test.XDataTestCase;
-import org.apache.oozie.test.XTestCase.Predicate;
 import org.apache.oozie.util.DateUtils;
 import org.apache.oozie.util.IOUtils;
 import org.apache.oozie.util.XConfiguration;
@@ -120,6 +120,9 @@ public class TestEventGeneration extends XDataTestCase {
         super.setUp();
         services = new Services();
         Configuration conf = services.getConf();
+        // The EventHandlerService manipulates the queues in the background, so the actual test results depend on the
+        // circumstances (like the speed of the machine, debugging etc).
+        conf.setInt("oozie.service.EventHandlerService.worker.threads", 0);
         conf.set(Services.CONF_SERVICE_EXT_CLASSES, "org.apache.oozie.service.EventHandlerService");
         services.init();
         ehs = services.get(EventHandlerService.class);
@@ -491,7 +494,7 @@ public class TestEventGeneration extends XDataTestCase {
     }
 
     @Test
-    public void testForNoDuplicates() throws Exception {
+    public void testForNoDuplicatesWorkflowEvents() throws Exception {
         // test workflow job events
         Reader reader = IOUtils.getResourceAsReader("wf-no-op.xml", -1);
         Writer writer = new FileWriter(getTestCaseDir() + "/workflow.xml");
@@ -515,7 +518,10 @@ public class TestEventGeneration extends XDataTestCase {
         assertEquals(EventStatus.STARTED, ((JobEvent)queue.poll()).getEventStatus());
         assertEquals(EventStatus.SUCCESS, ((JobEvent)queue.poll()).getEventStatus());
         queue.clear();
+    }
 
+    @Test
+    public void testForNoDuplicatesCoordinatorActionEvents() throws Exception {
         // test coordinator action events (failure case)
         Date startTime = DateUtils.parseDateOozieTZ("2009-02-01T23:59Z");
         Date endTime = DateUtils.parseDateOozieTZ("2009-02-02T23:59Z");
@@ -535,10 +541,17 @@ public class TestEventGeneration extends XDataTestCase {
         assertEquals(2, queue.size());
         assertEquals(EventStatus.WAITING, ((JobEvent)queue.poll()).getEventStatus());
         assertEquals(EventStatus.FAILURE, ((JobEvent)queue.poll()).getEventStatus());
+        queue.clear();
+    }
+
+    @Test
+    public void testInvalidXMLCoordinatorFailsForNoDuplicates() throws Exception {
+        Date startTime = DateUtils.parseDateOozieTZ("2009-02-01T23:59Z");
+        Date endTime = DateUtils.parseDateOozieTZ("2009-02-02T23:59Z");
 
         // test coordinator action events (failure from ActionStartX)
         ehs.getAppTypes().add("workflow_action");
-        coord = addRecordToCoordJobTable(CoordinatorJob.Status.RUNNING, startTime, endTime, false, false, 0);
+        CoordinatorJobBean coord = addRecordToCoordJobTable(CoordinatorJob.Status.RUNNING, startTime, endTime, false, false, 0);
         CoordinatorActionBean action = addRecordToCoordActionTable(coord.getId(), 1, CoordinatorAction.Status.RUNNING,
                 "coord-action-sla1.xml", 0);
         WorkflowJobBean wf = addRecordToWfJobTable(WorkflowJob.Status.RUNNING, WorkflowInstance.Status.RUNNING,
@@ -549,26 +562,51 @@ public class TestEventGeneration extends XDataTestCase {
         String waId = _createWorkflowAction(wf.getId(), "wf-action");
         new ActionStartXCommand(waId, action.getType()).call();
 
-        final WorkflowJobGetJPAExecutor readCmd2 = new WorkflowJobGetJPAExecutor(jobId1);
+        final CoordJobGetJPAExecutor readCmd2 = new CoordJobGetJPAExecutor(coord.getId());
         waitFor(1 * 100, new Predicate() {
             @Override
             public boolean evaluate() throws Exception {
-                return jpaService.execute(readCmd2).getStatus() == WorkflowJob.Status.KILLED;
+                return jpaService.execute(readCmd2).getStatus() == CoordinatorJob.Status.KILLED;
             }
         });
+
         assertEquals(3, queue.size());
-        JobEvent wfActionEvent = (JobEvent) queue.poll();
-        assertEquals(EventStatus.FAILURE, wfActionEvent.getEventStatus());
-        assertEquals(waId, wfActionEvent.getId());
-        assertEquals(AppType.WORKFLOW_ACTION, wfActionEvent.getAppType());
-        JobEvent wfJobEvent = (JobEvent) queue.poll();
-        assertEquals(EventStatus.FAILURE, wfJobEvent.getEventStatus());
-        assertEquals(wf.getId(), wfJobEvent.getId());
-        assertEquals(AppType.WORKFLOW_JOB, wfJobEvent.getAppType());
-        JobEvent coordActionEvent = (JobEvent) queue.poll();
-        assertEquals(EventStatus.FAILURE, coordActionEvent.getEventStatus());
-        assertEquals(action.getId(), coordActionEvent.getId());
-        assertEquals(AppType.COORDINATOR_ACTION, coordActionEvent.getAppType());
+
+        HashMap<AppType,JobEvent> eventsMap = new HashMap<AppType,JobEvent>();
+        while (queue.size() > 0){
+            JobEvent event = (JobEvent) queue.poll();
+            eventsMap.put(event.getAppType(), event);
+        }
+
+        assertEquals(3, eventsMap.size());
+
+        //Check the WF action
+        {
+            JobEvent wfActionEvent = eventsMap.get(AppType.WORKFLOW_ACTION);
+            assertNotNull("There should be a WF action", wfActionEvent);
+            assertEquals(EventStatus.FAILURE, wfActionEvent.getEventStatus());
+            assertEquals(waId, wfActionEvent.getId());
+            assertEquals(AppType.WORKFLOW_ACTION, wfActionEvent.getAppType());
+        }
+
+        //Check the WF job
+        {
+            JobEvent wfJobEvent = eventsMap.get(AppType.WORKFLOW_JOB);
+            assertNotNull("There should be a WF job", wfJobEvent);
+            assertEquals(EventStatus.FAILURE, wfJobEvent.getEventStatus());
+            assertEquals(wf.getId(), wfJobEvent.getId());
+            assertEquals(AppType.WORKFLOW_JOB, wfJobEvent.getAppType());
+        }
+
+        //Check the Coordinator action
+        {
+            JobEvent coordActionEvent = eventsMap.get(AppType.COORDINATOR_ACTION);
+            assertNotNull("There should be a Coordinator action", coordActionEvent);
+            assertEquals(EventStatus.FAILURE, coordActionEvent.getEventStatus());
+            assertEquals(action.getId(), coordActionEvent.getId());
+            assertEquals(AppType.COORDINATOR_ACTION, coordActionEvent.getAppType());
+        }
+        queue.clear();
     }
 
     private class ActionCheckXCommandForTest extends ActionCheckXCommand {

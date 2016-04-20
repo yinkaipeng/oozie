@@ -23,6 +23,10 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.net.Socket;
+import java.net.SocketTimeoutException;
+import java.net.ServerSocket;
+import java.util.regex.Pattern;
 
 import javax.mail.BodyPart;
 import javax.mail.Multipart;
@@ -50,6 +54,10 @@ public class TestEmailActionExecutor extends ActionExecutorTestCase {
 
     // GreenMail helps unit test with functional in-memory mail servers.
     GreenMail server;
+    private final static Pattern CHECK_SUBJECT_PATTERN = Pattern.compile("Subject:[^:]*sub");
+    private final static Pattern CHECK_TO_PATTERN = Pattern.compile("To:[^:]*abc@oozie.com[^:]*def@oozie.com");
+    private final static Pattern CHECK_CC_PATTERN = Pattern.compile("Cc:[^:]*ghi@oozie.com[^:]*jkl@oozie.com");
+    private final static Pattern CHECK_BCC_PATTERN = Pattern.compile("To:[^:]*nmo@oozie.com[^:]*pqr@oozie.com");
 
     @Override
     protected void setUp() throws Exception {
@@ -60,18 +68,17 @@ public class TestEmailActionExecutor extends ActionExecutorTestCase {
 
     private Context createNormalContext(String actionXml) throws Exception {
         EmailActionExecutor ae = new EmailActionExecutor();
-
-        Services.get().getConf().setInt("oozie.email.smtp.port", server.getSmtp().getPort());
+        Services.get().get(ConfigurationService.class).getConf().setInt("oozie.email.smtp.port", server.getSmtp().getPort());
         // Use default host 'localhost'. Hence, do not set the smtp host.
-        // Services.get().getConf().set("oozie.email.smtp.host", "localhost");
+        // Services.get().get(ConfigurationService.class).getConf().set("oozie.email.smtp.host", "localhost");
         // Use default from address, 'oozie@localhost'.
         // Hence, do not set the from address conf.
-        // Services.get().getConf().set("oozie.email.from.address", "oozie@localhost");
+        // Services.get().get(ConfigurationService.class).getConf().set("oozie.email.from.address", "oozie@localhost");
 
         // Disable auth tests by default.
-        Services.get().getConf().setBoolean("oozie.email.smtp.auth", false);
-        Services.get().getConf().set("oozie.email.smtp.username", "");
-        Services.get().getConf().set("oozie.email.smtp.password", "");
+        Services.get().get(ConfigurationService.class).getConf().setBoolean("oozie.email.smtp.auth", false);
+        Services.get().get(ConfigurationService.class).getConf().set("oozie.email.smtp.username", "");
+        Services.get().get(ConfigurationService.class).getConf().set("oozie.email.smtp.password", "");
 
         XConfiguration protoConf = new XConfiguration();
         protoConf.set(WorkflowAppService.HADOOP_USER, getTestUser());
@@ -89,18 +96,21 @@ public class TestEmailActionExecutor extends ActionExecutorTestCase {
         Context ctx = createNormalContext(actionXml);
 
         // Override and enable auth.
-        Services.get().getConf().setBoolean("oozie.email.smtp.auth", true);
-        Services.get().getConf().set("oozie.email.smtp.username", "oozie@localhost");
-        Services.get().getConf().set("oozie.email.smtp.password", "oozie");
+        Services.get().get(ConfigurationService.class).getConf().setBoolean("oozie.email.smtp.auth", true);
+        Services.get().get(ConfigurationService.class).getConf().set("oozie.email.smtp.username", "oozie@localhost");
+        Services.get().get(ConfigurationService.class).getConf().set("oozie.email.smtp.password", "oozie");
         return ctx;
     }
 
-    private Element prepareEmailElement(Boolean ccs) throws JDOMException {
+    private Element prepareEmailElement(Boolean ccs, boolean bccs) throws JDOMException {
         StringBuilder elem = new StringBuilder();
         elem.append("<email xmlns=\"uri:oozie:email-action:0.1\">");
         elem.append("<to>    abc@oozie.com, def@oozie.com    </to>");
         if (ccs) {
             elem.append("<cc>ghi@oozie.com,jkl@oozie.com</cc>");
+        }
+        if (bccs) {
+            elem.append("<bcc>nmo@oozie.com,pqr@oozie.com</bcc>");
         }
         elem.append("<subject>sub</subject>");
         elem.append("<body>bod</body>");
@@ -109,9 +119,42 @@ public class TestEmailActionExecutor extends ActionExecutorTestCase {
     }
 
     private Element prepareBadElement(String elem) throws JDOMException {
-        Element good = prepareEmailElement(true);
+        Element good = prepareEmailElement(true, true);
         good.getChild("email").addContent(new Element(elem));
         return good;
+    }
+
+    private void checkEmail(MimeMessage msg, boolean ccs, boolean bccs) {
+        String header = GreenMailUtil.getHeaders(msg);
+        assertNotNull(header);
+
+        //Check subject
+        assertTrue(CHECK_SUBJECT_PATTERN.matcher(header).find());
+
+        //Check To
+        assertTrue(CHECK_TO_PATTERN.matcher(header).find());
+
+        //Check CC
+        {
+            boolean containsCC = CHECK_CC_PATTERN.matcher(header).find();
+            if (ccs) {
+                assertTrue(containsCC);
+            } else {
+                assertFalse(containsCC);
+            }
+        }
+
+        //Check Bcc
+        {
+            boolean containsBCC = CHECK_BCC_PATTERN.matcher(header).find();
+            if (ccs) {
+                assertTrue(containsBCC);
+            } else {
+                assertFalse(containsBCC);
+            }
+        }
+
+        assertEquals("bod", GreenMailUtil.getBody(msg));
     }
 
     public void testSetupMethods() {
@@ -121,14 +164,58 @@ public class TestEmailActionExecutor extends ActionExecutorTestCase {
 
     public void testDoNormalEmail() throws Exception {
         EmailActionExecutor email = new EmailActionExecutor();
-        email.validateAndMail(createNormalContext("email-action"), prepareEmailElement(false));
-        assertEquals("bod", GreenMailUtil.getBody(server.getReceivedMessages()[0]));
+        email.validateAndMail(createNormalContext("email-action"), prepareEmailElement(false, false));
+        checkEmail(server.getReceivedMessages()[0], false, false);
     }
 
     public void testDoAuthEmail() throws Exception {
         EmailActionExecutor email = new EmailActionExecutor();
-        email.validateAndMail(createAuthContext("email-action"), prepareEmailElement(true));
-        assertEquals("bod", GreenMailUtil.getBody(server.getReceivedMessages()[0]));
+        email.validateAndMail(createAuthContext("email-action"), prepareEmailElement(true, true));
+        checkEmail(server.getReceivedMessages()[0], true, true);
+    }
+
+    public void testServerTimeouts() throws Exception {
+        final ServerSocket srvSocket = new ServerSocket(0);
+        int srvPort = srvSocket.getLocalPort();
+        Thread serverThread = new Thread() {
+            @Override
+            public void run() {
+                try {
+                    Socket clientSocket = srvSocket.accept();
+                    // Sleep 1s (timeout applied on client is 0.1s)
+                    Thread.sleep(1000);
+                    clientSocket.getOutputStream().write(0);
+                    clientSocket.close();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        };
+        serverThread.setDaemon(true);
+        try {
+            serverThread.start();
+            EmailActionExecutor email = new EmailActionExecutor();
+            Context ctx = createNormalContext("email-action");
+            Services.get().get(ConfigurationService.class).getConf().setInt("oozie.email.smtp.port", srvPort);
+            // Apply a 0.1s timeout to induce a very quick "Read timed out" error
+            Services.get().get(ConfigurationService.class).getConf().setInt("oozie.email.smtp.socket.timeout.ms", 100);
+            try {
+              email.validateAndMail(ctx, prepareEmailElement(false, false));
+              fail("Should have failed with a socket timeout error!");
+            } catch (Exception e) {
+              Throwable rootCause = e;
+              while (rootCause.getCause() != null) {
+                rootCause = rootCause.getCause();
+              }
+              assertTrue("Expected exception type to be a SocketTimeoutException, but received: " + rootCause,
+                  rootCause instanceof SocketTimeoutException);
+              assertTrue("Expected error to be that of a socket read timeout, but got: " + rootCause.getMessage(),
+                  rootCause.getMessage().contains("Read timed out"));
+            }
+        } finally {
+            serverThread.interrupt();
+            srvSocket.close();
+        }
     }
 
     public void testValidation() throws Exception {
@@ -147,6 +234,14 @@ public class TestEmailActionExecutor extends ActionExecutorTestCase {
         // Multiple <cc>s
         try {
             email.validateAndMail(ctx, prepareBadElement("cc"));
+            fail();
+        } catch (Exception e) {
+            // Validation succeeded.
+        }
+
+        // Multiple <bcc>s
+        try {
+            email.validateAndMail(ctx, prepareBadElement("bcc"));
             fail();
         } catch (Exception e) {
             // Validation succeeded.
@@ -171,8 +266,8 @@ public class TestEmailActionExecutor extends ActionExecutorTestCase {
 
     public void testContentTypeDefault() throws Exception {
         EmailActionExecutor email = new EmailActionExecutor();
-        email.validateAndMail(createAuthContext("email-action"), prepareEmailElement(true));
-        assertEquals("bod", GreenMailUtil.getBody(server.getReceivedMessages()[0]));
+        email.validateAndMail(createAuthContext("email-action"), prepareEmailElement(true, true));
+        checkEmail(server.getReceivedMessages()[0], true, true);
         assertTrue(server.getReceivedMessages()[0].getContentType().contains("text/plain"));
     }
 
@@ -205,10 +300,10 @@ public class TestEmailActionExecutor extends ActionExecutorTestCase {
         tag.append("file://").append(attachFile1.getAbsolutePath()).append(",file://")
                 .append(attachFile2.getAbsolutePath());
         // local file not attached to email (for security reason)
-        try{
+        try {
             assertAttachment(tag.toString(), 0, content1, content2);
             fail();
-        }catch (ActionExecutorException e){
+        } catch (ActionExecutorException e) {
             assertEquals("EM008", e.getErrorCode());
         }
     }
@@ -237,7 +332,7 @@ public class TestEmailActionExecutor extends ActionExecutorTestCase {
         MimeMessage retMeg = server.getReceivedMessages()[1];
         String msgBody = GreenMailUtil.getBody(retMeg);
         assertEquals(msgBody.indexOf("This is a test mail"), 0);
-        assertNotSame(msgBody.indexOf(EmailActionExecutor.EMAIL_ATTACHMENT_ERROR_MSG),-1);
+        assertNotSame(msgBody.indexOf(EmailActionExecutor.EMAIL_ATTACHMENT_ERROR_MSG), -1);
         // email content is not multi-part since not attaching files
         assertFalse(retMeg.getContent() instanceof Multipart);
         assertTrue(retMeg.getContentType().contains("text/plain"));
@@ -255,8 +350,7 @@ public class TestEmailActionExecutor extends ActionExecutorTestCase {
             if (disp != null && (disp.equals(BodyPart.ATTACHMENT))) {
                 assertTrue(retValue.equals(content1) || retValue.equals(content2));
                 numAttach++;
-            }
-            else {
+            } else {
                 assertEquals("This is a test mail", retValue);
             }
         }

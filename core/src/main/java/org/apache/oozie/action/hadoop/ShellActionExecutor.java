@@ -24,6 +24,7 @@ import java.util.List;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.oozie.action.ActionExecutorException;
+import org.apache.oozie.service.ConfigurationService;
 import org.jdom.Element;
 import org.jdom.Namespace;
 
@@ -33,6 +34,7 @@ public class ShellActionExecutor extends JavaActionExecutor {
      * Config property name to set the child environment
      */
     public String OOZIE_LAUNCHER_CHILD_ENV = "mapred.child.env";
+    public String OOZIE_LAUNCHER_MAP_ENV = "mapreduce.map.env";
 
     public ShellActionExecutor() {
         super("shell");
@@ -66,8 +68,12 @@ public class ShellActionExecutor extends JavaActionExecutor {
         setListInConf("env-var", actionXml, actionConf, ShellMain.CONF_OOZIE_SHELL_ENVS, true);
 
         // Setting capture output flag
-        actionConf.setBoolean(ShellMain.CONF_OOZIE_SHELL_CAPTURE_OUTPUT,
-                actionXml.getChild("capture-output", ns) != null);
+        actionConf.setBoolean(ShellMain.CONF_OOZIE_SHELL_CAPTURE_OUTPUT, actionXml.getChild("capture-output", ns) != null);
+
+        // Setting if ShellMain should setup HADOOP_CONF_DIR
+        boolean setupHadoopConfDir = actionConf.getBoolean(ShellMain.CONF_OOZIE_SHELL_SETUP_HADOOP_CONF_DIR,
+                ConfigurationService.getBoolean(ShellMain.CONF_OOZIE_SHELL_SETUP_HADOOP_CONF_DIR));
+        actionConf.setBoolean(ShellMain.CONF_OOZIE_SHELL_SETUP_HADOOP_CONF_DIR, setupHadoopConfDir);
 
         return actionConf;
     }
@@ -129,6 +135,7 @@ public class ShellActionExecutor extends JavaActionExecutor {
      */
     protected void addDefaultChildEnv(Configuration conf) {
         String envValues = "PATH=.:$PATH";
+        updateProperty(conf, OOZIE_LAUNCHER_MAP_ENV, envValues);
         updateProperty(conf, OOZIE_LAUNCHER_CHILD_ENV, envValues);
     }
 

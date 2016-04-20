@@ -28,11 +28,11 @@ import org.apache.oozie.util.XLog;
 
 /**
  * The UUID service generates unique IDs.
- * <p/>
+ * <p>
  * The configuration property {@link #CONF_GENERATOR} specifies the ID generation type, 'random' or 'counter'.
- * <p/>
+ * <p>
  * For 'random' uses the JDK UUID.randomUUID() method.
- * <p/>
+ * <p>
  * For 'counter' uses a counter postfixed wit the system start up time.
  */
 public class UUIDService implements Service {
@@ -40,6 +40,10 @@ public class UUIDService implements Service {
     public static final String CONF_PREFIX = Service.CONF_PREFIX + "UUIDService.";
 
     public static final String CONF_GENERATOR = CONF_PREFIX + "generator";
+
+    public static final int MAX_OOZIE_JOB_ID_LEN = 40;
+
+    public static final int MAX_ACTION_ID_LEN = 255;
 
     protected String startTime;
     private AtomicLong counter;
@@ -77,7 +81,6 @@ public class UUIDService implements Service {
 
     /**
      * reset start time
-     * @return
      */
     protected void resetStartTime() {
         startTime = new SimpleDateFormat("yyMMddHHmmssSSS").format(new Date());
@@ -105,8 +108,11 @@ public class UUIDService implements Service {
     /**
      * Create a unique ID.
      *
-     * @param type: Type of Id. Generally 'C' for Coordinator and 'W' for Workflow.
-     * @return unique ID.
+     * @param type: Type of Id. Generally 'C' for Coordinator, 'W' for Workflow and 'B' for Bundle.
+     * @return unique ID, id = "${sequence}-${systemId}-[C|W|B]" where,
+     * sequence is ${padded_counter}-${startTime} whose length is exactly 7 + 1 + 15 = 23 characters.
+     * systemId is the value defined in the {@link #CONF_SYSTEM_ID} configuration property.
+     * Unique ID Example: 0007728-150515180312570-oozie-oozi-W
      */
     public String generateId(ApplicationType type) {
         StringBuilder sb = new StringBuilder();
@@ -114,9 +120,9 @@ public class UUIDService implements Service {
         sb.append(getSequence());
         sb.append('-').append(systemId);
         sb.append('-').append(type.getType());
-        // limitation due to current DB schema for action ID length (100)
-        if (sb.length() > 40) {
-            throw new RuntimeException(XLog.format("ID exceeds limit of 40 characters, [{0}]", sb));
+        // limited to MAX_OOZIE_JOB_ID_LEN as this partial id will be stored in the Action Id field with db schema limit of 255.
+        if (sb.length() > MAX_OOZIE_JOB_ID_LEN) {
+            throw new RuntimeException(XLog.format("ID exceeds limit of " + MAX_OOZIE_JOB_ID_LEN + " characters, [{0}]", sb));
         }
         return sb.toString();
     }
@@ -151,7 +157,7 @@ public class UUIDService implements Service {
 
     /**
      * Create a child ID.
-     * <p/>
+     * <p>
      * If the same child name is given the returned child ID is the same.
      *
      * @param id unique ID.
@@ -161,9 +167,9 @@ public class UUIDService implements Service {
     public String generateChildId(String id, String childName) {
         id = ParamChecker.notEmpty(id, "id") + "@" + ParamChecker.notEmpty(childName, "childName");
 
-        // limitation due to current DB schema for action ID length (100)
-        if (id.length() > 95) {
-            throw new RuntimeException(XLog.format("Child ID exceeds limit of 95 characters, [{0}]", id));
+        // limitation due to current DB schema for action ID length (255)
+        if (id.length() > MAX_ACTION_ID_LEN) {
+            throw new RuntimeException(XLog.format("Child ID exceeds limit of " + MAX_ACTION_ID_LEN + " characters, [{0}]", id));
         }
         return id;
     }

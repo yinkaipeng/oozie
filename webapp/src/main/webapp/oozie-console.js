@@ -448,7 +448,7 @@ function jobDetailsPopup(response, request) {
         getLogs(getOozieBase() + 'job/' + workflowId + "?show=log", searchFilterBox.getValue(), logStatus, jobLogArea, false, null);
 
     }
-    var jobDetails = eval("(" + response.responseText + ")");
+    var jobDetails = JSON.parse(response.responseText);
     var workflowId = jobDetails["id"];
     var appName = jobDetails["appName"];
     var jobActionStatus = new Ext.data.JsonStore({
@@ -501,13 +501,23 @@ function jobDetailsPopup(response, request) {
             name: 'group',
             width: 400,
             value: jobDetails["group"]
-        }, {
+        }, new Ext.form.TriggerField({
             fieldLabel: 'Parent Coord',
             editable: false,
             name: 'parentId',
             width: 400,
-            value: jobDetails["parentId"]
-        }, {
+            value: jobDetails["parentId"],
+            triggerClass: 'x-form-search-trigger',
+            onTriggerClick: function() {
+                if (jobDetails["parentId"]) {
+                    var jobId = jobDetails["parentId"];
+                    if(jobId.indexOf("-C@") > 0){
+                        jobId = jobId.substring(0, jobId.indexOf("-C@") + 2)
+                    }
+                    window.open(oozie_host + "?job=" + jobId);
+                }
+            }
+        }), {
             fieldLabel: 'Create Time',
             editable: false,
             name: 'createdTime',
@@ -546,7 +556,7 @@ function jobDetailsPopup(response, request) {
                     url: getOozieBase() + 'job/' + workflowId + "?timezone=" + getTimeZone(),
                     timeout: 300000,
                     success: function(response, request) {
-                        jobDetails = eval("(" + response.responseText + ")");
+                        jobDetails = JSON.parse(response.responseText);
                         jobActionStatus.loadData(jobDetails["actions"]);
                         fs.getForm().setValues(jobDetails);
                     }
@@ -816,7 +826,7 @@ function jobDetailsPopup(response, request) {
             url: getOozieBase() + 'job/' + actionId + "?timezone=" + getTimeZone(),
             timeout: 300000,
             success: function(response, request) {
-                var results = eval("(" + response.responseText + ")");
+                var results = JSON.parse(response.responseText);
                 detail.getForm().setValues(results);
                 urlUnit.getForm().setValues(results);
                 populateUrlUnit(results, urlUnit);
@@ -980,7 +990,8 @@ function jobDetailsPopup(response, request) {
 }
 
 function coordJobDetailsPopup(response, request) {
-    var isErrorLogLoaded= false;
+    var isErrorLogLoaded = false;
+    var isAuditLogLoaded = false;
 
     var jobDefinitionArea = new Ext.form.TextArea({
         fieldLabel: 'Definition',
@@ -1036,6 +1047,7 @@ function coordJobDetailsPopup(response, request) {
     var actionsTextBox = new Ext.form.TextField({
              fieldLabel: 'ActionsList',
              name: 'ActionsList',
+             id: 'actions_text_box',
              width: 150,
              value: ''
          });
@@ -1051,6 +1063,7 @@ function coordJobDetailsPopup(response, request) {
     var searchFilterBox = new Ext.form.TextField({
                  fieldLabel: 'searchFilterBox',
                  name: 'searchFilterBox',
+                 id: 'search_filter_box',
                  width: 350,
                  value: ''
     });
@@ -1097,7 +1110,7 @@ function coordJobDetailsPopup(response, request) {
                 auditLogStatus, jobAuditLogArea, true, null);
     }
 
-    var jobDetails = eval("(" + response.responseText + ")");
+    var jobDetails = JSON.parse(response.responseText);
     var coordJobId = jobDetails["coordJobId"];
     var appName = jobDetails["coordJobName"];
     var jobActionStatus = new Ext.data.JsonStore({
@@ -1158,13 +1171,19 @@ function coordJobDetailsPopup(response, request) {
             name: 'timeUnit',
             width: 400,
             value: jobDetails["timeUnit"]
-        }, {
+        }, new Ext.form.TriggerField({
             fieldLabel: 'Parent Bundle',
             editable: false,
             name: 'bundleId',
             width: 400,
-            value: jobDetails["bundleId"]
-        }, {
+            value: jobDetails["bundleId"],
+            triggerClass: 'x-form-search-trigger',
+            onTriggerClick : function() {
+                if (jobDetails["bundleId"]) {
+                    window.open(oozie_host + "?job=" + jobDetails["bundleId"]);
+                }
+            }
+        }), {
             fieldLabel: 'Start Time',
             editable: false,
             name: 'startTime',
@@ -1209,7 +1228,7 @@ function coordJobDetailsPopup(response, request) {
                     url: getOozieBase() + 'job/' + coordJobId + "?timezone=" + getTimeZone() + "&offset=0&len=0",
                     timeout: 300000,
                     success: function(response, request) {
-                        jobDetails = eval("(" + response.responseText + ")");
+                        jobDetails = JSON.parse(response.responseText);
                         fs.getForm().setValues(jobDetails);
                         jobActionStatus.reload();
                     }
@@ -1277,7 +1296,15 @@ function coordJobDetailsPopup(response, request) {
     function showWorkflowPopup(thisGrid, rowIndex, cellIndex, e) {
         var actionStatus = thisGrid.store.data.items[rowIndex].data;
         var workflowId = actionStatus["externalId"];
-        jobDetailsGridWindow(workflowId);
+        if(workflowId == null) {
+            jobDetailsTab.getComponent('coord_job_log').show();
+            Ext.getCmp('actions_text_box').setValue(actionStatus["id"].split("@")[1]);
+            Ext.getCmp('search_filter_box').setValue('recent=5m');
+            fetchLogs(coordJobId, actionsTextBox.getValue());
+        }
+        else {
+            jobDetailsGridWindow(workflowId);
+        }
     }
     // alert("Coordinator PopUP 4 inside coordDetailsPopup ");
     function showCoordActionContextMenu(thisGrid, rowIndex, cellIndex, e) {
@@ -1496,9 +1523,10 @@ function coordJobDetailsPopup(response, request) {
                 autoScroll: true,
                 value: jobDetails["conf"]
             })
-	},{
+    },{
            title: 'Coord Job Log',
            items: jobLogArea,
+           id: 'coord_job_log',
            tbar: [
                   actionsText,actionsTextBox, searchFilter, searchFilterBox, getLogButton, {xtype: 'tbfill'}, logStatus]
        },
@@ -1549,6 +1577,13 @@ function coordJobDetailsPopup(response, request) {
                 isErrorLogLoaded=true;
             }
         }
+        else if (selectedTab.title == 'Coord Audit Log') {
+            if(!isAuditLogLoaded){
+                getLogs(getOozieBase() + 'job/' + coordJobId + "?show=auditlog", null, auditLogStatus, jobAuditLogArea,
+                        false, null);
+                isAuditLogLoaded=true;
+            }
+        }
         coord_jobs_grid.setVisible(false);
     });
     var win = new Ext.Window({
@@ -1577,7 +1612,7 @@ function bundleJobDetailsPopup(response, request) {
         emptyText: "Loading..."
 
     });
-    var jobDetails = eval("(" + response.responseText + ")");
+    var jobDetails = JSON.parse(response.responseText);
     var bundleJobId = jobDetails["bundleJobId"];
     var bundleJobName = jobDetails["bundleJobName"];
     var jobActionStatus = new Ext.data.JsonStore({
@@ -1647,7 +1682,7 @@ function bundleJobDetailsPopup(response, request) {
                     url: getOozieBase() + 'job/' + bundleJobId + "?timezone=" + getTimeZone(),
                     timeout: 300000,
                     success: function(response, request) {
-                        jobDetails = eval("(" + response.responseText + ")");
+                        jobDetails = JSON.parse(response.responseText);
                         jobActionStatus.loadData(jobDetails["bundleCoordJobs"]);
                         fs.getForm().setValues(jobDetails);
                     }
@@ -2052,7 +2087,7 @@ function getConfigObject(responseTxt) {
     var fo = {
         elements: []
     };
-    var responseObj = eval('(' + responseTxt + ')');
+    var responseObj = JSON.parse(responseTxt);
     var j = 0;
     for (var i in responseObj) {
         fo.elements[j] = {};
@@ -2349,7 +2384,7 @@ var checkStatus = new Ext.Action({
         Ext.Ajax.request({
             url: getOozieBase() + 'admin/status',
             success: function(response, request) {
-                var status = eval("(" + response.responseText + ")");
+                var status = JSON.parse(response.responseText);
                 if (status.safeMode) {
                     checkStatus.setText("<font color='700000' size='2> Safe Mode - ON </font>");
                 }
@@ -2368,7 +2403,7 @@ var serverVersion = new Ext.Action({
         Ext.Ajax.request({
             url: getOozieBase() + 'admin/build-version',
             success: function(response, request) {
-                var ret = eval("(" + response.responseText + ")");
+                var ret = JSON.parse(response.responseText);
                 serverVersion.setText("<font size='2'>Server version [" + ret['buildVersion'] + "]</font>");
             }
         });
@@ -2396,7 +2431,7 @@ var viewInstrumentation = new Ext.Action({
         Ext.Ajax.request({
             url: getOozieBase() + 'admin/instrumentation',
             success: function(response, request) {
-                var jsonData = eval("(" + response.responseText + ")");
+                var jsonData = JSON.parse(response.responseText);
                 var timers = treeNodeFromJsonInstrumentation(jsonData["timers"], "timers");
                 timers.expanded = false;
                 var samplers = treeNodeFromJsonInstrumentation(jsonData["samplers"], "samplers");
@@ -2427,7 +2462,7 @@ var viewMetrics = new Ext.Action({
         Ext.Ajax.request({
             url: getOozieBase() + 'admin/metrics',
             success: function(response, request) {
-                var jsonData = eval("(" + response.responseText + ")");
+                var jsonData = JSON.parse(response.responseText);
                 var timers = treeNodeFromJsonMetrics(jsonData["timers"], "timers");
                 timers.expanded = false;
                 var histograms = treeNodeFromJsonMetrics(jsonData["histograms"], "histograms");

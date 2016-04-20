@@ -213,7 +213,7 @@ public class OozieCLI {
 
     /**
      * Entry point for the Oozie CLI when invoked from the command line.
-     * <p/>
+     * <p>
      * Upon completion this method exits the JVM with '0' (success) or '-1' (failure).
      *
      * @param args options and arguments for the Oozie CLI.
@@ -514,6 +514,19 @@ public class OozieCLI {
     }
 
     /**
+     * Create option for command line option 'validate'
+     *
+     * @return validate options
+     */
+    protected Options createValidateOptions() {
+        Option oozie = new Option(OOZIE_OPTION, true, "Oozie URL");
+        Options validateOption = new Options();
+        validateOption.addOption(oozie);
+        addAuthOptions(validateOption);
+        return validateOption;
+    }
+
+    /**
      * Create option for command line option 'pig' or 'hive'
      * @return pig or hive options
      */
@@ -594,9 +607,9 @@ public class OozieCLI {
 
     /**
      * Run a CLI programmatically.
-     * <p/>
+     * <p>
      * It does not exit the JVM.
-     * <p/>
+     * <p>
      * A CLI instance can be used only once.
      *
      * @param args options and arguments for the Oozie CLI.
@@ -652,7 +665,7 @@ public class OozieCLI {
         parser.addCommand(JOB_CMD, "", "job operations", createJobOptions(), false);
         parser.addCommand(JOBS_CMD, "", "jobs status", createJobsOptions(), false);
         parser.addCommand(ADMIN_CMD, "", "admin operations", createAdminOptions(), false);
-        parser.addCommand(VALIDATE_CMD, "", "validate a workflow XML file", new Options(), true);
+        parser.addCommand(VALIDATE_CMD, "", "validate a workflow, coordinator, bundle XML file", createValidateOptions(), true);
         parser.addCommand(SLA_CMD, "", "sla operations (Deprecated with Oozie 4.0)", createSlaOptions(), false);
         parser.addCommand(PIG_CMD, "-X ", "submit a pig job, everything after '-X' are pass-through parameters to pig, any '-D' "
                 + "arguments after '-X' are put in <configuration>", createScriptLanguageOptions(PIG_CMD), true);
@@ -734,6 +747,9 @@ public class OozieCLI {
     private Properties parse(InputStream is, Properties conf) throws IOException {
         try {
             DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
+            docBuilderFactory.setNamespaceAware(true);
+            // support for includes in the xml file
+            docBuilderFactory.setXIncludeAware(true);
             // ignore all comments inside the xml file
             docBuilderFactory.setIgnoringComments(true);
             DocumentBuilder builder = docBuilderFactory.newDocumentBuilder();
@@ -752,7 +768,7 @@ public class OozieCLI {
     private Properties parseDocument(Document doc, Properties conf) throws IOException {
         try {
             Element root = doc.getDocumentElement();
-            if (!"configuration".equals(root.getTagName())) {
+            if (!"configuration".equals(root.getLocalName())) {
                 throw new RuntimeException("bad conf file: top-level element not <configuration>");
             }
             NodeList props = root.getChildNodes();
@@ -762,7 +778,7 @@ public class OozieCLI {
                     continue;
                 }
                 Element prop = (Element) propNode;
-                if (!"property".equals(prop.getTagName())) {
+                if (!"property".equals(prop.getLocalName())) {
                     throw new RuntimeException("bad conf file: element not <property>");
                 }
                 NodeList fields = prop.getChildNodes();
@@ -774,10 +790,10 @@ public class OozieCLI {
                         continue;
                     }
                     Element field = (Element) fieldNode;
-                    if ("name".equals(field.getTagName()) && field.hasChildNodes()) {
+                    if ("name".equals(field.getLocalName()) && field.hasChildNodes()) {
                         attr = ((Text) field.getFirstChild()).getData();
                     }
-                    if ("value".equals(field.getTagName()) && field.hasChildNodes()) {
+                    if ("value".equals(field.getLocalName()) && field.hasChildNodes()) {
                         value = ((Text) field.getFirstChild()).getData();
                     }
                 }
@@ -887,7 +903,7 @@ public class OozieCLI {
 
     /**
      * Create a OozieClient.
-     * <p/>
+     * <p>
      * It injects any '-Dheader:' as header to the the {@link org.apache.oozie.client.OozieClient}.
      *
      * @param commandLine the parsed command line options.
@@ -900,7 +916,7 @@ public class OozieCLI {
 
     /**
      * Create a XOozieClient.
-     * <p/>
+     * <p>
      * It injects any '-Dheader:' as header to the the {@link org.apache.oozie.client.OozieClient}.
      *
      * @param commandLine the parsed command line options.
@@ -1985,6 +2001,33 @@ public class OozieCLI {
         if (args.length != 1) {
             throw new OozieCLIException("One file must be specified");
         }
+        try {
+            XOozieClient wc = createXOozieClient(commandLine);
+            String result = wc.validateXML(args[0].toString());
+            if (result == null) {
+                // TODO This is only for backward compatibility. Need to remove after 4.2.0 higher version.
+                System.out.println("Using client-side validation. Check out Oozie server version.");
+                validateCommandV41(commandLine);
+                return;
+            }
+            System.out.println(result);
+        } catch (OozieClientException e) {
+            throw new OozieCLIException(e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Validate on client-side. This is only for backward compatibility. Need to removed after <tt>4.2.0</tt> higher version.
+     * @param commandLine
+     * @throws OozieCLIException
+     */
+    @Deprecated
+    @VisibleForTesting
+    void validateCommandV41(CommandLine commandLine) throws OozieCLIException {
+        String[] args = commandLine.getArgs();
+        if (args.length != 1) {
+            throw new OozieCLIException("One file must be specified");
+        }
         File file = new File(args[0]);
         if (file.exists()) {
             try {
@@ -2042,6 +2085,8 @@ public class OozieCLI {
                 sources.add(new StreamSource(Thread.currentThread().getContextClassLoader().getResourceAsStream(
                         "hive-action-0.5.xsd")));
                 sources.add(new StreamSource(Thread.currentThread().getContextClassLoader().getResourceAsStream(
+                        "hive-action-0.6.xsd")));
+                sources.add(new StreamSource(Thread.currentThread().getContextClassLoader().getResourceAsStream(
                         "sqoop-action-0.2.xsd")));
                 sources.add(new StreamSource(Thread.currentThread().getContextClassLoader().getResourceAsStream(
                         "sqoop-action-0.3.xsd")));
@@ -2053,8 +2098,10 @@ public class OozieCLI {
                         "ssh-action-0.2.xsd")));
                 sources.add(new StreamSource(Thread.currentThread().getContextClassLoader().getResourceAsStream(
                         "hive2-action-0.1.xsd")));
-                sources.add(new StreamSource(Thread.currentThread().getContextClassLoader()
-                        .getResourceAsStream("spark-action-0.1.xsd")));
+                sources.add(new StreamSource(Thread.currentThread().getContextClassLoader().getResourceAsStream(
+                        "hive2-action-0.2.xsd")));
+                sources.add(new StreamSource(Thread.currentThread().getContextClassLoader().getResourceAsStream(
+                        "spark-action-0.1.xsd")));
                 SchemaFactory factory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
                 Schema schema = factory.newSchema(sources.toArray(new StreamSource[sources.size()]));
                 Validator validator = schema.newValidator();

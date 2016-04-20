@@ -18,9 +18,12 @@
 
 package org.apache.oozie.command.coord;
 
+import java.io.IOException;
 import java.io.StringReader;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.TimeZone;
 import java.util.Map;
 import java.util.HashMap;
@@ -32,6 +35,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.oozie.CoordinatorActionBean;
 import org.apache.oozie.ErrorCode;
 import org.apache.oozie.client.CoordinatorAction;
+import org.apache.oozie.client.OozieClient;
 import org.apache.oozie.command.CommandException;
 import org.apache.oozie.coord.CoordELEvaluator;
 import org.apache.oozie.coord.CoordELFunctions;
@@ -39,18 +43,27 @@ import org.apache.oozie.coord.CoordUtils;
 import org.apache.oozie.coord.CoordinatorJobException;
 import org.apache.oozie.coord.SyncCoordAction;
 import org.apache.oozie.coord.TimeUnit;
+import org.apache.oozie.coord.input.logic.CoordInputLogicEvaluatorUtil;
+import org.apache.oozie.coord.input.dependency.CoordInputDependency;
+import org.apache.oozie.coord.input.logic.CoordInputLogicEvaluator;
+import org.apache.oozie.coord.input.dependency.CoordInputDependencyFactory;
+import org.apache.oozie.coord.input.dependency.CoordInputInstance;
 import org.apache.oozie.dependency.ActionDependency;
 import org.apache.oozie.dependency.DependencyChecker;
 import org.apache.oozie.dependency.URIHandler;
 import org.apache.oozie.dependency.URIHandler.DependencyType;
+import org.apache.oozie.dependency.URIHandlerException;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.service.URIHandlerService;
 import org.apache.oozie.service.UUIDService;
 import org.apache.oozie.util.DateUtils;
 import org.apache.oozie.util.ELEvaluator;
+import org.apache.oozie.util.ParamChecker;
 import org.apache.oozie.util.XConfiguration;
 import org.apache.oozie.util.XmlUtils;
+import org.jdom.Attribute;
 import org.jdom.Element;
+import org.jdom.JDOMException;
 import org.quartz.CronExpression;
 import org.apache.commons.lang.StringUtils;
 import org.apache.oozie.CoordinatorJobBean;
@@ -62,12 +75,13 @@ public class CoordCommandUtils {
     public static int OFFSET = 3;
     public static int ABSOLUTE = 4;
     public static int UNEXPECTED = -1;
+
     public static final String RESOLVED_UNRESOLVED_SEPARATOR = "!!";
-    public static final String UNRESOLVED_INST_TAG = "unresolved-instances";
+    public static final String UNRESOLVED_INSTANCES_TAG = "unresolved-instances";
 
     /**
      * parse a function like coord:latest(n)/future() and return the 'n'.
-     * <p/>
+     * <p>
      *
      * @param function
      * @param restArg
@@ -138,7 +152,7 @@ public class CoordCommandUtils {
     }
 
     /**
-     * @param EL function name
+     * @param function EL function name
      * @return type of EL function
      */
     public static int getFuncType(String function) {
@@ -185,7 +199,7 @@ public class CoordCommandUtils {
 
 
     /**
-     * Resolve list of <instance> </instance> tags.
+     * Resolve list of &lt;instance&gt; &lt;/instance&gt; tags.
      *
      * @param event
      * @param instances
@@ -207,7 +221,7 @@ public class CoordCommandUtils {
     }
 
     /**
-     * Resolve <start-instance> <end-insatnce> tag. Don't resolve any
+     * Resolve &lt;start-instance&gt; &lt;end-insatnce&gt; tag. Don't resolve any
      * latest()/future()
      *
      * @param event
@@ -262,8 +276,9 @@ public class CoordCommandUtils {
                     if (startCal != null && endCal != null) {
                         List<Integer> expandedFreqs = CoordELFunctions.expandOffsetTimes(startCal, endCal, eval);
                         for (int i = expandedFreqs.size() - 1; i >= 0; i--) {
+                            //we need to use DS timeout, bcz expandOffsetTimes will expand offset in Freqs in DS timeunit
                             String matInstance = materializeInstance(event, "${coord:offset(" + expandedFreqs.get(i)
-                                    + ", \"MINUTE\")}", appInst, conf, eval);
+                                    + ", \"" + CoordELFunctions.getDSTimeUnit(eval) + "\")}", appInst, conf, eval);
                             if (matInstance == null || matInstance.length() == 0) {
                                 // Earlier than dataset's initial instance
                                 break;
@@ -314,7 +329,7 @@ public class CoordCommandUtils {
     /**
      * Materialize one instance like current(-2)
      *
-     * @param event : <data-in>
+     * @param event : &lt;data-in&gt;
      * @param expr : instance like current(-1)
      * @param appInst : application specific info
      * @param conf
@@ -333,7 +348,7 @@ public class CoordCommandUtils {
     }
 
     /**
-     * Create two new tags with <uris> and <unresolved-instances>.
+     * Create two new tags with &lt;uris&gt; and &lt;unresolved-instances&gt;.
      *
      * @param event
      * @param instances
@@ -355,7 +370,7 @@ public class CoordCommandUtils {
             depList.append(urisWithDoneFlag);
         }
         if (unresolvedInstances.length() > 0) {
-            Element elemInstance = new Element(UNRESOLVED_INST_TAG, event.getNamespace());
+            Element elemInstance = new Element(UNRESOLVED_INSTANCES_TAG, event.getNamespace());
             elemInstance.addContent(unresolvedInstances.toString());
             event.getContent().add(1, elemInstance);
         }
@@ -366,7 +381,7 @@ public class CoordCommandUtils {
      * The function create a list of URIs separated by "," using the instances
      * time stamp and URI-template
      *
-     * @param event : <data-in> event
+     * @param event : &lt;data-in&gt; event
      * @param instances : List of time stamp separated by ","
      * @param unresolvedInstances : list of instance with latest function
      * @param urisWithDoneFlag : list of URIs with the done flag appended
@@ -450,8 +465,8 @@ public class CoordCommandUtils {
 
     /**
      * Materialize one instance for specific nominal time. It includes: 1.
-     * Materialize data events (i.e. <data-in> and <data-out>) 2. Materialize
-     * data properties (i.e dataIn(<DS>) and dataOut(<DS>) 3. remove 'start' and
+     * Materialize data events (i.e. &lt;data-in&gt; and &lt;data-out&gt;) 2. Materialize
+     * data properties (i.e dataIn(&lt;DS&gt;) and dataOut(&lt;DS&gt;) 3. remove 'start' and
      * 'end' tag 4. Add 'instance_number' and 'nominal-time' tag
      *
      * @param jobId coordinator job id
@@ -480,20 +495,24 @@ public class CoordCommandUtils {
         appInst.setTimeZone(DateUtils.getTimeZone(eAction.getAttributeValue("timezone")));
         appInst.setEndOfDuration(TimeUnit.valueOf(eAction.getAttributeValue("end_of_duration")));
 
-        Map<String, StringBuilder> dependencyMap = null;
+        boolean isInputLogicSpecified = CoordUtils.isInputLogicSpecified(eAction);
 
         Element inputList = eAction.getChild("input-events", eAction.getNamespace());
         List<Element> dataInList = null;
         if (inputList != null) {
             dataInList = inputList.getChildren("data-in", eAction.getNamespace());
-            dependencyMap = materializeDataEvents(dataInList, appInst, conf);
+            materializeInputDataEvents(dataInList, appInst, conf, actionBean, isInputLogicSpecified);
         }
 
+        if(isInputLogicSpecified){
+            evaluateInputCheck(eAction.getChild(CoordInputLogicEvaluator.INPUT_LOGIC, eAction.getNamespace()),
+                    CoordELEvaluator.createDataEvaluator(eAction, conf, actionId));
+        }
         Element outputList = eAction.getChild("output-events", eAction.getNamespace());
         List<Element> dataOutList = null;
         if (outputList != null) {
             dataOutList = outputList.getChildren("data-out", eAction.getNamespace());
-            materializeDataEvents(dataOutList, appInst, conf);
+            materializeOutputDataEvents(dataOutList, appInst, conf);
         }
 
         eAction.removeAttribute("start");
@@ -511,16 +530,6 @@ public class CoordCommandUtils {
         actionBean.setLastModifiedTime(new Date());
         actionBean.setStatus(CoordinatorAction.Status.WAITING);
         actionBean.setActionNumber(instanceCount);
-        if (dependencyMap != null) {
-            StringBuilder sbPull = dependencyMap.get(DependencyType.PULL.name());
-            if (sbPull != null) {
-                actionBean.setMissingDependencies(sbPull.toString());
-            }
-            StringBuilder sbPush = dependencyMap.get(DependencyType.PUSH.name());
-            if (sbPush != null) {
-                actionBean.setPushMissingDependencies(sbPush.toString());
-            }
-        }
         actionBean.setNominalTime(nominalTime);
         boolean isSla = CoordCommandUtils.materializeSLA(eAction, actionBean, conf);
         if (isSla == true) {
@@ -542,6 +551,7 @@ public class CoordCommandUtils {
         }
     }
 
+
     /**
      * @param eAction the actionXml related element
      * @param actionBean the coordinator action bean
@@ -552,12 +562,18 @@ public class CoordCommandUtils {
         String action = XmlUtils.prettyPrint(eAction).toString();
         StringBuilder actionXml = new StringBuilder(action);
         Configuration actionConf = new XConfiguration(new StringReader(actionBean.getRunConf()));
+        actionBean.setActionXml(action);
+
+        if (CoordUtils.isInputLogicSpecified(eAction)) {
+            new CoordInputLogicEvaluatorUtil(actionBean).validateInputLogic();
+        }
 
         boolean isPushDepAvailable = true;
-        if (actionBean.getPushMissingDependencies() != null) {
-            ActionDependency actionDep = DependencyChecker.checkForAvailability(
-                    actionBean.getPushMissingDependencies(), actionConf, true);
-            if (actionDep.getMissingDependencies().size() != 0) {
+        String pushMissingDependencies = actionBean.getPushInputDependencies().getMissingDependencies();
+        if (pushMissingDependencies != null) {
+            ActionDependency actionDependencies = DependencyChecker.checkForAvailability(pushMissingDependencies,
+                    actionConf, true);
+            if (actionDependencies.getMissingDependencies().size() != 0) {
                 isPushDepAvailable = false;
             }
 
@@ -569,13 +585,16 @@ public class CoordCommandUtils {
             StringBuilder existList = new StringBuilder();
             StringBuilder nonExistList = new StringBuilder();
             StringBuilder nonResolvedList = new StringBuilder();
-            getResolvedList(actionBean.getMissingDependencies(), nonExistList, nonResolvedList);
-            isPullDepAvailable = coordActionInput.checkInput(actionXml, existList, nonExistList, actionConf);
+            getResolvedList(actionBean.getPullInputDependencies().getMissingDependencies(), nonExistList, nonResolvedList);
+            isPullDepAvailable = actionBean.getPullInputDependencies().checkPullMissingDependencies(actionBean,
+                    existList, nonExistList);
+
         }
 
         if (isPullDepAvailable && isPushDepAvailable) {
             // Check for latest/future
-            boolean isLatestFutureDepAvailable = coordActionInput.checkUnResolvedInput(actionXml, actionConf);
+            boolean isLatestFutureDepAvailable = coordActionInput.checkUnResolvedInput(actionBean, actionXml,
+                    actionConf);
             if (isLatestFutureDepAvailable) {
                 String newActionXml = CoordActionInputCheckXCommand.resolveCoordConfiguration(actionXml, actionConf,
                         actionBean.getId());
@@ -587,7 +606,7 @@ public class CoordCommandUtils {
     }
 
     /**
-     * Materialize all <input-events>/<data-in> or <output-events>/<data-out>
+     * Materialize all &lt;input-events&gt;/&lt;data-in&gt; or &lt;output-events&gt;/&lt;data-out&gt;
      * tags Create uris for resolved instances. Create unresolved instance for
      * latest()/future().
      *
@@ -596,17 +615,68 @@ public class CoordCommandUtils {
      * @param conf
      * @throws Exception
      */
-    public static Map<String, StringBuilder> materializeDataEvents(List<Element> events, SyncCoordAction appInst, Configuration conf
-            ) throws Exception {
+    private static void materializeOutputDataEvents(List<Element> events, SyncCoordAction appInst, Configuration conf)
+            throws Exception {
 
         if (events == null) {
-            return null;
+            return;
         }
-        StringBuilder unresolvedList = new StringBuilder();
-        Map<String, StringBuilder> dependencyMap = new HashMap<String, StringBuilder>();
+
+        for (Element event : events) {
+            StringBuilder instances = new StringBuilder();
+            ELEvaluator eval = CoordELEvaluator.createInstancesELEvaluator(event, appInst, conf);
+            // Handle list of instance tag
+            resolveInstances(event, instances, appInst, conf, eval);
+            // Handle start-instance and end-instance
+            resolveInstanceRange(event, instances, appInst, conf, eval);
+            // Separate out the unresolved instances
+            separateResolvedAndUnresolved(event, instances);
+
+        }
+    }
+
+    private static void evaluateInputCheck(Element root, ELEvaluator evalInputLogic) throws Exception {
+        for (Object event : root.getChildren()) {
+            Element inputElement = (Element) event;
+
+            resolveAttribute("dataset", inputElement, evalInputLogic);
+            resolveAttribute("name", inputElement, evalInputLogic);
+            resolveAttribute("min", inputElement, evalInputLogic);
+            resolveAttribute("wait", inputElement, evalInputLogic);
+            if (!inputElement.getChildren().isEmpty()) {
+                evaluateInputCheck(inputElement, evalInputLogic);
+            }
+        }
+    }
+
+    private static String resolveAttribute(String attrName, Element elem, ELEvaluator eval) throws CoordinatorJobException {
+        Attribute attr = elem.getAttribute(attrName);
+        String val = null;
+        if (attr != null) {
+            try {
+                val = CoordELFunctions.evalAndWrap(eval, attr.getValue().trim());
+            }
+            catch (Exception e) {
+                throw new CoordinatorJobException(ErrorCode.E1004, e.getMessage(), e);
+            }
+            attr.setValue(val);
+        }
+        return val;
+    }
+
+    public static void materializeInputDataEvents(List<Element> events, SyncCoordAction appInst, Configuration conf,
+            CoordinatorActionBean actionBean, boolean isInputLogicSpecified) throws Exception {
+
+        if (events == null) {
+            return;
+        }
+        CoordInputDependency coordPullInputDependency = CoordInputDependencyFactory
+                .createPullInputDependencies(isInputLogicSpecified);
+        CoordInputDependency coordPushInputDependency = CoordInputDependencyFactory
+                .createPushInputDependencies(isInputLogicSpecified);
+        Map<String, String> unresolvedList = new HashMap<String, String>();
+
         URIHandlerService uriService = Services.get().get(URIHandlerService.class);
-        StringBuilder pullMissingDep = null;
-        StringBuilder pushMissingDep = null;
 
         for (Element event : events) {
             StringBuilder instances = new StringBuilder();
@@ -617,41 +687,44 @@ public class CoordCommandUtils {
             resolveInstanceRange(event, instances, appInst, conf, eval);
             // Separate out the unresolved instances
             String resolvedList = separateResolvedAndUnresolved(event, instances);
+            String name = event.getAttribute("name").getValue();
+
             if (!resolvedList.isEmpty()) {
                 Element uri = event.getChild("dataset", event.getNamespace()).getChild("uri-template",
                         event.getNamespace());
+
                 String uriTemplate = uri.getText();
                 URI baseURI = uriService.getAuthorityWithScheme(uriTemplate);
                 URIHandler handler = uriService.getURIHandler(baseURI);
+                List<CoordInputInstance> inputInstanceList = new ArrayList<CoordInputInstance>();
+
+                for (String inputInstance : resolvedList.split("#")) {
+                    inputInstanceList.add(new CoordInputInstance(inputInstance, false));
+                }
+
                 if (handler.getDependencyType(baseURI).equals(DependencyType.PULL)) {
-                    pullMissingDep = (pullMissingDep == null) ? new StringBuilder(resolvedList) : pullMissingDep.append(
-                            CoordELFunctions.INSTANCE_SEPARATOR).append(resolvedList);
+                    coordPullInputDependency.addInputInstanceList(name, inputInstanceList);
                 }
                 else {
-                    pushMissingDep = (pushMissingDep == null) ? new StringBuilder(resolvedList) : pushMissingDep.append(
-                            CoordELFunctions.INSTANCE_SEPARATOR).append(resolvedList);
+                    coordPushInputDependency.addInputInstanceList(name, inputInstanceList);
+
                 }
             }
 
-            String tmpUnresolved = event.getChildTextTrim(UNRESOLVED_INST_TAG, event.getNamespace());
+            String tmpUnresolved = event.getChildTextTrim(UNRESOLVED_INSTANCES_TAG, event.getNamespace());
             if (tmpUnresolved != null) {
-                if (unresolvedList.length() > 0) {
-                    unresolvedList.append(CoordELFunctions.INSTANCE_SEPARATOR);
-                }
-                unresolvedList.append(tmpUnresolved);
+                unresolvedList.put(name, tmpUnresolved);
             }
         }
-        if (unresolvedList.length() > 0) {
-            if (pullMissingDep == null) {
-                pullMissingDep = new StringBuilder();
-            }
-            pullMissingDep.append(RESOLVED_UNRESOLVED_SEPARATOR).append(unresolvedList);
+        for(String unresolvedDatasetName:unresolvedList.keySet()){
+            coordPullInputDependency.addUnResolvedList(unresolvedDatasetName, unresolvedList.get(unresolvedDatasetName));
         }
-        dependencyMap.put(DependencyType.PULL.name(), pullMissingDep);
-        dependencyMap.put(DependencyType.PUSH.name(), pushMissingDep);
-        return dependencyMap;
-    }
+        actionBean.setPullInputDependencies(coordPullInputDependency);
+        actionBean.setPushInputDependencies(coordPushInputDependency);
+        actionBean.setMissingDependencies(coordPullInputDependency.serialize());
+        actionBean.setPushMissingDependencies(coordPushInputDependency.serialize());
 
+    }
     /**
      * Get resolved string from missDepList
      *
@@ -746,6 +819,68 @@ public class CoordCommandUtils {
         }
 
         return nextTime;
+    }
+
+    /**
+     * Computes the nominal time of the next action.
+     * Based on CoordMaterializeTransitionXCommand#materializeActions
+     *
+     * The Coordinator Job needs to have the frequency, time unit, time zone, start time, end time, and job xml.
+     * The Coordinator Action needs to have the nominal time and action number.
+     *
+     * @param coordJob The Coordinator Job
+     * @param coordAction The Coordinator Action
+     * @return the nominal time of the next action
+     * @throws ParseException
+     * @throws JDOMException
+     */
+    public static Date computeNextNominalTime(CoordinatorJobBean coordJob, CoordinatorActionBean coordAction)
+            throws ParseException, JDOMException {
+        Date nextNominalTime;
+        boolean isCronFrequency = false;
+        int freq = -1;
+        try {
+            freq = Integer.parseInt(coordJob.getFrequency());
+        } catch (NumberFormatException e) {
+            isCronFrequency = true;
+        }
+
+        if (isCronFrequency) {
+            nextNominalTime = CoordCommandUtils.getNextValidActionTimeForCronFrequency(coordAction.getNominalTime(), coordJob);
+        } else {
+            TimeZone appTz = DateUtils.getTimeZone(coordJob.getTimeZone());
+            Calendar nextNominalTimeCal = Calendar.getInstance(appTz);
+            nextNominalTimeCal.setTime(coordJob.getStartTimestamp());
+            TimeUnit freqTU = TimeUnit.valueOf(coordJob.getTimeUnitStr());
+            // Action Number is indexed by 1, so no need to +1 here
+            nextNominalTimeCal.add(freqTU.getCalendarUnit(), coordAction.getActionNumber() * freq);
+            String jobXml = coordJob.getJobXml();
+            Element eJob = XmlUtils.parseXml(jobXml);
+            TimeUnit endOfFlag = TimeUnit.valueOf(eJob.getAttributeValue("end_of_duration"));
+            // Move to the End of duration, if needed.
+            DateUtils.moveToEnd(nextNominalTimeCal, endOfFlag);
+            nextNominalTime = nextNominalTimeCal.getTime();
+        }
+
+        // If the next nominal time is after the job's end time, then this is the last action, so return null
+        if (nextNominalTime.after(coordJob.getEndTime())) {
+            nextNominalTime = null;
+        }
+        return nextNominalTime;
+    }
+
+    public static boolean pathExists(String sPath, Configuration actionConf, String user) throws IOException,
+            URISyntaxException, URIHandlerException {
+        URI uri = new URI(sPath);
+        URIHandlerService service = Services.get().get(URIHandlerService.class);
+        URIHandler handler = service.getURIHandler(uri);
+        return handler.exists(uri, actionConf, user);
+    }
+
+    public static boolean pathExists(String sPath, Configuration actionConf) throws IOException, URISyntaxException,
+            URIHandlerException {
+        String user = ParamChecker.notEmpty(actionConf.get(OozieClient.USER_NAME), OozieClient.USER_NAME);
+        return pathExists(sPath, actionConf, user);
     }
 
 }

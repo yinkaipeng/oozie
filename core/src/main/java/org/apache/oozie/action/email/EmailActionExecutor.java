@@ -62,7 +62,7 @@ import org.jdom.Element;
 import org.jdom.Namespace;
 
 /**
- * Email action executor. It takes to, cc addresses along with a subject and body and sends
+ * Email action executor. It takes to, cc, bcc addresses along with a subject and body and sends
  * out an email.
  */
 public class EmailActionExecutor extends ActionExecutor {
@@ -74,10 +74,12 @@ public class EmailActionExecutor extends ActionExecutor {
     public static final String EMAIL_SMTP_USER = CONF_PREFIX + "smtp.username";
     public static final String EMAIL_SMTP_PASS = CONF_PREFIX + "smtp.password";
     public static final String EMAIL_SMTP_FROM = CONF_PREFIX + "from.address";
+    public static final String EMAIL_SMTP_SOCKET_TIMEOUT_MS = CONF_PREFIX + "smtp.socket.timeout.ms";
     public static final String EMAIL_ATTACHMENT_ENABLED = CONF_PREFIX + "attachment.enabled";
 
     private final static String TO = "to";
     private final static String CC = "cc";
+    private final static String BCC = "bcc";
     private final static String SUB = "subject";
     private final static String BOD = "body";
     private final static String ATTACHMENT = "attachment";
@@ -119,6 +121,7 @@ public class EmailActionExecutor extends ActionExecutor {
         Namespace ns = element.getNamespace();
         String tos[] = new String[0];
         String ccs[] = new String[0];
+        String bccs[] ;
         String subject = "";
         String body = "";
         String attachments[] = new String[0];
@@ -140,6 +143,13 @@ public class EmailActionExecutor extends ActionExecutor {
             ccs = new String[0];
         }
 
+        // <bcc> - Optional, but only one ought to exist.
+        try {
+            bccs = element.getChildTextTrim(BCC, ns).split(COMMA);
+        } catch (Exception e) {
+            // It is alright for bcc to be given empty or not be present.
+            bccs = new String[0];
+        }
         // <subject> - One ought to exist.
         subject = element.getChildTextTrim(SUB, ns);
 
@@ -158,28 +168,39 @@ public class EmailActionExecutor extends ActionExecutor {
         }
 
         // All good - lets try to mail!
-        email(tos, ccs, subject, body, attachments, contentType, context.getWorkflow().getUser());
+        email(tos, ccs, bccs, subject, body, attachments, contentType, context.getWorkflow().getUser());
     }
 
-    public void email(String[] to, String[] cc, String subject, String body, String[] attachments, String contentType,
-            String user) throws ActionExecutorException {
+    public void email(String[] to, String[] cc, String subject, String body, String[] attachments,
+                      String contentType, String user) throws ActionExecutorException {
+        email(to, cc, new String[0], subject, body, attachments, contentType, user);
+    }
+
+    public void email(String[] to, String[] cc, String[] bcc, String subject, String body, String[] attachments,
+                      String contentType, String user) throws ActionExecutorException {
         // Get mailing server details.
-        String smtpHost = getOozieConf().get(EMAIL_SMTP_HOST, "localhost");
-        String smtpPort = getOozieConf().get(EMAIL_SMTP_PORT, "25");
-        Boolean smtpAuth = getOozieConf().getBoolean(EMAIL_SMTP_AUTH, false);
-        String smtpUser = getOozieConf().get(EMAIL_SMTP_USER, "");
-        String smtpPassword = getOozieConf().get(EMAIL_SMTP_PASS, "");
-        String fromAddr = getOozieConf().get(EMAIL_SMTP_FROM, "oozie@localhost");
+        String smtpHost = ConfigurationService.get(EMAIL_SMTP_HOST);
+        Integer smtpPortInt = ConfigurationService.getInt(EMAIL_SMTP_PORT);
+        Boolean smtpAuthBool = ConfigurationService.getBoolean(EMAIL_SMTP_AUTH);
+        String smtpUser = ConfigurationService.get(EMAIL_SMTP_USER);
+        String smtpPassword = ConfigurationService.getPassword(EMAIL_SMTP_PASS, "");
+        String fromAddr = ConfigurationService.get(EMAIL_SMTP_FROM);
+        Integer timeoutMillisInt = ConfigurationService.getInt(EMAIL_SMTP_SOCKET_TIMEOUT_MS);
 
         Properties properties = new Properties();
         properties.setProperty("mail.smtp.host", smtpHost);
-        properties.setProperty("mail.smtp.port", smtpPort);
-        properties.setProperty("mail.smtp.auth", smtpAuth.toString());
+        properties.setProperty("mail.smtp.port", smtpPortInt.toString());
+        properties.setProperty("mail.smtp.auth", smtpAuthBool.toString());
+
+        // Apply sensible timeouts, as defaults are infinite. See https://s.apache.org/javax-mail-timeouts
+        properties.setProperty("mail.smtp.connectiontimeout", timeoutMillisInt.toString());
+        properties.setProperty("mail.smtp.timeout", timeoutMillisInt.toString());
+        properties.setProperty("mail.smtp.writetimeout", timeoutMillisInt.toString());
 
         Session session;
         // Do not use default instance (i.e. Session.getDefaultInstance)
         // (cause it may lead to issues when used second time).
-        if (!smtpAuth) {
+        if (!smtpAuthBool) {
             session = Session.getInstance(properties);
         } else {
             session = Session.getInstance(properties, new JavaMailAuthenticator(smtpUser, smtpPassword));
@@ -189,6 +210,7 @@ public class EmailActionExecutor extends ActionExecutor {
         InternetAddress from;
         List<InternetAddress> toAddrs = new ArrayList<InternetAddress>(to.length);
         List<InternetAddress> ccAddrs = new ArrayList<InternetAddress>(cc.length);
+        List<InternetAddress> bccAddrs = new ArrayList<InternetAddress>(bcc.length);
 
         try {
             from = new InternetAddress(fromAddr);
@@ -211,6 +233,12 @@ public class EmailActionExecutor extends ActionExecutor {
                 ccAddrs.add(new InternetAddress(ccStr.trim()));
             }
             message.addRecipients(RecipientType.CC, ccAddrs.toArray(new InternetAddress[0]));
+
+            // Add all <bcc>
+            for (String bccStr : bcc) {
+                bccAddrs.add(new InternetAddress(bccStr.trim()));
+            }
+            message.addRecipients(RecipientType.BCC, bccAddrs.toArray(new InternetAddress[0]));
 
             // Set subject
             message.setSubject(subject);
@@ -247,7 +275,7 @@ public class EmailActionExecutor extends ActionExecutor {
             }
         }
         catch (AddressException e) {
-            throw new ActionExecutorException(ErrorType.ERROR, "EM004", "Bad address format in <to> or <cc>.", e);
+            throw new ActionExecutorException(ErrorType.ERROR, "EM004", "Bad address format in <to> or <cc> or <bcc>.", e);
         }
         catch (MessagingException e) {
             throw new ActionExecutorException(ErrorType.ERROR, "EM005", "An error occured while adding recipients.", e);
@@ -322,18 +350,22 @@ public class EmailActionExecutor extends ActionExecutor {
             fs = has.createFileSystem(user, uri, fsConf);
         }
 
+        @Override
         public InputStream getInputStream() throws IOException {
             return fs.open(new Path(uri));
         }
 
+        @Override
         public OutputStream getOutputStream() throws IOException {
             return fs.create(new Path(uri));
         }
 
+        @Override
         public String getContentType() {
             return "application/octet-stream";
         }
 
+        @Override
         public String getName() {
             return uri.getPath();
         }

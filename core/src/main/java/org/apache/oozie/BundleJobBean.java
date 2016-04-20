@@ -75,7 +75,7 @@ import org.json.simple.JSONObject;
 
         @NamedQuery(name = "GET_BUNDLE_JOB_STATUS", query = "select w.statusStr from BundleJobBean w where w.id = :id"),
 
-        @NamedQuery(name = "GET_BUNDLE_JOB_ID_STATUS_PENDING_MODTIME", query = "select w.id, w.statusStr, w.pending, w.lastModifiedTimestamp from BundleJobBean w where w.id = :id"),
+        @NamedQuery(name = "GET_BUNDLE_JOB_ID_STATUS_PENDING_MOD_PAUSE_SUSPEND_TIME", query = "select w.id, w.statusStr, w.pending, w.lastModifiedTimestamp, w.pauseTimestamp, w.suspendedTimestamp from BundleJobBean w where w.id = :id"),
 
         @NamedQuery(name = "GET_BUNDLE_JOB_ID_JOBXML_CONF", query = "select w.id, w.jobXml, w.conf from BundleJobBean w where w.id = :id"),
 
@@ -107,7 +107,7 @@ import org.json.simple.JSONObject;
 
         @NamedQuery(name = "BULK_MONITOR_COUNT_QUERY", query = "SELECT COUNT(a) FROM CoordinatorActionBean a, CoordinatorJobBean c"),
 
-        @NamedQuery(name = "GET_BUNDLE_IDS_FOR_STATUS_TRANSIT", query = "select DISTINCT w.id from BundleActionBean a , BundleJobBean w where a.lastModifiedTimestamp >= :lastModifiedTime and w.id = a.bundleId and (w.statusStr = 'RUNNING' OR w.statusStr = 'RUNNINGWITHERROR' OR w.statusStr = 'PAUSED' OR w.statusStr = 'PAUSEDWITHERROR' OR w.pending = 1)"),
+        @NamedQuery(name = "GET_BUNDLE_IDS_FOR_STATUS_TRANSIT", query = "select DISTINCT w.id from BundleActionBean a , BundleJobBean w where a.lastModifiedTimestamp >= :lastModifiedTime and w.id = a.bundleId and (w.statusStr = 'RUNNING' OR w.statusStr = 'RUNNINGWITHERROR' OR w.statusStr = 'PAUSED' OR w.statusStr = 'PAUSEDWITHERROR' OR w.statusStr = 'SUSPENDED' OR w.statusStr = 'SUSPENDEDWITHERROR' OR w.pending = 1)"),
 
 
         @NamedQuery(name = "GET_BUNDLE_JOB_FOR_USER", query = "select w.user from BundleJobBean w where w.id = :id") })
@@ -310,8 +310,6 @@ public class BundleJobBean implements Writable, BundleJob, JsonBean {
 
     /**
      * Set pending to true
-     *
-     * @param pending set pending to true
      */
     @Override
     public void setPending() {
@@ -323,14 +321,12 @@ public class BundleJobBean implements Writable, BundleJob, JsonBean {
      *
      * @param pending set pending value
      */
-    public void setPending(int i) {
-        this.pending = i;
+    public void setPending(int pending) {
+        this.pending = pending;
     }
 
     /**
      * Set pending to false
-     *
-     * @param pending set pending to false
      */
     @Override
     public void resetPending() {
@@ -530,7 +526,7 @@ public class BundleJobBean implements Writable, BundleJob, JsonBean {
     }
 
     /**
-     * @param return the suspendTime
+     * @param suspendTime the suspendTime
      */
     public void setSuspendedTime(Date suspendTime) {
         this.suspendedTimestamp = DateUtils.convertDateToTimestamp(suspendTime);
@@ -704,7 +700,7 @@ public class BundleJobBean implements Writable, BundleJob, JsonBean {
     /**
      * Set status
      *
-     * @param status the status to set
+     * @param statusStr the status to set
      */
     public void setStatus(String statusStr) {
         this.statusStr = statusStr;
@@ -776,7 +772,7 @@ public class BundleJobBean implements Writable, BundleJob, JsonBean {
     /**
      * Convert a Bundle job list into a JSONArray.
      *
-     * @param application list.
+     * @param applications list of applications.
      * @param timeZoneId time zone to use for dates in the JSON array.
      * @return the corresponding JSON array.
      */

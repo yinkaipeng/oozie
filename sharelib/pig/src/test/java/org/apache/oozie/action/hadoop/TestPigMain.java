@@ -43,11 +43,13 @@ public class TestPigMain extends PigTestCase {
         System.setProperty("oozie.test.metastore.server", "false");
         super.setUp();
         SECURITY_MANAGER = System.getSecurityManager();
+        resetPigStats();
     }
 
     @Override
     protected void tearDown() throws Exception {
         System.setSecurityManager(SECURITY_MANAGER);
+        resetPigStats();
         super.tearDown();
     }
 

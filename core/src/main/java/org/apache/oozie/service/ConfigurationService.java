@@ -31,6 +31,8 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -43,23 +45,23 @@ import com.google.common.annotations.VisibleForTesting;
 
 /**
  * Built in service that initializes the services configuration.
- * <p/>
+ * <p>
  * The configuration loading sequence is identical to Hadoop configuration loading sequence.
- * <p/>
+ * <p>
  * Default values are loaded from the 'oozie-default.xml' file from the classpath, then site configured values
  * are loaded from a site configuration file from the Oozie configuration directory.
- * <p/>
- * The Oozie configuration directory is resolved using the <code>OOZIE_HOME<code> environment variable as
- * <code>${OOZIE_HOME}/conf</code>. If the <code>OOZIE_HOME<code> environment variable is not defined the
+ * <p>
+ * The Oozie configuration directory is resolved using the <code>OOZIE_HOME</code> environment variable as
+ * <code>${OOZIE_HOME}/conf</code>. If the <code>OOZIE_HOME</code> environment variable is not defined the
  * initialization of the <code>ConfigurationService</code> fails.
- * <p/>
+ * <p>
  * The site configuration is loaded from the <code>oozie-site.xml</code> file in the configuration directory.
- * <p/>
+ * <p>
  * The site configuration file name to use can be changed by setting the <code>OOZIE_CONFIG_FILE</code> environment
  * variable to an alternate file name. The alternate file must ber in the Oozie configuration directory.
- * <p/>
+ * <p>
  * Configuration properties, prefixed with 'oozie.', passed as system properties overrides default and site values.
- * <p/>
+ * <p>
  * The configuration service logs details on how the configuration was loaded as well as what properties were overrode
  * via system properties settings.
  */
@@ -95,6 +97,8 @@ public class ConfigurationService implements Service, Instrumentable {
     private static final Set<String> MASK_PROPS = new HashSet<String>();
     private static Map<String,String> defaultConfigs = new HashMap<String,String>();
 
+    private static Method getPasswordMethod;
+
     static {
 
         //all this properties are seeded as system properties, no need to log changes
@@ -114,6 +118,14 @@ public class ConfigurationService implements Service, Instrumentable {
         // These properties should be masked when displayed because they contain sensitive info (e.g. password)
         MASK_PROPS.add(JPAService.CONF_PASSWORD);
         MASK_PROPS.add("oozie.authentication.signature.secret");
+
+        try {
+            // Only supported in Hadoop 2.6.0+
+            getPasswordMethod = Configuration.class.getMethod("getPassword", String.class);
+        } catch (NoSuchMethodException e) {
+            // Not supported
+            getPasswordMethod = null;
+        }
     }
 
     public static final String DEFAULT_CONFIG_FILE = "oozie-default.xml";
@@ -136,6 +148,7 @@ public class ConfigurationService implements Service, Instrumentable {
      * @param services services instance.
      * @throws ServiceException thrown if the log service could not be initialized.
      */
+    @Override
     public void init(Services services) throws ServiceException {
         configDir = getConfigurationDirectory();
         configFile = System.getProperty(OOZIE_CONFIG_FILE, SITE_CONFIG_FILE);
@@ -167,6 +180,7 @@ public class ConfigurationService implements Service, Instrumentable {
     /**
      * Destroy the configuration service.
      */
+    @Override
     public void destroy() {
         configuration = null;
     }
@@ -176,6 +190,7 @@ public class ConfigurationService implements Service, Instrumentable {
      *
      * @return {@link ConfigurationService}.
      */
+    @Override
     public Class<? extends Service> getInterface() {
         return ConfigurationService.class;
     }
@@ -304,11 +319,13 @@ public class ConfigurationService implements Service, Instrumentable {
             }
         }
 
+        @Override
         public String[] getStrings(String name) {
             String s = get(name);
             return (s != null && s.trim().length() > 0) ? super.getStrings(name) : new String[0];
         }
 
+        @Override
         public String[] getStrings(String name, String[] defaultValue) {
             String s = get(name);
             if (s == null) {
@@ -318,6 +335,7 @@ public class ConfigurationService implements Service, Instrumentable {
             return (s != null && s.trim().length() > 0) ? super.getStrings(name) : defaultValue;
         }
 
+        @Override
         public String get(String name, String defaultValue) {
             String value = get(name);
             if (value == null) {
@@ -329,6 +347,7 @@ public class ConfigurationService implements Service, Instrumentable {
             return value;
         }
 
+        @Override
         public void set(String name, String value) {
             setValue(name, value);
             boolean maskValue = MASK_PROPS.contains(name);
@@ -336,6 +355,7 @@ public class ConfigurationService implements Service, Instrumentable {
             log.info(XLog.OPS, "Programmatic configuration change, property[{0}]=[{1}]", name, value);
         }
 
+        @Override
         public boolean getBoolean(String name, boolean defaultValue) {
             String value = get(name);
             if (value == null) {
@@ -344,6 +364,7 @@ public class ConfigurationService implements Service, Instrumentable {
             return super.getBoolean(name, defaultValue);
         }
 
+        @Override
         public int getInt(String name, int defaultValue) {
             String value = get(name);
             if (value == null) {
@@ -352,6 +373,7 @@ public class ConfigurationService implements Service, Instrumentable {
             return super.getInt(name, defaultValue);
         }
 
+        @Override
         public long getLong(String name, long defaultValue) {
             String value = get(name);
             if (value == null) {
@@ -360,6 +382,7 @@ public class ConfigurationService implements Service, Instrumentable {
             return super.getLong(name, defaultValue);
         }
 
+        @Override
         public float getFloat(String name, float defaultValue) {
             String value = get(name);
             if (value == null) {
@@ -368,6 +391,7 @@ public class ConfigurationService implements Service, Instrumentable {
             return super.getFloat(name, defaultValue);
         }
 
+        @Override
         public Class<?>[] getClasses(String name, Class<?> ... defaultValue) {
             String value = get(name);
             if (value == null) {
@@ -376,6 +400,7 @@ public class ConfigurationService implements Service, Instrumentable {
             return super.getClasses(name, defaultValue);
         }
 
+        @Override
         public Class<?> getClass(String name, Class<?> defaultValue) {
             String value = get(name);
             if (value == null) {
@@ -396,18 +421,21 @@ public class ConfigurationService implements Service, Instrumentable {
     }
 
     /**
-     * Instruments the configuration service. <p/> It sets instrumentation variables indicating the config dir and
+     * Instruments the configuration service. <p> It sets instrumentation variables indicating the config dir and
      * config file used.
      *
      * @param instr instrumentation to use.
      */
+    @Override
     public void instrument(Instrumentation instr) {
         instr.addVariable(INSTRUMENTATION_GROUP, "config.dir", new Instrumentation.Variable<String>() {
+            @Override
             public String getValue() {
                 return configDir;
             }
         });
         instr.addVariable(INSTRUMENTATION_GROUP, "config.file", new Instrumentation.Variable<String>() {
+            @Override
             public String getValue() {
                 return configFile;
             }
@@ -537,4 +565,29 @@ public class ConfigurationService implements Service, Instrumentable {
         return conf.getClass(name, Object.class);
     }
 
+    public static String getPassword(Configuration conf, String name) {
+        return getPassword(conf, name, null);
+    }
+
+    public static String getPassword(Configuration conf, String name, String defaultValue) {
+        if (getPasswordMethod != null) {
+            try {
+                char[] pass = (char[]) getPasswordMethod.invoke(conf, name);
+                return pass == null ? defaultValue : new String(pass);
+            } catch (IllegalAccessException e) {
+                log.error(e);
+                throw new IllegalArgumentException("Could not load password for [" + name + "]", e);
+            } catch (InvocationTargetException e) {
+                log.error(e);
+                throw new IllegalArgumentException("Could not load password for [" + name + "]", e);
+            }
+        } else {
+            return conf.get(name);
+        }
+    }
+
+    public static String getPassword(String name, String defaultValue) {
+        Configuration conf = Services.get().getConf();
+        return getPassword(conf, name, defaultValue);
+    }
 }
