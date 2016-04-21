@@ -126,6 +126,19 @@
         <module>zookeeper-security-tests</module>
     </modules>
 
+    <distributionManagement>
+       <repository>
+         <id>${repoid}</id>
+         <name>${reponame}</name>
+         <url>${repourl}</url>
+       </repository>
+        <snapshotRepository>
+          <id>apache.snapshots.https</id>
+          <name>${distMgmtSnapshotsName}</name>
+          <url>${distMgmtSnapshotsUrl}</url>
+        </snapshotRepository>
+    </distributionManagement>
+
     <repositories>
         <repository>
             <id>central</id>
