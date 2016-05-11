@@ -134,6 +134,9 @@ public class AuthOozieClient extends XOozieClient {
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("OPTIONS");
             AuthenticatedURL.injectToken(conn, currentToken);
+            AUTH_TOKEN_CACHE_FILE.delete();
+            currentToken = new AuthenticatedURL.Token();
+/*
             if (conn.getResponseCode() == HttpURLConnection.HTTP_UNAUTHORIZED
                     || conn.getResponseCode() == HttpURLConnection.HTTP_FORBIDDEN) {
                 if (useAuthFile) {
@@ -158,13 +161,20 @@ public class AuthOozieClient extends XOozieClient {
                     currentToken = new AuthenticatedURL.Token();
                 }
             }
+*/
         }
 
         // If we didn't have a token, or it had expired, let's get a new one from the Server using the configured Authenticator
         if (!currentToken.isSet()) {
             Authenticator authenticator = getAuthenticator();
             try {
-                authenticator.authenticate(url, currentToken);
+//                authenticator.authenticate(url, currentToken);
+                new AuthenticatedURL(authenticator).openConnection(url, currentToken);
+                HttpURLConnection conn = new AuthenticatedURL(authenticator).openConnection(url, currentToken);
+                if (conn.getRequestProperty("Cookie") == null) {
+                    authOption = "SIMPLE";
+                    new AuthenticatedURL(getAuthenticator()).openConnection(url, currentToken);
+                }
             }
             catch (AuthenticationException ex) {
                 if (useAuthFile) {
