@@ -1260,7 +1260,7 @@ public class TestOozieCLI extends DagServletTestCase {
                 // Need to pass "-auth simple" instead of allowing fallback for Hadoop 2.3.0 - Hadoop 2.6.0 (see OOZIE-2315)
                 String[] args = new String[] { "admin", "-sharelibupdate", "-oozie", oozieUrl, "-auth", "simple" };
                 String out = runOozieCLIAndGetStderr(args);
-                assertEquals("Error: E0503 : E0503: User [test] does not have admin privileges\n", out);
+                assertEquals("Error: E0503 : E0503: User [" + getTestUser() + "] does not have admin privileges\n", out);
 
                 return null;
             }

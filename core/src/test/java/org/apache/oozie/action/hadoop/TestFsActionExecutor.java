@@ -35,6 +35,7 @@ import org.apache.oozie.service.HadoopAccessorService;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.service.URIHandlerService;
 import org.apache.oozie.service.WorkflowAppService;
+import org.apache.oozie.test.XTestCase;
 import org.apache.oozie.util.XConfiguration;
 import org.apache.oozie.util.XmlUtils;
 import org.jdom.Element;
@@ -64,7 +65,7 @@ public class TestFsActionExecutor extends ActionExecutorTestCase {
         FsActionExecutor ae = new FsActionExecutor();
 
         XConfiguration protoConf = new XConfiguration();
-        protoConf.set(WorkflowAppService.HADOOP_USER, getTestUser());
+        protoConf.set(WorkflowAppService.HADOOP_USER, XTestCase.getTestUser());
         protoConf.setLong("fs.trash.interval", 6000L);
 
         WorkflowJobBean wf = createBaseWorkflow(protoConf, "fs-action");
@@ -1027,7 +1028,7 @@ public void testChmodRecursive() throws Exception {
         Path child = new Path(path, "child");
         Path grandchild = new Path(child, "grandchild");
         fs.mkdirs(grandchild);
-        String testUser = getTestUser();
+        String testUser = XTestCase.getTestUser();
         String testGroup = getTestGroup();
         String testGroup2 = getTestGroup2();
 
@@ -1070,7 +1071,7 @@ public void testChmodRecursive() throws Exception {
     }
 
     private void createTestDirForChgrp(Path basePath, FileSystem fs) throws Exception {
-        String testUser = getTestUser();
+        String testUser = XTestCase.getTestUser();
         String testGroup = getTestGroup();
         fs.mkdirs(basePath);
         fs.mkdirs(new Path(basePath, "10"));
@@ -1092,7 +1093,7 @@ public void testChmodRecursive() throws Exception {
 
     public void testChgrpWithGlob() throws Exception {
 
-        String testUser = getTestUser();
+        String testUser = XTestCase.getTestUser();
         String testGroup = getTestGroup();
         String testGroup2 = getTestGroup2();
         FsActionExecutor ae = new FsActionExecutor();
@@ -1133,7 +1134,7 @@ public void testChmodRecursive() throws Exception {
 
     public void testChgrpRelativePath() throws Exception {
 
-        String testUser = getTestUser();
+        String testUser = XTestCase.getTestUser();
         String testGroup = getTestGroup();
         String testGroup2 = getTestGroup2();
         FsActionExecutor ae = new FsActionExecutor();
