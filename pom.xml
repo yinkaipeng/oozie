@@ -429,8 +429,8 @@
                         <artifactId>commons-io</artifactId>
                     </exclusion>
                     <exclusion>
-                        <groupId>commons-httpclient</groupId>
-                        <artifactId>commons-httpclient</artifactId>
+                        <groupId>org.apache.httpcomponents</groupId>
+                        <artifactId>httpclient</artifactId>
                     </exclusion>
                     <exclusion>
                         <groupId>org.apache.commons</groupId>
@@ -609,8 +609,8 @@
                         <artifactId>commons-cli</artifactId>
                     </exclusion>
                     <exclusion>
-                        <groupId>commons-httpclient</groupId>
-                        <artifactId>commons-httpclient</artifactId>
+                        <groupId>org.apache.httpcomponents</groupId>
+                        <artifactId>httpclient</artifactId>
                     </exclusion>
                     <exclusion>
                         <groupId>commons-lang</groupId>
@@ -881,8 +881,8 @@
                         <artifactId>hadoop-core</artifactId>
                     </exclusion>
                     <exclusion>
-                        <groupId>commons-httpclient</groupId>
-                        <artifactId>commons-httpclient</artifactId>
+                        <groupId>org.apache.httpcomponents</groupId>
+                        <artifactId>httpclient</artifactId>
                     </exclusion>
                     <exclusion>
                         <groupId>org.mortbay.jetty</groupId>
@@ -1421,9 +1421,9 @@
 
             <!-- examples -->
             <dependency>
-                <groupId>commons-httpclient</groupId>
-                <artifactId>commons-httpclient</artifactId>
-                <version>3.1</version>
+                <groupId>org.apache.httpcomponents</groupId>
+                <artifactId>httpclient</artifactId>
+                <version>4.3.6</version>
             </dependency>
 
             <dependency>
@@ -1551,7 +1551,7 @@
             <dependency>
                 <groupId>org.apache.httpcomponents</groupId>
                 <artifactId>httpclient</artifactId>
-                <version>4.3</version>
+                <version>4.3.6</version>
             </dependency>
 
         </dependencies>
