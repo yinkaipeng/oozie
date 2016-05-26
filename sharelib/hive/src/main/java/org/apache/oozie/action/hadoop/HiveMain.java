@@ -220,7 +220,7 @@ public class HiveMain extends LauncherMain {
         arguments.add("--hiveconf");
         arguments.add("hive.log4j.file=" + new File(HIVE_L4J_PROPS).getAbsolutePath());
         arguments.add("--hiveconf");
-        arguments.add("hive.exec.log4j.file" + new File(HIVE_EXEC_L4J_PROPS).getAbsolutePath());
+        arguments.add("hive.exec.log4j.file=" + new File(HIVE_EXEC_L4J_PROPS).getAbsolutePath());
 
         // print out current directory & its contents
         File localDir = new File("dummy").getAbsoluteFile().getParentFile();
