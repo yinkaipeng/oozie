@@ -155,6 +155,7 @@ public class HiveMain extends LauncherMain {
         hadoopProps.setProperty("log4j.appender.jobid.layout", "org.apache.log4j.PatternLayout");
         hadoopProps.setProperty("log4j.appender.jobid.layout.ConversionPattern", "%-4r [%t] %-5p %c %x - %m%n");
         hadoopProps.setProperty("log4j.logger.org.apache.hadoop.hive.ql.exec", "INFO, jobid");
+        hadoopProps.setProperty("log4j.logger.SessionState", "INFO, jobid");
 
         String localProps = new File(HIVE_L4J_PROPS).getAbsolutePath();
         OutputStream os1 = new FileOutputStream(localProps);
@@ -219,7 +220,7 @@ public class HiveMain extends LauncherMain {
         arguments.add("--hiveconf");
         arguments.add("hive.log4j.file=" + new File(HIVE_L4J_PROPS).getAbsolutePath());
         arguments.add("--hiveconf");
-        arguments.add("hive.log4j.exec.file=" + new File(HIVE_EXEC_L4J_PROPS).getAbsolutePath());
+        arguments.add("hive.exec.log4j.file=" + new File(HIVE_EXEC_L4J_PROPS).getAbsolutePath());
 
         // print out current directory & its contents
         File localDir = new File("dummy").getAbsoluteFile().getParentFile();
