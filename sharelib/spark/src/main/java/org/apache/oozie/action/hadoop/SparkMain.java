@@ -18,14 +18,17 @@
 
 package org.apache.oozie.action.hadoop;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.spark.deploy.SparkSubmit;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.regex.Pattern;
 
 public class SparkMain extends LauncherMain {
     private static final String MASTER_OPTION = "--master";
@@ -37,7 +40,11 @@ public class SparkMain extends LauncherMain {
     private static final String DRIVER_CLASSPATH = "spark.driver.extraClassPath=";
     private static final String DIST_FILES = "spark.yarn.dist.files=";
     private static final String JARS_OPTION = "--jars";
+    private static final String HIVE_SECURITY_TOKEN = "spark.yarn.security.tokens.hive.enabled";
+    private static final String HBASE_SECURITY_TOKEN = "spark.yarn.security.tokens.hbase.enabled";
 
+    private static final Pattern[] PYSPARK_DEP_FILE_PATTERN = { Pattern.compile("py4\\S*src.zip"),
+            Pattern.compile("pyspark.zip") };
     private String sparkJars = null;
     private String sparkClasspath = null;
 
@@ -47,6 +54,7 @@ public class SparkMain extends LauncherMain {
 
     @Override
     protected void run(String[] args) throws Exception {
+        boolean isPyspark = false;
         Configuration actionConf = loadActionConf();
         setYarnTag(actionConf);
         LauncherMainHadoopUtils.killChildYarnJobs(actionConf);
@@ -77,6 +85,9 @@ public class SparkMain extends LauncherMain {
         }
 
         String jarPath = actionConf.get(SparkActionExecutor.SPARK_JAR);
+        if(jarPath!=null && jarPath.endsWith(".py")){
+            isPyspark = true;
+        }
 
         // In local mode, everything runs here in the Launcher Job.
         // In yarn-client mode, the driver runs here in the Launcher Job and the executor in Yarn.
@@ -104,6 +115,8 @@ public class SparkMain extends LauncherMain {
         boolean addedDriverClasspath = false;
         boolean addedDistFiles = false;
         boolean addedJars = false;
+        boolean addedHiveSecurityToken = false;
+        boolean addedHBaseSecurityToken = false;
         String sparkOpts = actionConf.get(SparkActionExecutor.SPARK_OPTS);
         if (StringUtils.isNotEmpty(sparkOpts)) {
             List<String> sparkOptions = splitSparkOpts(sparkOpts);
@@ -135,6 +148,12 @@ public class SparkMain extends LauncherMain {
                         addedDriverClasspath = true;
                     }
                 }
+                if (opt.startsWith(HIVE_SECURITY_TOKEN)) {
+                    addedHiveSecurityToken = true;
+                }
+                if (opt.startsWith(HBASE_SECURITY_TOKEN)) {
+                    addedHBaseSecurityToken = true;
+                }
                 sparkArgs.add(opt);
             }
         }
@@ -156,15 +175,24 @@ public class SparkMain extends LauncherMain {
             sparkArgs.add("--conf");
             sparkArgs.add(DIST_FILES + sparkJars);
         }
-
+        if (!addedHiveSecurityToken) {
+            sparkArgs.add("--conf");
+            sparkArgs.add(HIVE_SECURITY_TOKEN + "=false");
+        }
+        if (!addedHBaseSecurityToken) {
+            sparkArgs.add("--conf");
+            sparkArgs.add(HBASE_SECURITY_TOKEN + "=false");
+        }
         if (!sparkArgs.contains(VERBOSE_OPTION)) {
             sparkArgs.add(VERBOSE_OPTION);
         }
 
         sparkArgs.add(jarPath);
-
         for (String arg : args) {
             sparkArgs.add(arg);
+        }
+        if (isPyspark){
+            createPySparkLibFolder();
         }
 
         System.out.println("Spark Action Main class        : " + SparkSubmit.class.getName());
@@ -177,6 +205,46 @@ public class SparkMain extends LauncherMain {
         }
         System.out.println();
         runSpark(sparkArgs.toArray(new String[sparkArgs.size()]));
+    }
+
+    /**
+     * SparkActionExecutor sets the SPARK_HOME environment variable to the local directory.
+     * Spark is looking for the pyspark.zip and py4j-VERSION-src.zip files in the python/lib folder under SPARK_HOME.
+     * This function creates the subfolders and copies the zips from the local folder.
+     * @throws OozieActionConfiguratorException  if the zip files are missing
+     * @throws IOException if there is an error during file copy
+     */
+    private void createPySparkLibFolder() throws OozieActionConfiguratorException, IOException {
+        File pythonLibDir = new File("python/lib");
+        if(!pythonLibDir.exists()){
+            pythonLibDir.mkdirs();
+            System.out.println("PySpark lib folder " + pythonLibDir.getAbsolutePath() + " folder created.");
+        }
+
+        for(Pattern fileNamePattern : PYSPARK_DEP_FILE_PATTERN) {
+            File file = getMatchingFile(fileNamePattern);
+            File destination = new File(pythonLibDir, file.getName());
+            FileUtils.copyFile(file, destination);
+            System.out.println("Copied " + file + " to " + destination.getAbsolutePath());
+        }
+    }
+
+    /**
+     * Searches for a file in the current directory that matches the given pattern.
+     * If there are multiple files matching the pattern returns one of them.
+     * @param fileNamePattern the pattern to look for
+     * @return the file if there is one
+     * @throws OozieActionConfiguratorException if there is are no files matching the pattern
+     */
+    private File getMatchingFile(Pattern fileNamePattern) throws OozieActionConfiguratorException {
+        File localDir = new File(".");
+        for(String fileName : localDir.list()){
+            if(fileNamePattern.matcher(fileName).find()){
+                return new File(fileName);
+            }
+        }
+        throw new OozieActionConfiguratorException("Missing py4j and/or pyspark zip files. Please add them to " +
+                "the lib folder or to the Spark sharelib.");
     }
 
     private void runSpark(String[] args) throws Exception {

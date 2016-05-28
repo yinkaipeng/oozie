@@ -266,7 +266,7 @@ public class JavaActionExecutor extends ActionExecutor {
             injectLauncherProperties(actionDefaultConf, launcherConf);
             // Inject <job-xml> and <configuration> for launcher
             try {
-                parseJobXmlAndConfiguration(context, actionXml, appPath, conf, true);
+                parseJobXmlAndConfiguration(context, actionXml, appPath, launcherConf, true);
             } catch (HadoopAccessorException ex) {
                 throw convertException(ex);
             } catch (URISyntaxException ex) {
@@ -1170,6 +1170,19 @@ public class JavaActionExecutor extends ActionExecutor {
                         Text fauxAlias = new Text(tk.getKind() + "_" + tk.getService());
                         LOG.debug("ADDING TOKEN: " + fauxAlias);
                         launcherJobConf.getCredentials().addToken(fauxAlias, tk);
+                    }
+                    if (credentialsConf.getCredentials().numberOfSecretKeys() > 0) {
+                        for (Entry<String, CredentialsProperties> entry : credentialsProperties.entrySet()) {
+                            CredentialsProperties credProps = entry.getValue();
+                            if (credProps != null) {
+                                Text credName = new Text(credProps.getName());
+                                byte[] secKey = credentialsConf.getCredentials().getSecretKey(credName);
+                                if (secKey != null) {
+                                    LOG.debug("ADDING CREDENTIAL: " + credProps.getName());
+                                    launcherJobConf.getCredentials().addSecretKey(credName, secKey);
+                                }
+                            }
+                        }
                     }
                 }
                 else {
