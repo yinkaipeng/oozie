@@ -109,7 +109,6 @@ public class JavaActionExecutor extends ActionExecutor {
     public static final String YARN_AM_COMMAND_OPTS = "yarn.app.mapreduce.am.command-opts";
     public static final String YARN_AM_ENV = "yarn.app.mapreduce.am.env";
     private static final String JAVA_MAIN_CLASS_NAME = "org.apache.oozie.action.hadoop.JavaMain";
-    public static final int YARN_MEMORY_MB_MIN = 512;
     private static int maxActionOutputLen;
     private static int maxExternalStatsSize;
     private static int maxFSGlobMax;
@@ -385,7 +384,9 @@ public class JavaActionExecutor extends ActionExecutor {
             // YARN_MEMORY_MB_MIN to provide buffer.
             // suppose launcher map aggressively use high memory, need some
             // headroom for AM
-            int memoryMB = Math.max(launcherMapMemoryMB, amMemoryMB) + YARN_MEMORY_MB_MIN;
+            // This is removed to prevent launcher job from consuming memory as much as
+            // equivalent to two containers.
+            int memoryMB = Math.max(launcherMapMemoryMB, amMemoryMB);
             // limit to 4096 in case of 32 bit
             if (launcherMapMemoryMB < 4096 && amMemoryMB < 4096 && memoryMB > 4096) {
                 memoryMB = 4096;
@@ -399,7 +400,7 @@ public class JavaActionExecutor extends ActionExecutor {
             StringBuilder optsStr = new StringBuilder();
             int heapSizeForMap = extractHeapSizeMB(launcherMapOpts);
             int heapSizeForAm = extractHeapSizeMB(amChildOpts);
-            int heapSize = Math.max(heapSizeForMap, heapSizeForAm) + YARN_MEMORY_MB_MIN;
+            int heapSize = Math.max(heapSizeForMap, heapSizeForAm);
             // limit to 3584 in case of 32 bit
             if (heapSizeForMap < 4096 && heapSizeForAm < 4096 && heapSize > 3584) {
                 heapSize = 3584;
