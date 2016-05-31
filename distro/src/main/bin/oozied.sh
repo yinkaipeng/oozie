@@ -24,6 +24,7 @@ fi
 
 actionCmd=$1
 shift
+STOP_WAIT=30
 
 # resolve links - $0 may be a softlink
 PRG="${0}"
@@ -107,6 +108,11 @@ case $actionCmd in
     ;;
   (stop)
     setup_catalina_opts
+    if [ $1 -gt 0 ]; then
+        STOP_WAIT=$1
+        shift
+    fi
+    actionCmd+=" "$STOP_WAIT
 
     # A bug in catalina.sh script does not use CATALINA_OPTS for stopping the server
     export JAVA_OPTS=${CATALINA_OPTS}
