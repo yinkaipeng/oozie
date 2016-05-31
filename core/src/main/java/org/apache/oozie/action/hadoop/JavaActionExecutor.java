@@ -1757,6 +1757,6 @@ public class JavaActionExecutor extends ActionExecutor {
 
     @Override
     public boolean supportsConfigurationJobXML() {
-        return true;
+        return false;
     }
 }
