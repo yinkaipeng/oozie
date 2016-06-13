@@ -2300,6 +2300,14 @@
     </property>
 
     <property>
+        <name>oozie.https.port</name>
+        <value>11443</value>
+        <description>
+            Oozie ssl server port.
+        </description>
+    </property>
+
+    <property>
         <name>oozie.instance.id</name>
         <value>${oozie.http.hostname}</value>
         <description>
