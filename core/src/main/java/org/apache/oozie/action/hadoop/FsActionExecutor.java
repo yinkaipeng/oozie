@@ -646,4 +646,8 @@ public class FsActionExecutor extends ActionExecutor {
                     "too many globbed files/dirs to do FS operation");
         }
     }
+
+    public boolean supportsConfigurationJobXML() {
+        return true;
+    }
 }
