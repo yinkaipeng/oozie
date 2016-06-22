@@ -217,7 +217,7 @@ public class Hive2Main extends LauncherMain {
             arguments.add("mapreduce.job.tags=" + actionConf.get(LauncherMain.MAPREDUCE_JOB_TAGS));
         }
         // Propagate "oozie.*" configs (but not "oozie.launcher.*" nor "oozie.hive2.*")
-        for (Map.Entry<String, String> oozieConfig : actionConf.getValByRegex("^oozie\\.(?!launcher|hive2).+").entrySet()) {
+        for (Map.Entry<String, String> oozieConfig : actionConf.getValByRegex("^oozie\\.(?!launcher|hive2|HadoopAccessorService).+").entrySet()) {
             arguments.add("--hiveconf");
             arguments.add(oozieConfig.getKey() + "=" + oozieConfig.getValue());
         }
