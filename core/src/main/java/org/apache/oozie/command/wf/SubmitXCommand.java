@@ -161,11 +161,13 @@ public class SubmitXCommand extends WorkflowXCommand<String> {
                 }
             }
             // Resolving variables from config-default, which might be referencing into conf/defaultConf
-            XConfiguration resolveDefaultConf = new XConfiguration();
-            for (Map.Entry<String, String> entry : defaultConf) {
-                resolveDefaultConf.set(entry.getKey(), conf.get(entry.getKey()));
+            if (defaultConf != null) {
+                XConfiguration resolveDefaultConf = new XConfiguration();
+                for (Map.Entry<String, String> entry : defaultConf) {
+                    resolveDefaultConf.set(entry.getKey(), conf.get(entry.getKey()));
+                }
+                defaultConf = resolveDefaultConf;
             }
-            defaultConf = resolveDefaultConf;
 
             WorkflowApp app = wps.parseDef(conf, defaultConf);
             XConfiguration protoActionConf = wps.createProtoActionConf(conf, true);
