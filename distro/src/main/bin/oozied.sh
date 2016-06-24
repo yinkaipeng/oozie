@@ -108,9 +108,11 @@ case $actionCmd in
     ;;
   (stop)
     setup_catalina_opts
-    if [ $1 -gt 0 ]; then
-        STOP_WAIT=$1
-        shift
+    if [ ! -z $1 ]; then
+        if [ $1 -gt 0 ]; then
+            STOP_WAIT=$1
+            shift
+        fi
     fi
     actionCmd+=" "$STOP_WAIT
 
