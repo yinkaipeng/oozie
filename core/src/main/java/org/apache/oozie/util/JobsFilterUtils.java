@@ -57,6 +57,7 @@ public class JobsFilterUtils {
                         throw new XServletException(HttpServletResponse.SC_BAD_REQUEST, ErrorCode.E0420,
                                 "filter elements must be semicolon-separated name=value pairs");
                     }
+                    pair[0] = pair[0].toLowerCase();
                     if (!FILTER_NAMES.contains(pair[0])) {
                         throw new XServletException(HttpServletResponse.SC_BAD_REQUEST, ErrorCode.E0420,
                                 "filter name: " + pair[0] + " is invalid");
