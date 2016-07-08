@@ -71,7 +71,9 @@ public abstract class LauncherMain {
                             continue;
                         }
                         jobId = jobId.replaceAll("application","job");
-                        sb.append(separator).append(jobId);
+                        if (!sb.toString().contains(jobId)) {
+                            sb.append(separator).append(jobId);
+                        }
                         separator = ",";
                     }
                 }
@@ -90,12 +92,17 @@ public abstract class LauncherMain {
             Properties jobIds = getHadoopJobIds(logFile, patterns);
             File file = new File(System.getProperty(LauncherMapper.ACTION_PREFIX
                     + LauncherMapper.ACTION_DATA_OUTPUT_PROPS));
+            File externalChildIdsFile = new File(System.getProperty(LauncherMapper.ACTION_PREFIX
+                    + LauncherMapper.ACTION_DATA_EXTERNAL_CHILD_IDS));
             OutputStream os = new FileOutputStream(file);
+            OutputStream externalChildIdsStream = new FileOutputStream(externalChildIdsFile);
             try {
                 jobIds.store(os, "");
+                externalChildIdsStream.write(jobIds.getProperty(LauncherMain.HADOOP_JOBS).getBytes());
             }
             finally {
                 os.close();
+                externalChildIdsStream.close();
             }
             System.out.println(" Hadoop Job IDs executed by " + name + ": " + jobIds.getProperty(HADOOP_JOBS));
             System.out.println();

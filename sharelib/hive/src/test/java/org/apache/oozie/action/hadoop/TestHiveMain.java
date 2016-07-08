@@ -122,10 +122,12 @@ public class TestHiveMain extends MainTestCase {
             File hiveSite = new File(classPathDir, "hive-site.xml");
 
             File outputDataFile = new File(getTestCaseDir(), "outputdata.properties");
+            File externalChildIdsFile = new File(getTestCaseDir(), "externalChildIDs");
 
             setSystemProperty("oozie.launcher.job.id", "" + System.currentTimeMillis());
             setSystemProperty("oozie.action.conf.xml", actionXml.getAbsolutePath());
             setSystemProperty("oozie.action.output.properties", outputDataFile.getAbsolutePath());
+            setSystemProperty("oozie.action.externalChildIDs", externalChildIdsFile.getAbsolutePath());
 
             new LauncherSecurityManager();
             String user = System.getProperty("user.name");
@@ -156,7 +158,9 @@ public class TestHiveMain extends MainTestCase {
             }
 
             assertTrue(outputDataFile.exists());
+            assertTrue(externalChildIdsFile.exists());
             assertNotNull(LauncherMapper.getLocalFileContentStr(outputDataFile, "", -1));
+            assertNotNull(LauncherMapper.getLocalFileContentStr(externalChildIdsFile, "", -1));
 
 //TODO: I cannot figure out why when log file is not created in this testcase, it works when running in Launcher
 //            Properties props = new Properties();

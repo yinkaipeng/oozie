@@ -37,7 +37,7 @@ public class SqoopMain extends LauncherMain {
     public static final String SQOOP_SITE_CONF = "sqoop-site.xml";
 
     private static final Pattern[] SQOOP_JOB_IDS_PATTERNS = {
-      Pattern.compile("Job complete: (job_\\S*)"), Pattern.compile("Job (job_\\S*) completed successfully")
+            Pattern.compile("Submitted application (application[0-9_]*)")
     };
 
     private static final String SQOOP_LOG4J_PROPS = "sqoop-log4j.properties";
@@ -134,6 +134,7 @@ public class SqoopMain extends LauncherMain {
         hadoopProps.setProperty("log4j.appender.jobid.layout.ConversionPattern", "%-4r [%t] %-5p %c %x - %m%n");
         hadoopProps.setProperty("log4j.logger.org.apache.hadoop.mapred", "INFO, jobid, A");
         hadoopProps.setProperty("log4j.logger.org.apache.hadoop.mapreduce.Job", "INFO, jobid, A");
+        hadoopProps.setProperty("log4j.logger.org.apache.hadoop.yarn.client.api.impl.YarnClientImpl", "INFO, jobid");
 
         String localProps = new File(SQOOP_LOG4J_PROPS).getAbsolutePath();
         OutputStream os1 = new FileOutputStream(localProps);
@@ -185,13 +186,13 @@ public class SqoopMain extends LauncherMain {
                 }
             }
         }
-
-        System.out.println();
-        System.out.println("<<< Invocation of Sqoop command completed <<<");
-        System.out.println();
-
-        // harvesting and recording Hadoop Job IDs
-        writeExternalChildIDs(logFile, SQOOP_JOB_IDS_PATTERNS, "Sqoop");
+        finally {
+            System.out.println();
+            System.out.println("<<< Invocation of Sqoop command completed <<<");
+            System.out.println();
+            // harvesting and recording Hadoop Job IDs
+            writeExternalChildIDs(logFile, SQOOP_JOB_IDS_PATTERNS, "Sqoop");
+        }
     }
 
     protected void runSqoopJob(String[] args) throws Exception {
