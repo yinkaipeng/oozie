@@ -63,6 +63,8 @@ public class TestAuthorizationService extends XDataTestCase {
         public List<String> getGroups(String user) throws IOException {
             if (getTestUser().equals(user)) {
                 return Arrays.asList("users", getTestGroup());
+            } if ("foo".equals(user)) {
+                return Arrays.asList("users", "foogrp");
             }
             else {
                 return Arrays.asList("users");
@@ -129,7 +131,7 @@ public class TestAuthorizationService extends XDataTestCase {
             jobConf.set(OozieClient.GROUP_NAME, getTestGroup());
         }
         else {
-            jobConf.set(OozieClient.GROUP_NAME, getTestGroup() + ",foo");
+            jobConf.set(OozieClient.GROUP_NAME, getTestGroup() + ",foogrp");
         }
 
         jobConf.set(OozieClient.LOG_TOKEN, "t");
