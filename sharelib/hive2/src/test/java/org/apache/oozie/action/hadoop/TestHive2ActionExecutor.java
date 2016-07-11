@@ -275,6 +275,53 @@ public class TestHive2ActionExecutor extends ActionExecutorTestCase {
         }
     }
 
+    private String getHive2BadScript(String inputPath, String outputPath) {
+        StringBuilder buffer = new StringBuilder(NEW_LINE);
+        buffer.append("set -v;").append(NEW_LINE);
+        buffer.append("DROP TABLE IF EXISTS test;").append(NEW_LINE);
+        buffer.append("CREATE EXTERNAL TABLE test (a INT) STORED AS");
+        buffer.append(NEW_LINE).append("TEXTFILE LOCATION '");
+        buffer.append(inputPath).append("';").append(NEW_LINE);
+        buffer.append("INSERT OVERWRITE DIRECTORY '");
+        buffer.append(outputPath).append("'").append(NEW_LINE);
+        buffer.append("SELECT (a-1) FROM test-bad;").append(NEW_LINE);
+        return buffer.toString();
+    }
+
+    public void testExternalChildIdsInFailure() throws Exception {
+        setupHiveServer2();
+        Path inputDir = new Path(getFsTestCaseDir(), INPUT_DIRNAME);
+        Path outputDir = new Path(getFsTestCaseDir(), OUTPUT_DIRNAME);
+        FileSystem fs = getFileSystem();
+        String query = getHive2BadScript(inputDir.toString(), outputDir.toString());
+        Writer dataWriter = new OutputStreamWriter(fs.create(new Path(inputDir, DATA_FILENAME)));
+        dataWriter.write(SAMPLE_DATA_TEXT);
+        dataWriter.close();
+        Context context = createContext(getQueryActionXml(query));
+        final RunningJob launcherJob = submitAction(context, Namespace.getNamespace("uri:oozie:hive2-action:0.2"));
+        String launcherId = context.getAction().getExternalId();
+        waitFor(200 * 1000, new Predicate() {
+            @Override
+            public boolean evaluate() throws Exception {
+                return launcherJob.isComplete();
+            }
+        });
+        assertTrue(launcherJob.isSuccessful());
+        Configuration conf = new XConfiguration();
+        conf.set("user.name", getTestUser());
+        Map<String, String> actionData = LauncherMapperHelper.getActionData(getFileSystem(), context.getActionDir(),
+                conf);
+        assertFalse(LauncherMapperHelper.hasIdSwap(actionData));
+        Hive2ActionExecutor ae = new Hive2ActionExecutor();
+        ae.check(context, context.getAction());
+        assertTrue(launcherId.equals(context.getAction().getExternalId()));
+        assertEquals("FAILED/KILLED", context.getAction().getExternalStatus());
+        ae.end(context, context.getAction());
+        assertEquals(WorkflowAction.Status.ERROR, context.getAction().getStatus());
+        // This is empty because no external job got launched.
+        assertTrue(context.getAction().getExternalChildIDs().trim().isEmpty());
+    }
+
     private RunningJob submitAction(Context context, Namespace ns) throws Exception {
         Hive2ActionExecutor ae = new Hive2ActionExecutor();
 
