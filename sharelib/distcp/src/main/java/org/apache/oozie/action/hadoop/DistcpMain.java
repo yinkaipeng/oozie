@@ -39,6 +39,8 @@ public class DistcpMain extends JavaMain {
     private Object[] constArgs;
     private static final String DISTCP_LOG4J_PROPS = "distcp-log4j.properties";
     private static final Pattern[] DISTCP_JOB_IDS_PATTERNS = {
+            Pattern.compile("Job complete: (job_\\S*)"),
+            Pattern.compile("Job (job_\\S*) completed successfully"),
             Pattern.compile("Submitted application (application[0-9_]*)")
     };
     public static void main(String[] args) throws Exception {

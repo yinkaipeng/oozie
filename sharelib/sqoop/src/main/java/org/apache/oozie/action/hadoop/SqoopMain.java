@@ -37,6 +37,8 @@ public class SqoopMain extends LauncherMain {
     public static final String SQOOP_SITE_CONF = "sqoop-site.xml";
 
     private static final Pattern[] SQOOP_JOB_IDS_PATTERNS = {
+            Pattern.compile("Job complete: (job_\\S*)"),
+            Pattern.compile("Job (job_\\S*) completed successfully"),
             Pattern.compile("Submitted application (application[0-9_]*)")
     };
 
