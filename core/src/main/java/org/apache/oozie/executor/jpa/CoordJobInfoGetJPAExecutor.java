@@ -65,7 +65,7 @@ public class CoordJobInfoGetJPAExecutor implements JPAExecutor<CoordinatorJobInf
     public CoordinatorJobInfo execute(EntityManager em) throws JPAExecutorException {
         List<String> orArray = new ArrayList<String>();
         List<String> colArray = new ArrayList<String>();
-        List<String> valArray = new ArrayList<String>();
+        List<Object> valArray = new ArrayList<Object>();
         StringBuilder sb = new StringBuilder("");
 
         StoreStatusFilter.filter(filter, orArray, colArray, valArray, sb, StoreStatusFilter.coordSeletStr,

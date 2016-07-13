@@ -18,10 +18,15 @@
 
 package org.apache.oozie.store;
 
+import java.sql.Timestamp;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.oozie.ErrorCode;
 import org.apache.oozie.client.OozieClient;
+import org.apache.oozie.executor.jpa.JPAExecutorException;
+import org.apache.oozie.util.DateUtils;
 import org.apache.oozie.util.XLog;
 
 public class StoreStatusFilter {
@@ -38,7 +43,7 @@ public class StoreStatusFilter {
     public static final String bundleCountStr = "Select count(w) from BundleJobBean w";
 
     public static void filter(Map<String, List<String>> filter, List<String> orArray, List<String> colArray,
-            List<String> valArray, StringBuilder sb, String seletStr, String countStr) {
+            List<Object> valArray, StringBuilder sb, String seletStr, String countStr) throws JPAExecutorException {
         boolean isStatus = false;
         boolean isAppName = false;
         boolean isUser = false;
@@ -247,9 +252,107 @@ public class StoreStatusFilter {
                                 colArray.add(colVar);
                             }
                         }
+                        else if (entry.getKey().equalsIgnoreCase(OozieClient.FILTER_CREATED_TIME_START)) {
+                            List<String> values = filter.get(OozieClient.FILTER_CREATED_TIME_START);
+                            colName = "createdTimestampStart";
+                            if (values.size() > 1) {
+                                throw new JPAExecutorException(ErrorCode.E0302,
+                                        "cannot specify multiple startcreatedtime");
+                            }
+                            colVar = colName;
+                            colVar = colVar + index;
+                            if (!isEnabled) {
+                                sb.append(seletStr).append(" where w.createdTimestamp >= :" + colVar);
+                                isEnabled = true;
+                            }
+                            else {
+                                sb.append(" and w.createdTimestamp >= :" + colVar);
+                            }
+                            index++;
+                            Date createdTime = null;
+                            try {
+                                createdTime = parseCreatedTimeString(values.get(0));
+                            }
+                            catch (Exception e) {
+                                throw new JPAExecutorException(ErrorCode.E0302, e.getMessage());
+                            }
+                            Timestamp createdTimeStamp = new Timestamp(createdTime.getTime());
+                            valArray.add(createdTimeStamp);
+                            orArray.add(colName);
+                            colArray.add(colVar);
+
+                        }
+                        else if (entry.getKey().equalsIgnoreCase(OozieClient.FILTER_CREATED_TIME_END)) {
+                            List<String> values = filter.get(OozieClient.FILTER_CREATED_TIME_END);
+                            colName = "createdTimestampEnd";
+                            if (values.size() > 1) {
+                                throw new JPAExecutorException(ErrorCode.E0302,
+                                        "cannot specify multiple endcreatedtime");
+                            }
+                            colVar = colName;
+                            colVar = colVar + index;
+                            if (!isEnabled) {
+                                sb.append(seletStr).append(" where w.createdTimestamp <= :" + colVar);
+                                isEnabled = true;
+                            }
+                            else {
+                                sb.append(" and w.createdTimestamp <= :" + colVar);
+                            }
+                            index++;
+                            Date createdTime = null;
+                            try {
+                                createdTime = parseCreatedTimeString(values.get(0));
+                            }
+                            catch (Exception e) {
+                                throw new JPAExecutorException(ErrorCode.E0302, e.getMessage());
+                            }
+                            Timestamp createdTimeStamp = new Timestamp(createdTime.getTime());
+                            valArray.add(createdTimeStamp);
+                            orArray.add(colName);
+                            colArray.add(colVar);
+                        }
                     }
                 }
             }
         }
     }
+
+    private static Date parseCreatedTimeString(String time) throws Exception{
+        Date createdTime = null;
+        int offset = 0;
+        if (Character.isLetter(time.charAt(time.length() - 1))) {
+            switch (time.charAt(time.length() - 1)) {
+                case 'd':
+                    offset = Integer.parseInt(time.substring(0, time.length() - 1));
+                    if(offset > 0) {
+                        throw new IllegalArgumentException("offset must be minus from currentTime");
+                    }
+                    createdTime = org.apache.commons.lang.time.DateUtils.addDays(new Date(), offset);
+                    break;
+                case 'h':
+                    offset =  Integer.parseInt(time.substring(0, time.length() - 1));
+                    if(offset > 0) {
+                        throw new IllegalArgumentException("offset must be minus from currentTime");
+                    }
+                    createdTime = org.apache.commons.lang.time.DateUtils.addHours(new Date(), offset);
+                    break;
+                case 'm':
+                    offset =  Integer.parseInt(time.substring(0, time.length() - 1));
+                    if(offset > 0) {
+                        throw new IllegalArgumentException("offset must be minus from currentTime");
+                    }
+                    createdTime = org.apache.commons.lang.time.DateUtils.addMinutes(new Date(), offset);
+                    break;
+                case 'Z':
+                    createdTime = DateUtils.parseDateUTC(time);
+                    break;
+                default:
+                    throw new IllegalArgumentException("Unsupported time format " + time);
+            }
+        } else {
+            throw new IllegalArgumentException("the format of createdTime is wrong: " + time);
+        }
+        return createdTime;
+    }
+
 }
