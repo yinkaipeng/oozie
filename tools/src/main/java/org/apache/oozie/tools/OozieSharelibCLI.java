@@ -182,6 +182,68 @@ public class OozieSharelibCLI {
                 fs.copyFromLocalFile(false, srcPath, dstPath);
             }
 
+            // Special handling for spark sharelib
+            if (sharelibAction.equals(CREATE_CMD) || sharelibAction.equals(UPGRADE_CMD)) {
+                System.out.println("Fixing oozie spark sharelib");
+                String canonicalOozieHome = new File(oozieHome).getCanonicalPath();
+                File sparkHome = new File(canonicalOozieHome, "../spark");
+
+                if (sparkHome.exists()) {
+                    System.out.println("Spark is locally installed at " + sparkHome);
+                    // Update sharelib correctly
+                    System.out.println("Renaming spark to spark_orig in " + dstPath.toString());
+                    fs.rename(new Path(dstPath, "spark"), new Path(dstPath, "spark_orig"));
+                    System.out.println("Creating new  spark directory in " + dstPath.toString());
+
+                    Path sparkTarget = new Path(dstPath, "spark");
+                    fs.mkdirs(sparkTarget);
+                    File sparkSrcFile = new File(srcFile, "spark");
+
+                    System.out.println("Copying Oozie spark sharelib jar to " + sparkTarget.toString());
+                    for (final File file : sparkSrcFile.listFiles()) {
+                        if (file.getName().startsWith("oozie-sharelib-spark")) {
+                            System.out.println("Copying " + file.toString() + " to " + sparkTarget.toString());
+                            fs.copyFromLocalFile(false, new Path(file.toString()), sparkTarget);
+                        }
+                    }
+
+                    System.out.println("Copying local spark libraries to " + sparkTarget.toString());
+
+                    File localSparkLib = new File(sparkHome, "lib");
+                    if (localSparkLib.exists()) {
+                         for (final File file : localSparkLib.listFiles()) {
+                             if (!FileUtils.isSymlink(file) && !file.getName().startsWith("spark-examples")) {
+                                System.out.println("Copying " + file.toString() + " to " + sparkTarget.toString());
+                                fs.copyFromLocalFile(false, new Path(file.toString()), sparkTarget);
+                             } else {
+                                 System.out.println("Ignoring file " + file.toString());
+                             }
+                         }
+                    }
+
+                    System.out.println("Copying local spark python libraries to " + sparkTarget.toString());
+
+                    File localSparkPythonLib = new File(sparkHome, "python/lib");
+                    if (localSparkPythonLib.exists()) {
+                        for (final File file : localSparkPythonLib.listFiles()) {
+                            if (file.getName().endsWith(".zip") || file.getName().endsWith(".jar"))  {
+                                System.out.println("Copying " + file.toString() + " to " + sparkTarget.toString());
+                                fs.copyFromLocalFile(false, new Path(file.toString()), sparkTarget);
+                            } else {
+                                System.out.println("Ignoring file " + file.toString());
+                            }
+                        }
+                    }
+
+                    System.out.println("Copying local spark hive site to " + sparkTarget.toString());
+
+                    File sparkHiveSite = new File("/etc/spark/conf/hive-site.xml");
+                    if (sparkHiveSite.exists()) {
+                        System.out.println("Copying " + sparkHiveSite.toString() + " to " + sparkTarget.toString());
+                        fs.copyFromLocalFile(false, new Path(sparkHiveSite.toString()), sparkTarget);
+                    }
+                }
+            }
             services.destroy();
             FileUtils.deleteDirectory(temp);
 
