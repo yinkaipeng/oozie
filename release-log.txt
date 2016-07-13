@@ -1,5 +1,6 @@
 -- Oozie 4.3.0 release (trunk - unreleased)
 
+OOZIE-2581 Oozie should reset SecurityManager in finally block (satishsaley via rohini)
 OOZIE-2572 SLA DURATION miss not shown when job is running for longer than expected time (satishsaley via puru)
 OOZIE-2552 Update ActiveMQ version for security and other fixes (asasvari via rkanter)
 OOZIE-2539 Incorrect property key is used for 'hive log4j configuration file for execution mode' (abhishekbafna via jaydeepvishwakarma)
