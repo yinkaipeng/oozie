@@ -164,7 +164,14 @@ public class SubmitXCommand extends WorkflowXCommand<String> {
             if (defaultConf != null) {
                 XConfiguration resolveDefaultConf = new XConfiguration();
                 for (Map.Entry<String, String> entry : defaultConf) {
-                    resolveDefaultConf.set(entry.getKey(), conf.get(entry.getKey()));
+                    // if value is referencing some other key, first check within the default config to resolve,
+                    // second workflow conf (job.properties/coord conf).
+                    // This will not handle if value contains keys from both config-default and workflow conf.
+                    if (entry.getValue().contains("$") && defaultConf.get(entry.getKey()).contains("$")) {
+                        resolveDefaultConf.set(entry.getKey(), conf.get(entry.getKey()));
+                    } else {
+                        resolveDefaultConf.set(entry.getKey(), defaultConf.get(entry.getKey()));
+                    }
                 }
                 defaultConf = resolveDefaultConf;
             }
