@@ -124,6 +124,8 @@ public class MiniHCatServer {
 
     private void startMetastoreServer() throws Exception {
         final HiveConf serverConf = new HiveConf(hadoopConf, this.getClass());
+        serverConf.set("datanucleus.schema.autoCreateTables", "true");
+        serverConf.set("hive.metastore.schema.verification", "false");
         serverConf.set("hive.metastore.local", "false");
         serverConf.set(HiveConf.ConfVars.METASTORECONNECTURLKEY.varname, "jdbc:derby:target/metastore_db;create=true");
         //serverConf.set(HiveConf.ConfVars.METASTORE_EVENT_LISTENERS.varname, NotificationListener.class.getName());
