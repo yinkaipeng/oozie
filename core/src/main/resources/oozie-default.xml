@@ -2868,4 +2868,12 @@ will be the requeue interval for the actions which are waiting for a long time w
         </description>
     </property>
 
+    <property>
+        <name>oozie.service.ConfigurationService.xframe.filter.enabled</name>
+        <value>false</value>
+        <description>
+            XFrame filter is disabled by default.
+        </description>
+    </property>
+
 </configuration>

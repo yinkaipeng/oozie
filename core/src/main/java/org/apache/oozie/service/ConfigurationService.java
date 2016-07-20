@@ -76,6 +76,8 @@ public class ConfigurationService implements Service, Instrumentable {
 
     public static final String CSRF_PROPERTY = CONF_PREFIX + "csrf.filter.enabled";
 
+    public static final String XFRAME_PROPERTY = CONF_PREFIX + "xframe.filter.enabled";
+
     /**
      * System property that indicates the configuration directory.
      */

@@ -274,7 +274,8 @@ public class TestConfigurationService extends XTestCase {
 
         assertEquals(7, ConfigurationService.getInt(ShareLibService.LAUNCHERJAR_LIB_RETENTION));
         assertEquals(5000, ConfigurationService.getInt(SLAService.CONF_CAPACITY));
-
+        assertFalse(ConfigurationService.getBoolean(ConfigurationService.CSRF_PROPERTY));
+        assertFalse(ConfigurationService.getBoolean(ConfigurationService.XFRAME_PROPERTY));
         cl.destroy();
     }
 
