@@ -31,7 +31,6 @@ import java.io.IOException;
 
 public class OozieCSRFFilter extends RestCsrfPreventionFilter {
 
-    private static final String CSRF_PROPERTY = "oozie.service.ConfigurationService.csrf.filter.enabled";
     private static final XLog LOG = XLog.getLog(OozieCSRFFilter.class);
 
     @Override
@@ -42,7 +41,7 @@ public class OozieCSRFFilter extends RestCsrfPreventionFilter {
     @Override
     public void doFilter(ServletRequest request, ServletResponse response,
                          final FilterChain chain) throws IOException, ServletException {
-        boolean isCSRFEnabled = ConfigurationService.getBoolean(CSRF_PROPERTY);
+        boolean isCSRFEnabled = ConfigurationService.getBoolean(ConfigurationService.CSRF_PROPERTY);
         LOG.debug("Oozie CSRF filter enabled status: {}", isCSRFEnabled);
         if (isCSRFEnabled) {
             super.doFilter(request, response, chain);
