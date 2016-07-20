@@ -304,7 +304,7 @@ public class TestSubmitXCommand extends XDataTestCase {
         defaultConf.set("outputDir", "default-output-dir");
         defaultConf.set("foo.bar", "default-foo-bar");
         defaultConf.set("foobarRef", "${foo.bar}");
-        defaultConf.set("outputDir", "default-output-dir");
+        defaultConf.set("key", "default_value");
         defaultConf.set("should_resolve", "${should.resolve}");
         defaultConf.writeXml(os);
         os.close();
@@ -338,6 +338,8 @@ public class TestSubmitXCommand extends XDataTestCase {
         Configuration conf = new XConfiguration();
         conf.set("nameNode", getNameNodeUri());
         conf.set("jobTracker", getJobTrackerUri());
+        conf.set("foobarRef", "foobarRef");
+        conf.set("key", "job_prop_value");
         conf.set(OozieClient.APP_PATH, workflowUri);
         conf.set(OozieClient.USER_NAME, getTestUser());
         conf.set("should.resolve", "resolved");
@@ -356,6 +358,7 @@ public class TestSubmitXCommand extends XDataTestCase {
         assertEquals("resolved", actionConf.get("should_resolve"));
         assertEquals("default-foo-bar", actionConf.get("foo.bar"));
         assertEquals("default-foo-bar", actionConf.get("foobarRef"));
+        assertEquals("default_value", actionConf.get("key"));
     }
 
     private void writeToFile(String appXml, String appPath) throws IOException {
