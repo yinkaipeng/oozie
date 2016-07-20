@@ -2861,6 +2861,14 @@ will be the requeue interval for the actions which are waiting for a long time w
     </property>
 
     <property>
+        <name>oozie.service.ConfigurationService.csrf.filter.enabled</name>
+        <value>false</value>
+        <description>
+            Oozie CSRF filter is disabled by default.
+        </description>
+    </property>
+
+    <property>
         <name>oozie.service.ConfigurationService.xframe.filter.enabled</name>
         <value>false</value>
         <description>
