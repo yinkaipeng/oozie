@@ -31,7 +31,6 @@ import java.io.IOException;
 
 public class OozieXFrameOptionsFilter extends XFrameOptionsFilter {
 
-    private static final String XFRAME_PROPERTY = "oozie.service.ConfigurationService.xframe.filter.enabled";
     private static final XLog LOG = XLog.getLog(OozieXFrameOptionsFilter.class);
 
     @Override
@@ -41,7 +40,7 @@ public class OozieXFrameOptionsFilter extends XFrameOptionsFilter {
 
     @Override
     public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain) throws IOException, ServletException {
-        boolean isXFrameEnable = ConfigurationService.getBoolean(XFRAME_PROPERTY);
+        boolean isXFrameEnable = ConfigurationService.getBoolean(ConfigurationService.XFRAME_PROPERTY);
         LOG.debug("Oozie XFrame-Option filter enabled status: {}", isXFrameEnable);
         if (isXFrameEnable) {
             super.doFilter(req, res, chain);

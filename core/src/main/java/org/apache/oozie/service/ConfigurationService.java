@@ -74,6 +74,8 @@ public class ConfigurationService implements Service, Instrumentable {
 
     public static final String CONF_VERIFY_AVAILABLE_PROPS = CONF_PREFIX + "verify.available.properties";
 
+    public static final String XFRAME_PROPERTY = CONF_PREFIX + "xframe.filter.enabled";
+
     /**
      * System property that indicates the configuration directory.
      */
