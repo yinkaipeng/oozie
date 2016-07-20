@@ -217,7 +217,7 @@
 
     <filter>
         <filter-name>CsrfFilter</filter-name>
-        <filter-class>org.apache.hadoop.security.http.RestCsrfPreventionFilter</filter-class>
+        <filter-class>org.apache.oozie.servlet.OozieCSRFFilter</filter-class>
     </filter>
 
     <filter-mapping>
