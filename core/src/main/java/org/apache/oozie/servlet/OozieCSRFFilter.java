@@ -22,12 +22,16 @@ import org.apache.hadoop.security.http.RestCsrfPreventionFilter;
 import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.util.XLog;
 
-import javax.servlet.*;
+import javax.servlet.FilterChain;
+import javax.servlet.FilterConfig;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
 import java.io.IOException;
 
 public class OozieCSRFFilter extends RestCsrfPreventionFilter {
 
-    private static final String CSRF_PROPERTY = "oozie.filter.csrf.enable";
+    private static final String CSRF_PROPERTY = "oozie.service.ConfigurationService.csrf.filter.enabled";
     private static final XLog LOG = XLog.getLog(OozieCSRFFilter.class);
 
     @Override
