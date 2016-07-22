@@ -42,7 +42,7 @@ public class OozieCSRFFilter extends RestCsrfPreventionFilter {
     public void doFilter(ServletRequest request, ServletResponse response,
                          final FilterChain chain) throws IOException, ServletException {
         boolean isCSRFEnabled = ConfigurationService.getBoolean(ConfigurationService.CSRF_PROPERTY);
-        LOG.debug("Oozie CSRF filter enabled status: {}", isCSRFEnabled);
+        LOG.debug("Oozie CSRF filter enabled status: " + isCSRFEnabled);
         if (isCSRFEnabled) {
             super.doFilter(request, response, chain);
         } else {
