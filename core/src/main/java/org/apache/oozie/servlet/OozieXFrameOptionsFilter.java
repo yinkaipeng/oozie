@@ -41,7 +41,7 @@ public class OozieXFrameOptionsFilter extends XFrameOptionsFilter {
     @Override
     public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain) throws IOException, ServletException {
         boolean isXFrameEnable = ConfigurationService.getBoolean(ConfigurationService.XFRAME_PROPERTY);
-        LOG.debug("Oozie XFrame-Option filter enabled status: {}", isXFrameEnable);
+        LOG.debug("Oozie XFrame-Option filter enabled status: " + isXFrameEnable);
         if (isXFrameEnable) {
             super.doFilter(req, res, chain);
         } else {
