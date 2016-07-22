@@ -415,6 +415,7 @@ public class HadoopAccessorService implements Service {
 
         File actionConfFile = new File(dir, action + ".xml");
         if (actionConfFile.exists()) {
+            LOG.info("Processing configuration file [{0}]", actionConfFile.getName());
             try {
                 XConfiguration conf = new XConfiguration(new FileInputStream(actionConfFile));
                 XConfiguration.copy(conf, actionConf);
