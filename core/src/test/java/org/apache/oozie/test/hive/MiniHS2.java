@@ -98,7 +98,12 @@ public class MiniHS2 extends AbstractHiveService {
     for (Map.Entry<String, String> entry : confOverlay.entrySet()) {
       setConfProperty(entry.getKey(), entry.getValue());
     }
-    hiveServer2.init(getHiveConf());
+    HiveConf hiveConf = getHiveConf();
+    hiveConf.set("datanucleus.autoCreateTables", "true");
+    hiveConf.set("hive.metastore.schema.verification", "false");
+    hiveConf.set("datanucleus.fixedDatastore", "false");
+    hiveConf.set("datanucleus.autoCreateSchema", "true");
+    hiveServer2.init(hiveConf);
     hiveServer2.start();
     waitForStartup();
     setStarted(true);
@@ -198,7 +203,7 @@ public class MiniHS2 extends AbstractHiveService {
         throw new TimeoutException("Couldn't access new HiveServer2: " + getJdbcURL());
       }
       try {
-        sessionHandle = hs2Client.openSession("foo", "bar");
+        sessionHandle = hs2Client.openSession(System.getProperty("user.name", "foo"), "bar");
       } catch (Exception e) {
         // service not started yet
         continue;

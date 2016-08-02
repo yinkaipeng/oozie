@@ -1236,7 +1236,7 @@ public class TestOozieCLI extends DagServletTestCase {
                 String[] args = new String[] {"sla", "-oozie", oozieUrl, "-len", "1" };
 
                 String out = runOozieCLIAndGetStderr(args);
-                assertTrue(out.contains("Could not authenticate, Authentication failed, status: 404, message: Not Found"));
+                assertTrue(out.contains("Error: IO_ERROR : java.io.IOException"));
 
                 return null;
             }
