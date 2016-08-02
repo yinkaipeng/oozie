@@ -2876,4 +2876,27 @@ will be the requeue interval for the actions which are waiting for a long time w
         </description>
     </property>
 
+    <property>
+        <name>oozie.service.ConfigurationService.csrf.filter.header</name>
+        <value>OOZIE-CSRF-HEADER</value>
+        <description>
+            Default CSRF header name.
+        </description>
+    </property>
+
+    <property>
+        <name>oozie.service.ConfigurationService.csrf.filter.ignore.method</name>
+        <value>GET,OPTIONS,HEAD,TRACE</value>
+        <description>
+            Default CSRF allowed methods.
+        </description>
+    </property>
+
+    <property>
+        <name>oozie.service.ConfigurationService.csrf.filter.browser.agents</name>
+        <value>^Mozilla.*,^Opera.*</value>
+        <description>
+            Default CSRF browser supported.
+        </description>
+    </property>
 </configuration>

@@ -76,6 +76,12 @@ public class ConfigurationService implements Service, Instrumentable {
 
     public static final String CSRF_PROPERTY = CONF_PREFIX + "csrf.filter.enabled";
 
+    public static final String CSRF_HEADER = CONF_PREFIX + "csrf.filter.header";
+
+    public static final String CSRF_IGNORE_METHODS = CONF_PREFIX + "csrf.filter.ignore.method";
+
+    public static final String CSRF_BROWSER_AGENTS = CONF_PREFIX + "csrf.filter.browser.agents";
+
     public static final String XFRAME_PROPERTY = CONF_PREFIX + "xframe.filter.enabled";
 
     /**
