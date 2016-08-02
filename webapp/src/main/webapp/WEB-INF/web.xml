@@ -218,6 +218,11 @@
         <url-pattern>/v0/*</url-pattern>
     </filter-mapping>
 
+    <filter>
+        <filter-name>XFrameFilter</filter-name>
+        <filter-class>org.apache.oozie.servlet.OozieXFrameOptionsFilter</filter-class>
+    </filter>
+
     <filter-mapping>
         <filter-name>authenticationfilter</filter-name>
         <url-pattern>/v1/*</url-pattern>
@@ -253,4 +258,8 @@
         <url-pattern>/docs/*</url-pattern>
     </filter-mapping>
 
+	<filter-mapping>
+		<filter-name>XFrameFilter</filter-name>
+		<url-pattern>/*</url-pattern>
+	</filter-mapping>
 </web-app>

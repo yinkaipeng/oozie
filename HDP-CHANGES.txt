@@ -1,4 +1,5 @@
 Patches in HDP 2.4, but not in apache oozie-4.2.0
+OOZIE-2614 Add XFrame Filter for REST APIs
 OOZIE-2350 Package changes for release (shwethags)
 OOZIE-1837 LauncherMainHadoopUtils sensitive to clock skew (rkanter)
 OOZIE-2492 JSON security issue in js code

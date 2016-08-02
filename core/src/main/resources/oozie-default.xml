@@ -2579,4 +2579,12 @@
             Set it false if there is any security concern.
         </description>
     </property>
+
+	<property>
+		<name>oozie.service.ConfigurationService.xframe.filter.enabled</name>
+		<value>false</value>
+		<description>
+			XFrame filter is disabled by default.
+		</description>
+	</property>
 </configuration>
