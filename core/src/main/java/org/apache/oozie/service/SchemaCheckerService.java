@@ -43,6 +43,7 @@ public class SchemaCheckerService implements Service, Instrumentable {
         dbType = dbType.substring(0, dbType.indexOf(":"));
 
         int interval = ConfigurationService.getInt(CONF_INTERVAL);
+        int intervalInSec = interval * 60 * 60;
         if (dbType.equals("derby") || dbType.equals("hsqldb") || dbType.equals("sqlserver") || interval <= 0) {
             LOG.debug("SchemaCheckerService is disabled: not supported for {0}", dbType);
             status = "DISABLED (" + dbType + " no supported)";
@@ -58,7 +59,7 @@ public class SchemaCheckerService implements Service, Instrumentable {
                 throw new ServiceException(ErrorCode.E0100, getClass().getName(), ex);
             }
             Runnable schemaCheckerRunnable = new SchemaCheckerRunnable(dbType, url, user, pass, ignoreExtras);
-            services.get(SchedulerService.class).schedule(schemaCheckerRunnable, 0, interval, SchedulerService.Unit.HOUR);
+            services.get(SchedulerService.class).schedule(schemaCheckerRunnable, 5, intervalInSec, SchedulerService.Unit.SEC);
         }
     }
 
