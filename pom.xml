@@ -21,7 +21,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.apache.oozie</groupId>
     <artifactId>oozie-main</artifactId>
-    <version>4.1.0</version>
+    <version>4.1.0.2.2.6.19-2</version>
     <description>Apache Oozie Main</description>
     <name>Apache Oozie Main</name>
     <packaging>pom</packaging>
@@ -73,12 +73,12 @@
         </oozie.test.default.config.file>
         <oozie.test.config.file>${oozie.test.default.config.file}</oozie.test.config.file>
 
-        <hadoop.version>1.1.1</hadoop.version>
-        <hbase.version>0.95.2</hbase.version>
+        <hadoop.version>2.6.0.2.2.6.19-2</hadoop.version>
+        <hbase.version>0.98.4.2.2.6.19-2-hadoop2</hbase.version>
 
-        <hcatalog.version>0.13.1</hcatalog.version>
+        <hcatalog.version>0.14.0.2.2.6.19-2</hcatalog.version>
         <hadoopOne.version>1.1.1</hadoopOne.version>
-        <hadoopTwo.version>2.4.0</hadoopTwo.version>
+        <hadoopTwo.version>2.6.0.2.2.6.19-2</hadoopTwo.version>
         <hadoopThree.version>3.0.0-SNAPSHOT</hadoopThree.version> 
         
 
@@ -91,14 +91,14 @@
         This is required while we support a a pre 0.23 version of Hadoop which does not have
         the hadoop-auth artifact. After we phase-out pre 0.23 we can get rid of this property.
         -->
-        <hadoop.auth.version>2.4.0</hadoop.auth.version>
+        <hadoop.auth.version>2.6.0.2.2.6.19-2</hadoop.auth.version>
 
          <!-- Sharelib component versions -->
-         <hive.version>0.13.1</hive.version>
-         <tez.version>0.3.0-incubating</tez.version>
-         <pig.version>0.10.1</pig.version>
+         <hive.version>0.14.0.2.2.6.19-2</hive.version>
+         <tez.version>0.5.2.2.2.6.19-2</tez.version>
+         <pig.version>0.14.0.2.2.6.19-2</pig.version>
          <pig.classifier>h2</pig.classifier>
-         <sqoop.version>1.4.3</sqoop.version>
+         <sqoop.version>1.4.5.2.2.6.19-2</sqoop.version>
          <sqoop.classifier>hadoop100</sqoop.classifier>
          <streaming.version>${hadoop.version}</streaming.version>
          <distcp.version>${hadooplib.version}</distcp.version>
@@ -1213,8 +1213,8 @@
                 <activeByDefault>false</activeByDefault>
             </activation>
             <properties>
-               <hadoop.version>0.23.5</hadoop.version>
-               <hadoop.auth.version>0.23.5</hadoop.auth.version>
+               <hadoop.version>2.6.0.2.2.6.19-2</hadoop.version>
+               <hadoop.auth.version>2.6.0.2.2.6.19-2</hadoop.auth.version>
                <pig.classifier>h2</pig.classifier>
                <sqoop.classifier>hadoop23</sqoop.classifier>
             </properties>
@@ -1225,8 +1225,8 @@
                 <activeByDefault>false</activeByDefault>
             </activation>
             <properties>
-               <hadoop.version>${hadoopTwo.version}</hadoop.version>
-               <hadoop.auth.version>${hadoopTwo.version}</hadoop.auth.version>
+               <hadoop.version>2.6.0.2.2.6.19-2</hadoop.version>
+               <hadoop.auth.version>2.6.0.2.2.6.19-2</hadoop.auth.version>
                <pig.classifier>h2</pig.classifier>
                <sqoop.classifier>hadoop200</sqoop.classifier>
             </properties>
@@ -1237,8 +1237,8 @@
                 <activeByDefault>false</activeByDefault>
             </activation>
             <properties>
-               <hadoop.version>3.0.0-SNAPSHOT</hadoop.version>
-               <hadoop.auth.version>3.0.0-SNAPSHOT</hadoop.auth.version>
+               <hadoop.version>2.6.0.2.2.6.19-2</hadoop.version>
+               <hadoop.auth.version>2.6.0.2.2.6.19-2</hadoop.auth.version>
                <pig.classifier>h2</pig.classifier>
                <sqoop.classifier>hadoop200</sqoop.classifier>
             </properties>
