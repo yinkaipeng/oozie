@@ -29,6 +29,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
 import org.apache.hadoop.hive.metastore.HiveMetaStore;
@@ -87,6 +88,7 @@ public class MiniHS2 extends AbstractHiveService {
 
     Path scratchDir = new Path(baseDfsDir, "scratch");
     fs.mkdirs(scratchDir);
+    fs.setPermission(scratchDir, new FsPermission((short)0777));
     System.setProperty(HiveConf.ConfVars.SCRATCHDIR.varname, scratchDir.toString());
     System.setProperty(HiveConf.ConfVars.LOCALSCRATCHDIR.varname,
         baseDir.getPath() + File.separator + "scratch");
