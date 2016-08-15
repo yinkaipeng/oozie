@@ -43,10 +43,9 @@ public class SchemaCheckerService implements Service, Instrumentable {
         dbType = dbType.substring(0, dbType.indexOf(":"));
 
         int interval = ConfigurationService.getInt(CONF_INTERVAL);
-        int intervalInSec = interval * 60 * 60;
         if (dbType.equals("derby") || dbType.equals("hsqldb") || dbType.equals("sqlserver") || interval <= 0) {
             LOG.debug("SchemaCheckerService is disabled: not supported for {0}", dbType);
-            status = "DISABLED (" + dbType + " no supported)";
+            status = "DISABLED (" + dbType + " not supported)";
         } else {
             String driver = ConfigurationService.get(JPAService.CONF_DRIVER);
             String user = ConfigurationService.get(JPAService.CONF_USERNAME);
@@ -59,7 +58,7 @@ public class SchemaCheckerService implements Service, Instrumentable {
                 throw new ServiceException(ErrorCode.E0100, getClass().getName(), ex);
             }
             Runnable schemaCheckerRunnable = new SchemaCheckerRunnable(dbType, url, user, pass, ignoreExtras);
-            services.get(SchedulerService.class).schedule(schemaCheckerRunnable, 5, intervalInSec, SchedulerService.Unit.SEC);
+            services.get(SchedulerService.class).schedule(schemaCheckerRunnable, 0, interval, SchedulerService.Unit.HOUR);
         }
     }
 
@@ -97,7 +96,7 @@ public class SchemaCheckerService implements Service, Instrumentable {
         lastCheck = time.toString();
     }
 
-    static class SchemaCheckerRunnable implements Runnable {
+    class SchemaCheckerRunnable implements Runnable {
         private String dbType;
         private String url;
         private String user;
@@ -118,8 +117,8 @@ public class SchemaCheckerService implements Service, Instrumentable {
                 Services.get().get(CallableQueueService.class).queue(
                         new SchemaCheckXCommand(dbType, url, user, pass, ignoreExtras));
             } else {
-                Services.get().get(SchemaCheckerService.class).status = "DISABLED (not leader in HA)";
-                Services.get().get(SchemaCheckerService.class).lastCheck = "N/A";
+                status = "DISABLED (not leader in HA)";
+                lastCheck = "N/A";
             }
         }
     }

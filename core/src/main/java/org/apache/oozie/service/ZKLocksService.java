@@ -82,7 +82,7 @@ public class ZKLocksService extends MemoryLocksService implements Service, Instr
      */
     @Override
     public void destroy() {
-        if (reaper != null && ZKConnectionListener.getZKConnectionState() != ConnectionState.LOST) {
+        if (reaper != null) {
             try {
                 reaper.close();
             }
