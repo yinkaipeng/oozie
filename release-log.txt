@@ -1,5 +1,6 @@
 -- Oozie 4.3.0 release (trunk - unreleased)
 
+OOZIE-2615 Flaky tests TestCoordActionsKillXCommand.testActionKillCommandActionNumbers and testActionKillCommandDate (pbacsko via rkanter)
 OOZIE-2928 Unit Tests using LocalOozie fail randomly (Denes Bodo via pbacsko)
 OOZIE-2781 HCat partition available notification is not sent to coordinator actions if coordinator job is using a different hostname (cname, IP address, etc. ) for HCat URL (puru)
 OOZIE-2807 Oozie gets RM delegation token even for checking job status (satishsaley)
