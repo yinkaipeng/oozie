@@ -1,5 +1,6 @@
 -- Backport and Internal patches --
 
+BUG-80799 Backport OOZIE-2653: Close active connection to hcat server in fs action
 BUG-80798 Backport OOZIE-2623: Oozie should use a dummy OutputFormat
 BUG-80797 Backport OOZIE-2589: CompletedActionXCommand is hardcoded to wrong priority
 BUG-80810 Backport OOZIE-2803: Mask passwords when printing out configs/args in MapReduceMain and SparkMain
