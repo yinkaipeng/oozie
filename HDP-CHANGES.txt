@@ -1,5 +1,6 @@
 -- Backport and Internal patches --
 
+OOZIE-2488 Upgrade to latest OpenJPA version (abhishekbafna via jaydeepvishwakarma)
 BUG-92987 OOZIE-2720 Test failure - TestCoordMaterializeTriggerService#testMaxMatThrottleNotPicked (gezapeti via rohini)
 BUG-92179 OOZIE-3018 Use Hadoop's CredentialProvider for passwords in SchemaCheckerService (andras.piros via gezapeti)
 BUG-90267: Addendum patch
