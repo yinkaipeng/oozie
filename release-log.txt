@@ -1,5 +1,6 @@
 -- Oozie 4.3.0 release (trunk - unreleased)
 
+OOZIE-2552 Update ActiveMQ version for security and other fixes (asasvari via rkanter)
 OOZIE-2539 Incorrect property key is used for 'hive log4j configuration file for execution mode' (abhishekbafna via jaydeepvishwakarma)
 OOZIE-2501 ZK reentrant lock doesn't work for few cases (puru)
 OOZIE-2457 Oozie log parsing regex consume more than 90% cpu (satishsaley)
