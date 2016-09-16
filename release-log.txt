@@ -1,5 +1,6 @@
 -- Oozie 4.3.0 release (trunk - unreleased)
 
+OOZIE-2571 Add spark.scala.binary.version Maven property so that Scala 2.11 can be used (jonathak via rkanter)
 OOZIE-2802 Spark action failure on Spark 2.1.0 due to duplicate sharelibs (gezapeti via rkanter)
 OOZIE-2658 --driver-class-path can overwrite the classpath in SparkMain (gezapeti via rkanter)
 OOZIE-2787 Oozie distributes application jar twice making the spark job fail (satishsaley)
