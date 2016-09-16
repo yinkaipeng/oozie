@@ -1,5 +1,6 @@
 -- Oozie 4.3.0 release (trunk - unreleased)
 
+OOZIE-2571 Add spark.scala.binary.version Maven property so that Scala 2.11 can be used (jonathak via rkanter)
 OOZIE-2923 Improve Spark options parsing (andras.piros via gezapeti)
 OOZIE-2705 Oozie Spark action ignores spark.executor.extraJavaOptions and spark.driver.extraJavaOptions (gezapeti via rkanter)
 OOZIE-2802 Spark action failure on Spark 2.1.0 due to duplicate sharelibs (gezapeti via rkanter)

@@ -72,8 +72,7 @@
         <oozie.data.dir>${oozie.test.dir}</oozie.data.dir>
         <oozie.test.db.host>localhost</oozie.test.db.host>
         <oozie.test.db>hsqldb</oozie.test.db>
-        <oozie.test.default.config.file>${basedir}/src/test/resources/${oozie.test.db}-oozie-site.xml
-        </oozie.test.default.config.file>
+        <oozie.test.default.config.file>${basedir}/src/test/resources/${oozie.test.db}-oozie-site.xml</oozie.test.default.config.file>
         <oozie.test.config.file>${oozie.test.default.config.file}</oozie.test.config.file>
 
         <hadoop.version>1.2.1</hadoop.version>
@@ -97,6 +96,7 @@
          <spark.streaming.kafka.version>1.6.1</spark.streaming.kafka.version>
          <spark.bagel.version>1.6.1</spark.bagel.version>
          <spark.guava.version>14.0.1</spark.guava.version>
+         <spark.scala.binary.version>2.10</spark.scala.binary.version>
          <sqoop.classifier>hadoop100</sqoop.classifier>
          <streaming.version>${hadoop.version}</streaming.version>
          <distcp.version>${hadoop.version}</distcp.version>
