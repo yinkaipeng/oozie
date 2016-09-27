@@ -20,6 +20,7 @@ package org.apache.oozie.lock;
 
 import java.util.UUID;
 import org.apache.oozie.service.MemoryLocksService;
+import org.apache.oozie.service.MemoryLocksService.Type;
 import org.apache.oozie.service.ServiceException;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.test.XTestCase;
@@ -27,6 +28,7 @@ import org.apache.oozie.util.XLog;
 
 public class TestMemoryLocks extends XTestCase {
     private XLog log = XLog.getLog(getClass());
+    public static final int DEFAULT_LOCK_TIMEOUT = 5 * 1000;
 
     private MemoryLocks locks;
 
@@ -96,7 +98,7 @@ public class TestMemoryLocks extends XTestCase {
         }
 
         protected MemoryLocks.MemoryLockToken getLock() throws InterruptedException {
-            return locks.getReadLock(name, timeout);
+            return locks.getLock(name, Type.READ, timeout);
         }
     }
 
@@ -107,7 +109,7 @@ public class TestMemoryLocks extends XTestCase {
         }
 
         protected MemoryLocks.MemoryLockToken getLock() throws InterruptedException {
-            return locks.getWriteLock(name, timeout);
+            return locks.getLock(name, Type.WRITE, timeout);
         }
     }
 
@@ -274,7 +276,7 @@ public class TestMemoryLocks extends XTestCase {
         }
 
         protected MemoryLocks.MemoryLockToken getLock() throws InterruptedException {
-            return locks.getWriteLock(name, timeout);
+            return locks.getLock(name, Type.WRITE, timeout);
         }
 
     }
@@ -316,22 +318,66 @@ public class TestMemoryLocks extends XTestCase {
         MemoryLocksService lockService = new MemoryLocksService();
         try {
             lockService.init(Services.get());
-            LockToken lock = lockService.getWriteLock(path, 5000);
-            lock = (LockToken) lockService.getWriteLock(path, 5000);
-            lock = (LockToken) lockService.getWriteLock(path, 5000);
+            LockToken lock = lockService.getWriteLock(path, DEFAULT_LOCK_TIMEOUT);
+            lock = (LockToken) lockService.getWriteLock(path, DEFAULT_LOCK_TIMEOUT);
+            lock = (LockToken) lockService.getWriteLock(path, DEFAULT_LOCK_TIMEOUT);
             assertEquals(lockService.getMemoryLocks().size(), 1);
             lock.release();
             assertEquals(lockService.getMemoryLocks().size(), 1);
             lock.release();
             assertEquals(lockService.getMemoryLocks().size(), 1);
             lock.release();
-            assertEquals(lockService.getMemoryLocks().size(), 0);
+            checkLockRelease(path, lockService);
         }
         catch (Exception e) {
             fail("Reentrant property, it should have acquired lock");
         }
         finally {
             lockService.destroy();
+        }
+    }
+
+    public void testLocksAreGarbageCollected() throws ServiceException, InterruptedException {
+        String path = new String("a");
+        String path1 = new String("a");
+        MemoryLocksService lockService = new MemoryLocksService();
+        lockService.init(Services.get());
+        LockToken lock = lockService.getWriteLock(path, DEFAULT_LOCK_TIMEOUT);
+        int oldHash = lockService.getMemoryLocks().getLockMap().get(path).hashCode();
+        lock.release();
+        lock = lockService.getWriteLock(path1, DEFAULT_LOCK_TIMEOUT);
+        int newHash = lockService.getMemoryLocks().getLockMap().get(path1).hashCode();
+        assertTrue(oldHash == newHash);
+        lock.release();
+        lock = null;
+        System.gc();
+        path = "a";
+        lock = lockService.getWriteLock(path, DEFAULT_LOCK_TIMEOUT);
+        newHash = lockService.getMemoryLocks().getLockMap().get(path).hashCode();
+        assertFalse(oldHash == newHash);
+
+    }
+
+    public void testLocksAreReused() throws ServiceException, InterruptedException {
+        String path = "a";
+        MemoryLocksService lockService = new MemoryLocksService();
+        lockService.init(Services.get());
+        LockToken lock = lockService.getWriteLock(path, DEFAULT_LOCK_TIMEOUT);
+        int oldHash = System.identityHashCode(lockService.getMemoryLocks().getLockMap().get(path));
+        System.gc();
+        lock.release();
+        lock = lockService.getWriteLock(path, DEFAULT_LOCK_TIMEOUT);
+        assertEquals(lockService.getMemoryLocks().size(), 1);
+        int newHash = System.identityHashCode(lockService.getMemoryLocks().getLockMap().get(path));
+        assertTrue(oldHash == newHash);
+    }
+
+    private void checkLockRelease(String path, MemoryLocksService lockService) {
+        if (lockService.getMemoryLocks().getLockMap().get(path) == null) {
+            // good lock is removed from memory after gc.
+        }
+        else {
+            assertFalse(lockService.getMemoryLocks().getLockMap().get(path).isWriteLocked());
         }
     }
 

@@ -1,5 +1,6 @@
 -- Backport and Internal patches --
 
+BUG-80250 Backport OOZIE-2501: ZK reentrant lock doesn't work for few cases
 BUG-80248 Backport OOZIE-2457: Oozie log parsing regex consume more than 90% cpu OOZIE-2496 Testcase failure due to environment specific line.separator value (abhishekbafna via rkanter)
 BUG-80247 Backport OOZIE-2433: oozie restart required if oozie metrics to graphing tool broken
 BUG-80246 Backport OOZIE-2037: Add TLSv1.1,TLSv1.2
