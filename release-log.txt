@@ -1,6 +1,7 @@
 -- Oozie 4.3.0 release (trunk - unreleased)
 
 
+OOZIE-2582 Populating external child Ids for action failures (abhishekbafna via rohini)
 OOZIE-2571 Add spark.scala.binary.version Maven property so that Scala 2.11 can be used (jonathak via rkanter)
 OOZIE-2908 Fix typo in oozie.actions.null.args.allowed property in oozie-default.xml (gezapeti)
 OOZIE-2872 Address backward compatibility issue introduced by OOZIE-2748 (pbacsko)
