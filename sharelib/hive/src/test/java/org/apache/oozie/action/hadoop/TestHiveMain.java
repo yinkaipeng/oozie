@@ -160,6 +160,7 @@ public class TestHiveMain extends MainTestCase {
             assertTrue(outputDataFile.exists());
             assertTrue(externalChildIdsFile.exists());
             assertNotNull(LauncherMapper.getLocalFileContentStr(outputDataFile, "", -1));
+            assertTrue(externalChildIdsFile.exists());
             assertNotNull(LauncherMapper.getLocalFileContentStr(externalChildIdsFile, "", -1));
 
 //TODO: I cannot figure out why when log file is not created in this testcase, it works when running in Launcher

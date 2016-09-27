@@ -84,6 +84,7 @@ public class DistcpMain extends JavaMain {
             throw new JavaMainException(ex.getCause());
         }
         finally {
+            System.out.println("\n<<< Invocation of DistCp command completed <<<\n");
             writeExternalChildIDs(logFile, DISTCP_JOB_IDS_PATTERNS, "Distcp");
         }
     }

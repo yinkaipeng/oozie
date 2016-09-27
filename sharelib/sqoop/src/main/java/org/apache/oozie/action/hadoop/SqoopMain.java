@@ -38,7 +38,7 @@ public class SqoopMain extends LauncherMain {
 
     private static final Pattern[] SQOOP_JOB_IDS_PATTERNS = {
             Pattern.compile("Job complete: (job_\\S*)"),
-            Pattern.compile("Job (job_\\S*) completed successfully"),
+            Pattern.compile("Job (job_\\S*) has completed successfully"),
             Pattern.compile("Submitted application (application[0-9_]*)")
     };
 
@@ -189,10 +189,7 @@ public class SqoopMain extends LauncherMain {
             }
         }
         finally {
-            System.out.println();
-            System.out.println("<<< Invocation of Sqoop command completed <<<");
-            System.out.println();
-            // harvesting and recording Hadoop Job IDs
+            System.out.println("\n<<< Invocation of Sqoop command completed <<<\n");
             writeExternalChildIDs(logFile, SQOOP_JOB_IDS_PATTERNS, "Sqoop");
         }
     }
