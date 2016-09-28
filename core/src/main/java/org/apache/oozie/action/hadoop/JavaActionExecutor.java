@@ -1424,20 +1424,21 @@ public class JavaActionExecutor extends ActionExecutor {
     protected RunningJob getJobClientWithRetries(WorkflowAction action, JobClient jobClient, JobID jobId) throws IOException {
         RunningJob runningJob = null;
         LogUtils.setLogInfo(action);
+        if (jobId != null) {
+            int retries = 0;
+            while (retries++ < maxGetJobRetries) {
+                LOG.info(XLog.STD, "Trying to get job [{0}], attempt [{1}]", action
+                        .getExternalId(), retries);
+                runningJob = jobClient.getJob(jobId);
 
-        int retries = 0;
-        while(retries++ < maxGetJobRetries){
-            LOG.info(XLog.STD, "Trying to get job [{0}], attempt [{1}]", action
-                    .getExternalId(), retries);
-            runningJob = jobClient.getJob(jobId);
+                if (runningJob != null) {
+                    break;
+                }
 
-            if (runningJob != null){
-                break;
-            }
-
-            try{
-                Thread.sleep(2000);
-            } catch (InterruptedException e) {
+                try {
+                    Thread.sleep(2000);
+                } catch (InterruptedException e) {
+                }
             }
         }
         return runningJob;
