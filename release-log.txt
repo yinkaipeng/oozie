@@ -1,5 +1,7 @@
 -- Oozie 4.3.0 release (trunk - unreleased)
 
+
+OOZIE-2606 Set spark.yarn.jars to fix Spark 2.0 with Oozie (satishsaley via rohini)
 OOZIE-2581 Oozie should reset SecurityManager in finally block (satishsaley via rohini)
 OOZIE-2572 SLA DURATION miss not shown when job is running for longer than expected time (satishsaley via puru)
 OOZIE-2552 Update ActiveMQ version for security and other fixes (asasvari via rkanter)
