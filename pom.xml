@@ -93,6 +93,8 @@
          <pig.classifier>h2</pig.classifier>
          <sqoop.version>1.4.3</sqoop.version>
          <spark.version>1.6.1</spark.version>
+         <spark.streaming.kafka.version>1.6.1</spark.streaming.kafka.version>
+         <spark.bagel.version>1.6.1</spark.bagel.version>
          <spark.guava.version>14.0.1</spark.guava.version>
          <sqoop.classifier>hadoop100</sqoop.classifier>
          <streaming.version>${hadoop.version}</streaming.version>
@@ -1959,6 +1961,7 @@
             </modules>
         </profile>
         <profile>
+<<<<<<< HEAD
             <id>winpkg</id>
             <activation>
                 <activeByDefault>false</activeByDefault>
@@ -2055,6 +2058,28 @@
                     <version>${jackson.databind.version}</version>
                 </dependency>
            </dependencies>
+        </profile>
+        <profile>
+            <id>spark-1</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <spark.version>1.6.1</spark.version>
+                <spark.streaming.kafka.version>1.6.1</spark.streaming.kafka.version>
+                <spark.bagel.version>1.6.1</spark.bagel.version>
+            </properties>
+        </profile>
+        <profile>
+            <id>spark-2</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <properties>
+                <spark.version>2.0.0</spark.version>
+                <spark.streaming.kafka.version>1.6.2</spark.streaming.kafka.version>
+                <spark.bagel.version>1.6.2</spark.bagel.version>
+            </properties>
         </profile>
     </profiles>
 </project>
