@@ -1,5 +1,6 @@
 -- Oozie 4.3.0 release (trunk - unreleased)
 
+OOZIE-2606 Set spark.yarn.jars to fix Spark 2.0 with Oozie (satishsaley via rohini)
 OOZIE-3139 Oozie validates workflow incorrectly (dionusos via pbacsko)
 OOZIE-2720 Test failure - TestCoordMaterializeTriggerService#testMaxMatThrottleNotPicked (gezapeti via rohini)
 OOZIE-3018 Use Hadoop's CredentialProvider for passwords in SchemaCheckerService (andras.piros via gezapeti)
