@@ -51,6 +51,14 @@
             </includes>
             <fileMode>0755</fileMode>
         </fileSet>
+        <fileSet>
+            <directory>${basedir}/src/main/schema</directory>
+            <outputDirectory>/schema</outputDirectory>
+            <includes>
+                <include>*</include>
+            </includes>
+            <fileMode>0755</fileMode>
+        </fileSet>
         <!-- Client -->
         <fileSet>
             <directory>${basedir}/../client/target/oozie-client-${project.version}-client/oozie-client-${project.version}/bin</directory>
