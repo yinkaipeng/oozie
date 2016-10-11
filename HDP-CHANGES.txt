@@ -29,6 +29,7 @@ BUG-69659 Flip the null check condition for preventing NPE
 
 -- Oozie patches since Oozie 4.2.0
 
+OOZIE-2658 --driver-class-path can overwrite the classpath in SparkMain (gezapeti via rkanter)
 OOZIE-2787 Oozie distributes application jar twice making the spark job fail (satishsaley)
 OOZIE-2606 Set spark.yarn.jars to fix Spark 2.0 with Oozie (satishsaley via rohini)
 OOZIE-2436 Fork/join workflow fails with "oozie.action.yarn.tag must not be null" (puru)
