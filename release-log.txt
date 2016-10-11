@@ -1,5 +1,6 @@
 -- Oozie 4.3.0 release (trunk - unreleased)
 
+OOZIE-2658 --driver-class-path can overwrite the classpath in SparkMain (gezapeti via rkanter)
 OOZIE-2748 NPE in LauncherMapper.printArgs() (pbacsko via rkanter)
 OOZIE-2727 OozieDBCLI creates temporary directories and do not delete them (gezapeti via rkanter)
 OOZIE-2724 coord:current resolves monthly/yearly dependencies incorrectly (satishsaley via shwethags)
