@@ -131,6 +131,7 @@ public class WorkflowActionBean implements Writable, WorkflowAction, JsonBean {
     private String statusStr = WorkflowAction.Status.PREP.toString();
 
     @Basic
+    @Index
     @Column(name = "last_check_time")
     private Timestamp lastCheckTimestamp;
 
@@ -147,6 +148,7 @@ public class WorkflowActionBean implements Writable, WorkflowAction, JsonBean {
     private String executionPath = null;
 
     @Basic
+    @Index
     @Column(name = "pending")
     private int pending = 0;
 
