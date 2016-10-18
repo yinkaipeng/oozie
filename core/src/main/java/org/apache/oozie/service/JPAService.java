@@ -196,7 +196,7 @@ public class JPAService implements Service, Instrumentable {
             connProps = MessageFormat.format(connProps, dbSchema);
         }
         else {
-            connProps += ",TestOnBorrow=false,TestOnReturn=false,TestWhileIdle=false";
+            connProps += ",TestOnBorrow=true,TestOnReturn=true,TestWhileIdle=false";
         }
         if (connPropsConfig != null) {
             connProps += "," + connPropsConfig;
