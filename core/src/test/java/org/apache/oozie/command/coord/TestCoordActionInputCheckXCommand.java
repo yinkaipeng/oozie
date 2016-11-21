@@ -618,9 +618,9 @@ public class TestCoordActionInputCheckXCommand extends XDataTestCase {
             Element e1 = (Element) elementList.get(0);
             Element e2 = (Element) elementList.get(1);
             assertEquals(
-                    "file://,testDir/2009/29,file://,testDir/2009/22,file://,testDir/2009/15,file://,testDir/2009/08",
+                    "file://^testDir/2009/29^file://^testDir/2009/22^file://^testDir/2009/15^file://^testDir/2009/08",
                     e1.getChild("value", e1.getNamespace()).getValue());
-            assertEquals("file://,testDir/2009/29", e2.getChild("value", e1.getNamespace()).getValue());
+            assertEquals("file://^testDir/2009/29", e2.getChild("value", e1.getNamespace()).getValue());
 
         }
         catch (Exception e) {

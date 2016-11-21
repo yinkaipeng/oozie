@@ -231,7 +231,7 @@ public class HCatURIHandler implements URIHandler {
 
     }
 
-    private HiveConf getHiveConf(URI uri, Configuration conf){
+    private HiveConf getHiveConf(URI uri, Configuration conf) throws HCatAccessorException {
         HCatAccessorService hcatService = Services.get().get(HCatAccessorService.class);
         if (hcatService.getHCatConf() != null) {
             conf = hcatService.getHCatConf();
@@ -309,8 +309,8 @@ public class HCatURIHandler implements URIHandler {
         }
     }
 
-    private String getMetastoreConnectURI(URI uri) {
-        String metastoreURI;
+    private String getMetastoreConnectURI(URI uri) throws HCatAccessorException {
+        String metastoreURI = "";
         // For unit tests
         if (uri.getAuthority().equals("unittest-local")) {
             metastoreURI = "";
@@ -318,7 +318,12 @@ public class HCatURIHandler implements URIHandler {
         else {
             // Hardcoding hcat to thrift mapping till support for webhcat(templeton)
             // is added
-            metastoreURI = "thrift://" + uri.getAuthority();
+            try {
+                HCatURI hCatURI = new HCatURI(uri.toString());
+                metastoreURI = hCatURI.getServerEndPoint("thrift");
+            } catch (URISyntaxException e) {
+                throw new HCatAccessorException(ErrorCode.E0906, e.getMessage());
+            }
         }
         return metastoreURI;
     }

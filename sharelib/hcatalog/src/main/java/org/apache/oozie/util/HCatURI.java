@@ -53,7 +53,18 @@ public class HCatURI {
         parse(uri);
     }
 
+    private String parseURI(String uri) {
+        int index = uri.indexOf("://");
+        String scheme = uri.substring(0, index+3);
+        uri = uri.replaceAll(scheme, "");
+        uri = scheme.concat(uri);
+        return uri;
+    }
+
     private void parse(URI uri) throws URISyntaxException {
+        String uriStr = uri.toString();
+        uriStr = parseURI(uriStr);
+        uri = new URI(uriStr);
 
         this.uri = uri;
 
@@ -104,11 +115,25 @@ public class HCatURI {
         return uri.toString();
     }
 
+    public String getServerEndPoint(String scheme) {
+        String authority = uri.getAuthority();
+        String[] authorities = authority.split(",");
+        StringBuilder builder = new StringBuilder();
+        for (String auth : authorities) {
+            if (builder.length() != 0) {
+                builder.append(",");
+            }
+            builder.append(scheme);
+            builder.append("://");
+            builder.append(auth);
+        }
+        return builder.toString();
+    }
     /**
      * @return fully qualified server address
      */
     public String getServerEndPoint() {
-        return uri.getScheme() + "://" + uri.getAuthority();
+        return getServerEndPoint(uri.getScheme());
     }
 
     /**

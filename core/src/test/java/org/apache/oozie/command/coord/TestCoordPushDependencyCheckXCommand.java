@@ -200,7 +200,7 @@ public class TestCoordPushDependencyCheckXCommand extends XDataTestCase {
         Element e1 = (Element) elementList.get(0);
         Element e2 = (Element) elementList.get(1);
         assertEquals(
-                "hcat://dummyhcat:1000/db1/table1/ds=/2009-29,hcat://dummyhcat:1000/db1/table1/ds=/2009-29," +
+                "hcat://dummyhcat:1000/db1/table1/ds=/2009-29^hcat://dummyhcat:1000/db1/table1/ds=/2009-29^" +
                 "hcat://dummyhcat:1000/db1/table1/ds=/2009-29",
                 e1.getChild("value", e1.getNamespace()).getValue());
         assertEquals("hcat://dummyhcat:1000/db1/table1/ds=/2009-29", e2.getChild("value", e1.getNamespace()).getValue());
