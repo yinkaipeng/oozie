@@ -55,7 +55,7 @@ public class CoordELFunctions {
     final public static String LATEST_EL_USE_CURRENT_TIME = "oozie.service.ELService.latest-el.use-current-time";
     // INSTANCE_SEPARATOR is used to separate multiple directories into one tag.
     final public static String INSTANCE_SEPARATOR = "#";
-    final public static String DIR_SEPARATOR = "\\^";
+    final public static String DIR_SEPARATOR = ",";
     // TODO: in next release, support flexibility
     private static String END_OF_OPERATION_INDICATOR_FILE = "_SUCCESS";
 
