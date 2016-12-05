@@ -105,7 +105,7 @@ public class LauncherMapper<K1, V1, K2, V2> implements Mapper<K1, V1, K2, V2>, R
                 BufferedReader reader = new BufferedReader(new InputStreamReader(is));
                 String id = reader.readLine();
                 reader.close();
-                if (id.isEmpty() || id == null) {
+                if (id == null || id.isEmpty()) {
                     java.io.Writer writer = new OutputStreamWriter(fs.create(path));
                     writer.write(jobId);
                     writer.close();
