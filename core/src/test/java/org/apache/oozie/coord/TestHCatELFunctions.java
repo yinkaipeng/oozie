@@ -556,6 +556,27 @@ public class TestHCatELFunctions extends XHCatTestCase {
         }
     }
 
+    @Test
+    public void testSplitHCatUris() {
+        String uri = "hcat://hostname1:1000,hcat://hostname2:2000/mydb/clicks/datastamp=12;region=us,scheme://hostname3:3000," +
+                "scheme://hostname4:4000,scheme://hostname5:5000/db/table/p1=12;p2=us,scheme://hostname4:4000/d/t/p=1";
+        String[] uris = HCatELFunctions.splitHCatUris(uri);
+        assertEquals(3, uris.length);
+        assertEquals("hcat://hostname1:1000,hcat://hostname2:2000/mydb/clicks/datastamp=12;region=us", uris[0]);
+        assertEquals("scheme://hostname3:3000,scheme://hostname4:4000,scheme://hostname5:5000/db/table/p1=12;p2=us", uris[1]);
+        assertEquals("scheme://hostname4:4000/d/t/p=1", uris[2]);
+
+        uri = "thrift://host.name1:1000/mydb/clicks/datastamp=12;region=u_s";
+        uris = HCatELFunctions.splitHCatUris(uri);
+        assertEquals(1, uris.length);
+        assertEquals("thrift://host.name1:1000/mydb/clicks/datastamp=12;region=u_s", uris[0]);
+
+        uri = "hcat://10.10.10.10:9083/default/invites/ds=2010-01-01;region=usa";
+        uris = HCatELFunctions.splitHCatUris(uri);
+        assertEquals(1, uris.length);
+        assertEquals("hcat://10.10.10.10:9083/default/invites/ds=2010-01-01;region=usa", uris[0]);
+    }
+
     private void init(String tag) throws Exception {
         init(tag, "hdfs://localhost:9000/user/" + getTestUser() + "/US/${YEAR}/${MONTH}/${DAY}");
     }

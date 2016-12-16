@@ -45,6 +45,22 @@ public class TestHCatURI {
         assertEquals(uri.getPartitionValue("region"), "us");
 
     }
+    @Test
+    public void testHCatURIParseValidMultipleURI() {
+        String input = "hcat://hcat.server.com:5080,hcat://hcat.server1.com:5080/mydb/clicks/datastamp=12;region=us";
+        HCatURI uri = null;
+        try {
+            uri = new HCatURI(input);
+        }
+        catch (Exception ex) {
+            System.err.print(ex.getMessage());
+        }
+        assertEquals(uri.getServerEndPoint(), "hcat://hcat.server.com:5080,hcat://hcat.server1.com:5080");
+        assertEquals(uri.getDb(), "mydb");
+        assertEquals(uri.getTable(), "clicks");
+        assertEquals(uri.getPartitionValue("datastamp"), "12");
+        assertEquals(uri.getPartitionValue("region"), "us");
+    }
 
     @Test(expected = URISyntaxException.class)
     public void testHCatURIParseInvalidURI() throws Exception {

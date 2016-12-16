@@ -20,11 +20,16 @@ package org.apache.oozie.coord;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.oozie.DagELFunctions;
 import org.apache.oozie.client.WorkflowJob;
 import org.apache.oozie.dependency.URIHandler;
+import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.service.URIHandlerService;
 import org.apache.oozie.util.ELEvaluator;
@@ -37,6 +42,9 @@ import org.apache.oozie.util.XLog;
 
 public class HCatELFunctions {
     private static final Configuration EMPTY_CONF = new Configuration(true);
+    private static final String HCAT_URI_REGEX = ConfigurationService.get("oozie.hcat.uri.regex.pattern");
+    private static final Pattern HCAT_URI_PATTERN = Pattern.compile(HCAT_URI_REGEX);
+    private static final XLog LOG = XLog.getLog(HCatELFunctions.class);
 
     enum EventType {
         input, output
@@ -291,7 +299,7 @@ public class HCatELFunctions {
         String partitionValue = null;
         if (uri != null) {
             if (type.equals("hive-export")) {
-                String[] uriList = uri.split(CoordELFunctions.DIR_SEPARATOR);
+                String[] uriList = splitHCatUris(uri);
                 if (uriList.length > 1) {
                     throw new RuntimeException("Multiple partitions not supported for hive-export type. Dataset name: "
                         + dataInName + " URI: " + uri);
@@ -313,6 +321,19 @@ public class HCatELFunctions {
         return partitionValue;
     }
 
+    // default access for test cases.
+    static String[] splitHCatUris(String uri) {
+        LOG.debug("input uris for split [{0}], regex pattern [{1}].", uri, HCAT_URI_REGEX);
+        List<String> list = new ArrayList<>();
+        Matcher matcher = HCAT_URI_PATTERN.matcher(uri);
+        while (matcher.find()) {
+            String s = matcher.group();
+            list.add(s);
+        }
+        LOG.debug("uris after split: {0}, number of uris {1}.", list.toString(), list.size());
+        return list.toArray(new String[list.size()]);
+    }
+
     /**
      * Used to specify the MAXIMUM value of an HCat partition which is input dependency for workflow job.<p> Look for two evaluator-level
      * variables <p> A) .datain.&lt;DATAIN_NAME&gt; B) .datain.&lt;DATAIN_NAME&gt;.unresolved <p> A defines the current list of
@@ -331,7 +352,7 @@ public class HCatELFunctions {
         }
         String minPartition = null;
         if (uris != null) {
-            String[] uriList = uris.split(CoordELFunctions.DIR_SEPARATOR);
+            String[] uriList = splitHCatUris(uris);
             // get the partition values list and find minimum
             try {
                 // initialize minValue with first partition value
@@ -376,7 +397,7 @@ public class HCatELFunctions {
         }
         String maxPartition = null;
         if (uris != null) {
-            String[] uriList = uris.split(CoordELFunctions.DIR_SEPARATOR);
+            String[] uriList = splitHCatUris(uris);
             // get the partition values list and find minimum
             try {
                 // initialize minValue with first partition value
@@ -403,7 +424,7 @@ public class HCatELFunctions {
     }
 
     private static String createPartitionFilter(String uris, String type) {
-        String[] uriList = uris.split(CoordELFunctions.DIR_SEPARATOR);
+        String[] uriList = splitHCatUris(uris);
         StringBuilder filter = new StringBuilder("");
         if (uriList.length > 0) {
             for (String uri : uriList) {
@@ -433,7 +454,7 @@ public class HCatELFunctions {
             uris = (String) eval.getVariable(".dataout." + dataInName);
         }
         if (uris != null) {
-            String[] uri = uris.split(CoordELFunctions.DIR_SEPARATOR, -1);
+            String[] uri = splitHCatUris(uris);
             uriTemplate.append(uri[0]);
         }
         else {
