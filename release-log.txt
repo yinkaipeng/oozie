@@ -1,5 +1,6 @@
 -- Oozie 4.3.0 release (trunk - unreleased)
 
+OOZIE-2727 OozieDBCLI creates temporary directories and do not delete them (gezapeti via rkanter)
 OOZIE-2724 coord:current resolves monthly/yearly dependencies incorrectly (satishsaley via shwethags)
 OOZIE-2672 SLA periodic update does not remove job from map if job is removed from database (satishsaley via puru)
 OOZIE-2661 Coordinator Action status not updated when workflow job SUSPENDED (satishsaley via puru)

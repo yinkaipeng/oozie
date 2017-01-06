@@ -1,5 +1,6 @@
 -- Backport and Internal patches --
 
+BUG-80806 Backport OOZIE-2727: OozieDBCLI creates temporary directories and do not delete them
 BUG-80805 Backport OOZIE-2724: coord:current resolves monthly/yearly dependencies incorrectly
 BUG-80802 Backport OOZIE-2672: SLA periodic update does not remove job from map if job is removed from database
 BUG-80801 Backport OOZIE-2661: Coordinator Action status not updated when workflow job SUSPENDED
