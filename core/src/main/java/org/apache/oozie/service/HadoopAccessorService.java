@@ -479,30 +479,6 @@ public class HadoopAccessorService implements Service {
         return conf;
     }
 
-    public String getPasswordFromHadoopConf(Configuration conf, String propName) {
-        LOG = XLog.getLog(HadoopAccessorService.class);
-        Configuration hadoopConf = getConfiguration("*");
-        String password = "";
-        LOG.info("password key is " + propName);
-        LOG.info("credential provider path is " + hadoopConf.get("hadoop.security.credential.provider.path"));
-        char[] passChar = null;
-        try{
-            passChar = hadoopConf.getPassword(propName);
-            LOG.info("password is " + passChar);
-            }
-        catch (IOException ex) {
-
-        }
-        if (passChar == null || passChar.length == 0) {
-            password = conf.get(propName, "").trim();
-        }
-        else {
-            password = new String(passChar);
-        }
-
-        return password;
-    }
-
     /**
      * Return a JobClient created with the provided user/group.
      *
