@@ -18,6 +18,8 @@
 
 package org.apache.oozie.client;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.oozie.BuildInfo;
 import org.apache.oozie.cli.ValidationUtil;
 import org.apache.oozie.client.rest.JsonTags;
@@ -60,6 +62,7 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.Callable;
+
 
 /**
  * Client API to submit and manage Oozie workflow jobs against an Oozie intance.
@@ -1024,6 +1027,29 @@ public class OozieClient {
         }
     }
 
+    private class WorkflowActionRetriesInfo extends ClientCallable<List<Map<String, String>>> {
+        WorkflowActionRetriesInfo(String actionId) {
+            super("GET", RestConstants.JOB, notEmpty(actionId, "id"),
+                    prepareParams(RestConstants.JOB_SHOW_PARAM, RestConstants.JOB_SHOW_ACTION_RETRIES_PARAM));
+        }
+
+        @Override
+        protected List<Map<String, String>> call(HttpURLConnection conn)
+                throws IOException, OozieClientException {
+            if ((conn.getResponseCode() == HttpURLConnection.HTTP_OK)) {
+                Reader reader = new InputStreamReader(conn.getInputStream());
+                JSONObject json = (JSONObject) JSONValue.parse(reader);
+                return new ObjectMapper().readValue(json.get(JsonTags.WORKFLOW_ACTION_RETRIES).toString(),
+                        new TypeReference<List<Map<String, String>>>() {
+                        });
+            }
+            else {
+                handleError(conn);
+            }
+            return null;
+        }
+    }
+
     /**
      * Get the info of a workflow job.
      *
@@ -1066,6 +1092,18 @@ public class OozieClient {
      */
     public WorkflowAction getWorkflowActionInfo(String actionId) throws OozieClientException {
         return new WorkflowActionInfo(actionId).call();
+    }
+
+
+    /**
+     * Get the info of a workflow action.
+     *
+     * @param actionId Id.
+     * @return the workflow action retries info.
+     * @throws OozieClientException thrown if the job info could not be retrieved.
+     */
+    public List<Map<String, String>> getWorkflowActionRetriesInfo(String actionId) throws OozieClientException {
+        return new WorkflowActionRetriesInfo(actionId).call();
     }
 
     /**
