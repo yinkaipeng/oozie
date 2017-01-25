@@ -222,11 +222,7 @@ public class Hive2Main extends LauncherMain {
             arguments.add(oozieConfig.getKey() + "=" + oozieConfig.getValue());
         }
 
-        System.out.println("Beeline command arguments :");
-        for (String arg : arguments) {
-            System.out.println("             " + arg);
-        }
-        System.out.println();
+        LauncherMapper.printArgs("Beeline command arguments :", arguments.toArray(new String[arguments.size()]));
 
         LauncherMainHadoopUtils.killChildYarnJobs(actionConf);
 

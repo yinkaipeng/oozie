@@ -618,7 +618,7 @@ public class LauncherMapper<K1, V1, K2, V2> implements Mapper<K1, V1, K2, V2>, R
             }
             else {
                 System.out.println("             " + arg);
-                if (arg.toLowerCase().contains("password")) {
+                if (arg.toLowerCase().contains("password") || arg.toLowerCase().equals("-p")) {
                     maskNextArg = true;
                 }
             }
