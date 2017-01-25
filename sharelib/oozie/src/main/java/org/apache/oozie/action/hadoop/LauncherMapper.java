@@ -217,10 +217,7 @@ public class LauncherMapper<K1, V1, K2, V2> implements Mapper<K1, V1, K2, V2>, R
                     System.out.println("Maximum output    : "
                             + getJobConf().getInt(CONF_OOZIE_ACTION_MAX_OUTPUT_DATA, 2 * 1024));
                     System.out.println();
-                    System.out.println("Arguments         :");
-                    for (String arg : args) {
-                        System.out.println("                    " + arg);
-                    }
+                    printArgs("Arguments         :", args);
 
                     System.out.println();
                     System.out.println("Java System Properties:");
@@ -605,7 +602,28 @@ public class LauncherMapper<K1, V1, K2, V2> implements Mapper<K1, V1, K2, V2>, R
             }
         }
     }
+    /*
+     * Print arguments to standard output stream.   Will mask out argument values to option with name
+     * password in them
+     */
+    public static void printArgs(String banner, String[] args) {
 
+        System.out.println(banner);
+
+        boolean maskNextArg = false;
+        for (String arg : args) {
+            if (maskNextArg) {
+                System.out.println("             " + "********");
+                maskNextArg = false;
+            }
+            else {
+                System.out.println("             " + arg);
+                if (arg.toLowerCase().contains("password")) {
+                    maskNextArg = true;
+                }
+            }
+        }
+    }
 }
 
 class LauncherSecurityManager extends SecurityManager {
