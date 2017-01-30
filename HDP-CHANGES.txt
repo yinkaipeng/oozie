@@ -1,3 +1,16 @@
+-- Backport and Internal patches --
+
+BUG-69923 Back porting OOZIE-1814
+BUG-69923 Masking Hive2 JDBC password
+BUG-69923 Back porting OOZIE-2244
+BUG-69927 Removing getPasswordFromHadoopConf method from HadoopAccessorService
+BUG-69922 Remove XLogCopyService and relevant code
+BUG-69396 Oozie Spark action ignores spark.executor.extraJavaOptions and spark.driver.extraJavaOptions
+BUG-62891 Support for multiple HCat uri into parsing
+BUG-69393 upgrading joda-time version
+BUG-69659 Flip the null check condition for preventing NPE
+
+
 -- Oozie patches since Oozie 4.2.0
 
 OOZIE-2436 Fork/join workflow fails with "oozie.action.yarn.tag must not be null" (puru)
