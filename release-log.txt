@@ -1,5 +1,6 @@
 -- Oozie 4.3.0 release (trunk - unreleased)
 
+OOZIE-2781 HCat partition available notification is not sent to coordinator actions if coordinator job is using a different hostname (cname, IP address, etc. ) for HCat URL (puru)
 OOZIE-2807 Oozie gets RM delegation token even for checking job status (satishsaley)
 OOZIE-2588 Support getting credentials for same cluster hcat when credentials config is empty (satishsaley via rohini)
 OOZIE-2819 Make Oozie REST API accept multibyte characters for script Actions (asasvari via rkanter)
