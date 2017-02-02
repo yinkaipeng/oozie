@@ -20,6 +20,7 @@ package org.apache.oozie.workflow.lite;
 
 import org.apache.hadoop.io.Writable;
 import org.apache.oozie.service.LiteWorkflowStoreService;
+import org.apache.oozie.util.StringSerializationUtil;
 import org.apache.oozie.util.ParamChecker;
 import org.apache.oozie.workflow.WorkflowException;
 
@@ -139,7 +140,7 @@ public class NodeDef implements Writable {
                 throw new IOException(ex);
             }
         }
-        conf = dataInput.readUTF();
+        conf = readString(dataInput);
         if (conf.equals("null")) {
             conf = null;
         }
@@ -166,7 +167,7 @@ public class NodeDef implements Writable {
                 throw new IOException(ex);
             }
         }
-        conf = dataInput.readUTF();
+        conf = readString(dataInput);
         if (conf.equals("null")) {
             conf = null;
         }
@@ -204,7 +205,7 @@ public class NodeDef implements Writable {
         }
         dataOutput.writeUTF(handlerClass.getName());
         if (conf != null) {
-            dataOutput.writeUTF(conf);
+            writeString(dataOutput, conf);
         }
         else {
             dataOutput.writeUTF("null");
@@ -213,6 +214,14 @@ public class NodeDef implements Writable {
         for (String transition : transitions) {
             dataOutput.writeUTF(transition);
         }
+    }
+
+    private void writeString(DataOutput dataOutput, String value) throws IOException {
+        StringSerializationUtil.writeString(dataOutput, value);
+    }
+
+    private String readString(DataInput dataInput) throws IOException {
+        return StringSerializationUtil.readString(dataInput);
     }
 
     /**
@@ -225,14 +234,14 @@ public class NodeDef implements Writable {
         dataOutput.writeUTF(nodeDefVersion);
         dataOutput.writeUTF(name);
         if (cred != null) {
-            dataOutput.writeUTF(cred);
+            writeString(dataOutput, cred);
         }
         else {
             dataOutput.writeUTF("null");
         }
-        dataOutput.writeUTF(handlerClass.getName());
+        writeString(dataOutput, handlerClass.getName());
         if (conf != null) {
-            dataOutput.writeUTF(conf);
+            writeString(dataOutput, conf);
         }
         else {
             dataOutput.writeUTF("null");
