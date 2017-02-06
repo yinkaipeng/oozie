@@ -1,5 +1,6 @@
 -- Oozie 4.3.0 release (trunk - unreleased)
 
+OOZIE-2787 Oozie distributes application jar twice making the spark job fail (satishsaley)
 OOZIE-2606 Set spark.yarn.jars to fix Spark 2.0 with Oozie (satishsaley via rohini)
 OOZIE-2908 Fix typo in oozie.actions.null.args.allowed property in oozie-default.xml (gezapeti)
 OOZIE-2872 Address backward compatibility issue introduced by OOZIE-2748 (pbacsko)
