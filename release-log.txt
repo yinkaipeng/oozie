@@ -1,6 +1,7 @@
 -- Oozie 4.3.0 release (trunk - unreleased)
 
 
+OOZIE-2787 Oozie distributes application jar twice making the spark job fail (satishsaley)
 OOZIE-2606 Set spark.yarn.jars to fix Spark 2.0 with Oozie (satishsaley via rohini)
 OOZIE-2582 Populating external child Ids for action failures (abhishekbafna via rohini)
 OOZIE-2571 Add spark.scala.binary.version Maven property so that Scala 2.11 can be used (jonathak via rkanter)
