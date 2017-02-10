@@ -1,5 +1,6 @@
 -- Backport and Internal patches --
 
+BUG-73040 Update datanucleus deps and exclude jackson-annotations from hwx-common for spark UT fix.
 BUG-74584 Backport OOZIE-2742 to Fenton.
 BUG-74584 Backport OOZIE-2582 to Fenton.
 BUG-74584 Backport OOZIE-2678 to Fenton.
