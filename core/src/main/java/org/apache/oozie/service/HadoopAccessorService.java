@@ -86,6 +86,10 @@ public class HadoopAccessorService implements Service {
     protected static final String HADOOP_JOB_TRACKER = "mapred.job.tracker";
     protected static final String HADOOP_JOB_TRACKER_2 = "mapreduce.jobtracker.address";
     protected static final String HADOOP_YARN_RM = "yarn.resourcemanager.address";
+    //this constant was introduced in OOZIE-2187 a762991ab00df5e60d5e8b7f430b89861abe0671
+    //so I just added it here, instead of adding the whole OOZIE-2187 
+    public static final String DEFAULT_NAME_NODE = "oozie.actions.default.name-node";
+
     private static final Map<String, Text> mrTokenRenewers = new HashMap<String, Text>();
 
     private static final String DEFAULT_ACTIONNAME = "default";
@@ -180,7 +184,7 @@ public class HadoopAccessorService implements Service {
         // we'll use the wildcard's configs.  And if that's not defined, we'll use an arbitrary cluster's configs.  In any case,
         // if the version of Hadoop we're using doesn't include HADOOP-12954, we'll do nothing (there's no workaround), and
         // hadoop.security.token.service.use_ip will have the default value.
-        String nameNode = conf.get(LiteWorkflowAppParser.DEFAULT_NAME_NODE);
+        String nameNode = conf.get(DEFAULT_NAME_NODE);
         if (nameNode != null) {
             nameNode = nameNode.trim();
             if (nameNode.isEmpty()) {
