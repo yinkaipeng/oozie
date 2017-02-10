@@ -1,6 +1,7 @@
 -- Backport and Internal patches --
 
-BUG-74584 Backport OOZIE-2243 to fenton.
+BUG-74584 Backport OOZIE-2678 to Fenton.
+BUG-74584 Backport OOZIE-2243 to Fenton.
 BUG-73122 Backport OOZIE-2649 to Fenton.
 BUG-69923 Back porting OOZIE-1814
 BUG-69923 Masking Hive2 JDBC password
