@@ -62,7 +62,12 @@
         <dependency>
             <groupId>org.datanucleus</groupId>
             <artifactId>datanucleus-api-jdo</artifactId>
-            <version>3.2.6</version>
+            <version>4.2.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.datanucleus</groupId>
+            <artifactId>datanucleus-core</artifactId>
+            <version>4.1.6</version>
         </dependency>
         <dependency>
             <groupId>org.apache.spark</groupId>
@@ -171,6 +176,10 @@
                 <exclusion>
                     <groupId>org.spark-project.hive</groupId>
                     <artifactId>hive-shims</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.datanucleus</groupId>
+                    <artifactId>datanucleus-core</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>

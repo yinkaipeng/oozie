@@ -1,3 +1,7 @@
+-- Backport and Internal patches --
+
+BUG-81951 UT for Oozie Erie-M35 are failing on Linux ((Update datanucleus deps and exclude jackson-annotations from hwx-common for spark UT fix.))
+
 -- Oozie patches since Oozie 4.2.0
 
 OOZIE-2803 Mask passwords when printing out configs/args in MapReduceMain and SparkMain (pbacsko via rkanter)
