@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.lang.reflect.Field;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -30,12 +31,14 @@ import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 import java.util.regex.Pattern;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.log4j.PropertyConfigurator;
 import org.apache.spark.deploy.SparkSubmit;
 
@@ -75,6 +78,7 @@ public class SparkMain extends LauncherMain {
     public static final String FILES_OPTION = "--files";
     public static final String ARCHIVES_OPTION = "--archives";
 
+
     public static void main(String[] args) throws Exception {
         run(SparkMain.class, args);
     }
@@ -88,6 +92,7 @@ public class SparkMain extends LauncherMain {
         setYarnTag(actionConf);
         LauncherMainHadoopUtils.killChildYarnJobs(actionConf);
         String logFile = setUpSparkLog4J(actionConf);
+        setHiveSite(actionConf);
         List<String> sparkArgs = new ArrayList<String>();
 
         sparkArgs.add(MASTER_OPTION);
@@ -231,7 +236,6 @@ public class SparkMain extends LauncherMain {
             JarFilter jarfilter = new JarFilter(fixedFileUris, jarPath);
             jarfilter.filter();
             jarPath = jarfilter.getApplicationJar();
-
             String cachedFiles = StringUtils.join(fixedFileUris, ",");
 
             if (cachedFiles != null && !cachedFiles.isEmpty()) {
@@ -534,6 +538,47 @@ public class SparkMain extends LauncherMain {
                     fileUri.getPath(), fileUri.getQuery(), fileUri.getFragment());
         }
         return fileUri;
+    }
+
+    /**
+     * Sets up hive-site.xml
+     *
+     * @param hiveConf
+     * @throws IOException
+     */
+    private void setHiveSite(Configuration hiveConf) throws IOException {
+        // See https://issues.apache.org/jira/browse/HIVE-1411
+        hiveConf.set("datanucleus.plugin.pluginRegistryBundleCheck", "LOG");
+
+        // To ensure that the logs go into container attempt tmp directory
+        // When unset, default is
+        // System.getProperty("java.io.tmpdir") + File.separator +
+        // System.getProperty("user.name")
+        hiveConf.unset("hive.querylog.location");
+        hiveConf.unset("hive.exec.local.scratchdir");
+
+        // Write the action configuration out to hive-site.xml
+        OutputStream os = null;
+        try {
+            os = new FileOutputStream(HIVE_SITE_CONF);
+            hiveConf.writeXml(os);
+        }
+        finally {
+            if (os != null) {
+                os.close();
+            }
+        }
+        // Reset the hiveSiteURL static variable as we just created
+        // hive-site.xml.
+        // If prepare block had a drop partition it would have been initialized
+        // to null.
+        try {
+            Field declaredField = HiveConf.class.getDeclaredField("hiveSiteURL");
+            declaredField.setAccessible(true);
+            declaredField.set(null, HiveConf.class.getClassLoader().getResource("hive-site.xml"));
+        }
+        catch (Throwable ignore) {
+        }
     }
 
     /**
