@@ -35,6 +35,7 @@ import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 import java.util.regex.Pattern;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -65,7 +66,8 @@ public class SparkMain extends LauncherMain {
             Pattern.compile("pyspark.zip") };
     private static final Pattern SPARK_DEFAULTS_FILE_PATTERN = Pattern.compile("spark-defaults.conf");
     private static final String SPARK_LOG4J_PROPS = "spark-log4j.properties";
-    private static final Pattern[] SPARK_JOB_IDS_PATTERNS = {
+    @VisibleForTesting
+    static final Pattern[] SPARK_JOB_IDS_PATTERNS = {
             Pattern.compile("Submitted application (application[0-9_]*)") };
     public static final Pattern SPARK_ASSEMBLY_JAR_PATTERN = Pattern
             .compile("^spark-assembly((?:(-|_|(\\d+\\.))\\d+(?:\\.\\d+)*))*\\.jar$");
