@@ -1,5 +1,6 @@
 -- Oozie patches since Oozie 4.2.0
 
+OOZIE-2803 Mask passwords when printing out configs/args in MapReduceMain and SparkMain (pbacsko via rkanter)
 OOZIE-1814 Oozie should mask any passwords in logs and REST interfaces (andras.piros via rkanter)
 OOZIE-2436 Fork/join workflow fails with "oozie.action.yarn.tag must not be null" (puru)
 OOZIE-2578 Oozie example distcp job fails to run within an encrypted zone with checksum match error (pbacsko via rkanter)
