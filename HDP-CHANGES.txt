@@ -1,5 +1,6 @@
 -- Backport and Internal patches --
 
+BUG-80810 Backport OOZIE-2803: Mask passwords when printing out configs/args in MapReduceMain and SparkMain
 BUG-80344 Backport OOZIE-2581: Oozie should reset SecurityManager in finally block
 BUG-80340 Tomcat needs to be upgraded in Oozie to 6.0.48
 BUG-80343 Backport OOZIE-2572: SLA DURATION miss not shown when job is running for longer than expected time
