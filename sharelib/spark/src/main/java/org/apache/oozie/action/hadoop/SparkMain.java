@@ -25,11 +25,7 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 import java.util.regex.Pattern;
@@ -57,6 +53,7 @@ public class SparkMain extends LauncherMain {
     private static final String LOG4J_CONFIGURATION_JAVA_OPTION = "-Dlog4j.configuration=";
     private static final String HIVE_SECURITY_TOKEN = "spark.yarn.security.tokens.hive.enabled";
     private static final String HBASE_SECURITY_TOKEN = "spark.yarn.security.tokens.hbase.enabled";
+    private static final String CONF_OOZIE_SPARK_SETUP_HADOOP_CONF_DIR = "oozie.action.spark.setup.hadoop.conf.dir";
     private static final String PWD = "$PWD" + File.separator + "*";
     private static final Pattern[] PYSPARK_DEP_FILE_PATTERN = { Pattern.compile("py4\\S*src.zip"),
             Pattern.compile("pyspark.zip") };
@@ -73,6 +70,9 @@ public class SparkMain extends LauncherMain {
     private static final Pattern SPARK_VERSION_1 = Pattern.compile("^1.*");
     private static final String SPARK_YARN_JAR = "spark.yarn.jar";
     private static final String SPARK_YARN_JARS = "spark.yarn.jars";
+    public static final String HIVE_SITE_CONF = "hive-site.xml";
+    public static final String FILES_OPTION = "--files";
+    public static final String ARCHIVES_OPTION = "--archives";
 
     public static void main(String[] args) throws Exception {
         run(SparkMain.class, args);
@@ -126,6 +126,7 @@ public class SparkMain extends LauncherMain {
         boolean addedLog4jExecutorSettings = false;
         StringBuilder driverClassPath = new StringBuilder();
         StringBuilder executorClassPath = new StringBuilder();
+        String userFiles = null, userArchives = null;
         String sparkOpts = actionConf.get(SparkActionExecutor.SPARK_OPTS);
         if (StringUtils.isNotEmpty(sparkOpts)) {
             List<String> sparkOptions = splitSparkOpts(sparkOpts);
@@ -167,6 +168,16 @@ public class SparkMain extends LauncherMain {
                     } else {
                         addedLog4jDriverSettings = true;
                     }
+                }
+                if(opt.startsWith(FILES_OPTION)) {
+                    userFiles = sparkOptions.get(i + 1);
+                    i++;
+                    addToSparkArgs = false;
+                }
+                if(opt.startsWith(ARCHIVES_OPTION)) {
+                    userArchives = sparkOptions.get(i + 1);
+                    i++;
+                    addToSparkArgs = false;
                 }
                 if(addToSparkArgs) {
                     sparkArgs.add(opt);
@@ -211,17 +222,25 @@ public class SparkMain extends LauncherMain {
         }
 
         if ((yarnClusterMode || yarnClientMode)) {
-            LinkedList<URI> fixedUris = fixFsDefaultUris(DistributedCache.getCacheFiles(actionConf));
-            JarFilter jarfilter = new JarFilter(fixedUris, jarPath);
+            Map<String, URI> fixedFileUrisMap = fixFsDefaultUrisAndFilterDuplicates(DistributedCache.getCacheFiles(actionConf));
+            fixedFileUrisMap.put(SPARK_LOG4J_PROPS, new Path(SPARK_LOG4J_PROPS).toUri());
+            fixedFileUrisMap.put(HIVE_SITE_CONF, new Path(HIVE_SITE_CONF).toUri());
+            addUserDefined(userFiles, fixedFileUrisMap);
+            Collection<URI> fixedFileUris = fixedFileUrisMap.values();
+            JarFilter jarfilter = new JarFilter(fixedFileUris, jarPath);
             jarfilter.filter();
             jarPath = jarfilter.getApplicationJar();
-            String cachedFiles = StringUtils.join(fixedUris, ",");
+
+            String cachedFiles = StringUtils.join(fixedFileUris, ",");
+
             if (cachedFiles != null && !cachedFiles.isEmpty()) {
                 sparkArgs.add("--files");
                 sparkArgs.add(cachedFiles);
             }
-            fixedUris = fixFsDefaultUris(DistributedCache.getCacheArchives(actionConf));
-            String cachedArchives = StringUtils.join(fixedUris, ",");
+            Map<String, URI> fixedArchiveUrisMap = fixFsDefaultUrisAndFilterDuplicates(DistributedCache.
+                    getCacheArchives(actionConf));
+            addUserDefined(userArchives, fixedArchiveUrisMap);
+            String cachedArchives = StringUtils.join(fixedArchiveUrisMap.values(), ",");
             if (cachedArchives != null && !cachedArchives.isEmpty()) {
                 sparkArgs.add("--archives");
                 sparkArgs.add(cachedArchives);
@@ -260,12 +279,33 @@ public class SparkMain extends LauncherMain {
         }
     }
 
+
     private void prepareHadoopConfig() throws IOException {
         // Copying oozie.action.conf.xml into hadoop configuration *-site file.
         String actionXml = System.getProperty("oozie.action.conf.xml");
         if (actionXml != null) {
             File currentDir = new File(actionXml).getParentFile();
             writeHadoopConfig(actionXml, currentDir);
+        }
+    }
+
+    private void addUserDefined(String userList, Map<String, URI> urisMap) {
+        if(userList != null) {
+            for (String file : userList.split(",")) {
+                Path p = new Path(file);
+                urisMap.put(p.getName(), p.toUri());
+            }
+        }
+    }
+
+    private void prepareHadoopConfig(Configuration actionConf) throws IOException {
+        // Copying oozie.action.conf.xml into hadoop configuration *-site files.
+        if (actionConf.getBoolean(CONF_OOZIE_SPARK_SETUP_HADOOP_CONF_DIR, false)) {
+            String actionXml = System.getProperty("oozie.action.conf.xml");
+            if (actionXml != null) {
+                File currentDir = new File(actionXml).getParentFile();
+                writeHadoopConfig(actionXml, currentDir);
+            }
         }
     }
 
@@ -414,23 +454,24 @@ public class SparkMain extends LauncherMain {
 
     /**
      * Convert URIs into the default format which Spark expects
-     *
+     * Also filters out duplicate entries
      * @param files
      * @return
      * @throws IOException
      * @throws URISyntaxException
      */
-    private LinkedList<URI> fixFsDefaultUris(URI[] files) throws IOException, URISyntaxException {
+    static Map<String, URI> fixFsDefaultUrisAndFilterDuplicates(URI[] files) throws IOException, URISyntaxException {
+        Map<String, URI> map= new HashMap<>();
         if (files == null) {
-            return null;
+            return map;
         }
-        LinkedList<URI> listUris = new LinkedList<URI>();
         FileSystem fs = FileSystem.get(new Configuration(true));
         for (int i = 0; i < files.length; i++) {
             URI fileUri = files[i];
-            listUris.add(getFixedUri(fs, fileUri));
+            Path p = new Path(fileUri);
+            map.put(p.getName(), getFixedUri(fs, fileUri));
         }
-        return listUris;
+        return map;
     }
 
     /**
@@ -493,7 +534,7 @@ public class SparkMain extends LauncherMain {
         private String sparkVersion = "1.X.X";
         private String sparkYarnJar;
         private String applicationJar;
-        private LinkedList<URI> listUris = null;
+        private Collection<URI> listUris = null;
 
         /**
          * @param listUris List of URIs to be filtered
@@ -501,7 +542,7 @@ public class SparkMain extends LauncherMain {
          * @throws IOException
          * @throws URISyntaxException
          */
-        public JarFilter(LinkedList<URI> listUris, String jarPath) throws URISyntaxException, IOException {
+        public JarFilter(Collection<URI> listUris, String jarPath) throws URISyntaxException, IOException {
             this.listUris = listUris;
             applicationJar = jarPath;
             Path p = new Path(jarPath);
