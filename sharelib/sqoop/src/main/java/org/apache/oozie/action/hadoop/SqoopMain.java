@@ -189,9 +189,7 @@ public class SqoopMain extends LauncherMain {
             }
         }
         finally {
-            System.out.println();
-            System.out.println("<<< Invocation of Sqoop command completed <<<");
-            System.out.println();
+            System.out.println("\n<<< Invocation of Sqoop command completed <<<\n");
             // harvesting and recording Hadoop Job IDs
             writeExternalChildIDs(logFile, SQOOP_JOB_IDS_PATTERNS, "Sqoop");
         }
