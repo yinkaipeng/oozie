@@ -1,5 +1,6 @@
 -- Oozie 4.3.0 release (trunk - unreleased)
 
+OOZIE-2819 Make Oozie REST API accept multibyte characters for script Actions (asasvari via rkanter)
 OOZIE-2656 OozieShareLibCLI uses op system username instead of Kerberos to upload jars (gezapeti via rkanter)
 OOZIE-2777 Config-default.xml longer than 64k results in java.io.UTFDataFormatException (gezapeti via harsh)
 OOZIE-2658 --driver-class-path can overwrite the classpath in SparkMain (gezapeti via rkanter)
