@@ -2050,6 +2050,12 @@
                     </exclusions>
                 </dependency>
                 <dependency>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-azure-datalake</artifactId>
+                    <version>${hadoop.version}</version>
+                    <scope>compile</scope>
+                </dependency>
+                <dependency>
                     <groupId>com.fasterxml.jackson.core</groupId>
                     <artifactId>jackson-databind</artifactId>
                     <version>${jackson.databind.version}</version>
