@@ -247,4 +247,5 @@ public interface JsonTags {
 
     String VALIDATE = "validate";
 
+    String PURGE = "purge";
 }

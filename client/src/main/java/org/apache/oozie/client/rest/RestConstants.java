@@ -217,4 +217,13 @@ public interface RestConstants {
 
     String USER_PARAM = "user";
 
+    public static final String COORD_ACTION_MISSING_DEPENDENCIES = "missing-dependencies";
+
+    String ADMIN_PURGE = "purge";
+    String PURGE_WF_AGE = "wf";
+    String PURGE_COORD_AGE = "coord";
+    String PURGE_BUNDLE_AGE = "bundle";
+    String PURGE_LIMIT = "limit";
+    String PURGE_OLD_COORD_ACTION = "oldcoordaction";
+
 }

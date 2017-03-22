@@ -1,5 +1,6 @@
 -- Oozie 4.3.1 release
 
+OOZIE-2041 Add an admin command to run the PurgeXCommand (abhishekbafna)
 OOZIE-2875 Typo in ssh action twiki docs (Dongying Jiao via gezapeti)
 OOZIE-1401 amend PurgeCommand should purge the workflow jobs w/o end_time (andras.piros, asasvari)
 OOZIE-1401 PurgeCommand should purge the workflow jobs w/o end_time (asasvari)
