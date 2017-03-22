@@ -366,7 +366,15 @@
             Interval at which the purge service will run, in seconds.
         </description>
     </property>
-    
+
+    <property>
+        <name>oozie.service.PurgeService.enable.command.line</name>
+        <value>true</value>
+        <description>
+            Enable/Disable oozie admin purge command. By default, it is enabled.
+        </description>
+    </property>
+
     <!-- RecoveryService -->
 
     <property>
