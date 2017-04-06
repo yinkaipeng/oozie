@@ -24,11 +24,9 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URL;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.LinkedHashMap;
+import java.util.*;
+import java.util.jar.JarFile;
+import java.util.jar.Manifest;
 import java.util.regex.Pattern;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -196,43 +194,36 @@ public class SparkMain extends LauncherMain {
         SparkSubmit.main(args);
     }
 
-    private String setUpSparkLog4J(final Configuration actionConf) throws IOException {
+    private String setUpSparkLog4J(Configuration actionConf) throws IOException {
         // Logfile to capture job IDs
         final String hadoopJobId = System.getProperty("oozie.launcher.job.id");
         if (hadoopJobId == null) {
             throw new RuntimeException("Launcher Hadoop Job ID system,property not set");
         }
-        final String logFile = new File("spark-oozie-" + hadoopJobId + ".log").getAbsolutePath();
-        Properties hadoopProps = new Properties();
-
-        // Preparing log4j configuration
-        URL log4jFile = Thread.currentThread().getContextClassLoader().getResource("log4j.properties");
-        if (log4jFile != null) {
-            // getting hadoop log4j configuration
-            hadoopProps.load(log4jFile.openStream());
-        }
+        String logFile = new File("spark-oozie-" + hadoopJobId + ".log").getAbsolutePath();
 
         final String logLevel = actionConf.get("oozie.spark.log.level", "INFO");
         final String rootLogLevel = actionConf.get("oozie.action." + LauncherMapper.ROOT_LOGGER_LEVEL, "INFO");
 
-        hadoopProps.setProperty("log4j.rootLogger", rootLogLevel + ", A");
-        hadoopProps.setProperty("log4j.logger.org.apache.spark", logLevel + ", A, jobid");
-        hadoopProps.setProperty("log4j.additivity.org.apache.spark", "false");
-        hadoopProps.setProperty("log4j.appender.A", "org.apache.log4j.ConsoleAppender");
-        hadoopProps.setProperty("log4j.appender.A.layout", "org.apache.log4j.PatternLayout");
-        hadoopProps.setProperty("log4j.appender.A.layout.ConversionPattern", "%d [%t] %-5p %c %x - %m%n");
-        hadoopProps.setProperty("log4j.appender.jobid", "org.apache.log4j.FileAppender");
-        hadoopProps.setProperty("log4j.appender.jobid.file", logFile);
-        hadoopProps.setProperty("log4j.appender.jobid.layout", "org.apache.log4j.PatternLayout");
-        hadoopProps.setProperty("log4j.appender.jobid.layout.ConversionPattern", "%d [%t] %-5p %c %x - %m%n");
-        hadoopProps.setProperty("log4j.logger.org.apache.hadoop.mapred", "INFO, jobid");
-        hadoopProps.setProperty("log4j.logger.org.apache.hadoop.mapreduce.Job", "INFO, jobid");
-        hadoopProps.setProperty("log4j.logger.org.apache.hadoop.yarn.client.api.impl.YarnClientImpl", "INFO, jobid");
+        log4jProperties.setProperty("log4j.rootLogger", rootLogLevel + ", A");
+        log4jProperties.setProperty("log4j.logger.org.apache.spark", logLevel + ", A, jobid");
+        log4jProperties.setProperty("log4j.additivity.org.apache.spark", "false");
+        log4jProperties.setProperty("log4j.appender.A", "org.apache.log4j.ConsoleAppender");
+        log4jProperties.setProperty("log4j.appender.A.layout", "org.apache.log4j.PatternLayout");
+        log4jProperties.setProperty("log4j.appender.A.layout.ConversionPattern", "%d [%t] %-5p %c %x - %m%n");
+        log4jProperties.setProperty("log4j.appender.jobid", "org.apache.log4j.FileAppender");
+        log4jProperties.setProperty("log4j.appender.jobid.file", logFile);
+        log4jProperties.setProperty("log4j.appender.jobid.layout", "org.apache.log4j.PatternLayout");
+        log4jProperties.setProperty("log4j.appender.jobid.layout.ConversionPattern", "%d [%t] %-5p %c %x - %m%n");
+        log4jProperties.setProperty("log4j.logger.org.apache.hadoop.mapred", "INFO, jobid");
+        log4jProperties.setProperty("log4j.logger.org.apache.hadoop.mapreduce.Job", "INFO, jobid");
+        log4jProperties.setProperty("log4j.logger.org.apache.hadoop.yarn.client.api.impl.YarnClientImpl", "INFO, jobid");
 
-        final String localProps = new File(SPARK_LOG4J_PROPS).getAbsolutePath();
+        String localProps = new File(SPARK_LOG4J_PROPS).getAbsolutePath();
         try (OutputStream os1 = new FileOutputStream(localProps)) {
-            hadoopProps.store(os1, "");
+            log4jProperties.store(os1, "");
         }
+
         PropertyConfigurator.configure(SPARK_LOG4J_PROPS);
         return logFile;
     }

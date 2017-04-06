@@ -1,5 +1,6 @@
 -- Oozie 4.3.0 release (trunk - unreleased)
 
+OOZIE-2844 Increase stability of Oozie actions when log4j.properties is missing or not readable (andras.piros via pbacsko)
 OOZIE-2845 Replace reflection-based code which sets variable in HiveConf (pbacsko via abhishekbafna)
 OOZIE-2571 Add spark.scala.binary.version Maven property so that Scala 2.11 can be used (jonathak via rkanter)
 OOZIE-2923 Improve Spark options parsing (andras.piros via gezapeti)
