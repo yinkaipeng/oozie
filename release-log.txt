@@ -1,5 +1,6 @@
 -- Oozie 4.3.0 release (trunk - unreleased)
 
+OOZIE-2844 Increase stability of Oozie actions when log4j.properties is missing or not readable (andras.piros via pbacsko)
 OOZIE-2845 Replace reflection-based code which sets variable in HiveConf (pbacsko via abhishekbafna)
 OOZIE-3167 Upgrade tomcat version on Oozie 4.3 branch
 OOZIE-3109 SCA : Cross-Site Scripting: Reflected
