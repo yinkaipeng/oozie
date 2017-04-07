@@ -1,5 +1,6 @@
 -- Backport and Internal patches --
 
+BUG-80248 Backport OOZIE-2457: Oozie log parsing regex consume more than 90% cpu OOZIE-2496 Testcase failure due to environment specific line.separator value (abhishekbafna via rkanter)
 BUG-80247 Backport OOZIE-2433: oozie restart required if oozie metrics to graphing tool broken
 BUG-80246 Backport OOZIE-2037: Add TLSv1.1,TLSv1.2
 BUG-80245 Backport OOZIE-1978: Forkjoin validation code is ridiculously slow in some cases Backport OOZIE-2719 Test case failure (abhishekbafna via jaydeepvishwakarma)
