@@ -151,3 +151,15 @@ Patches in hdp 2.3, but not in apache oozie-4.2.0
 OOZIE-2291 Hive2 workflow.xml.security should have "cred" in action tag instead of "hive2" tag
 OOZIE-2289 hive-jdbc dependency in core/pom.xml should be compile
 OOZIE-2290 Oozie db version update should happen after all DDL tweak
+
+Patches in hdp 2.5.5 but not in apache oozie-4.2.0
+OOZIE-2243 - Kill Command does not kill the child job for java action
+OOZIE-2582 - Populating external child Ids for action failures
+OOZIE-2649 - Can't override sub-workflow configuration property if defined in parent workflow XML
+OOZIE-2678 - Oozie job -kill doesn't work with tez jobs
+OOZIE-2705 - Oozie Spark action ignores spark.executor.extraJavaOptions and spark.driver.extraJavaOptions
+OOZIE-2742 - Unable to kill applications based on tag
+OOZIE-2826 - Falcon feed fails to aws s3 with hdp 2.5; Oozie joda time version does not meet required jar version 2.2 or later
+OOZIE-2847 - Oozie job fails with NPE at LauncherMapper#setRecoveryId
+BUG-67357 - Split Oozie rpm such that customers can install sharelibs as needed
+BUG-78281 - Tomcat needs to be upgraded in Oozie to 6.0.48
