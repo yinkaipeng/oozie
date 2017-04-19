@@ -41,6 +41,9 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.primitives.Ints;
+
 import org.apache.hadoop.mapreduce.MRJobConfig;
 import org.apache.hadoop.security.AccessControlException;
 import org.apache.hadoop.conf.Configuration;
@@ -1036,7 +1039,8 @@ public class JavaActionExecutor extends ActionExecutor {
             // Set the launcher Main Class
             LauncherMapperHelper.setupMainClass(launcherJobConf, getLauncherMain(launcherJobConf, actionXml));
             LauncherMapperHelper.setupLauncherURIHandlerConf(launcherJobConf);
-            LauncherMapperHelper.setupMaxOutputData(launcherJobConf, maxActionOutputLen);
+
+            LauncherMapperHelper.setupMaxOutputData(launcherJobConf, getMaxOutputData(actionConf));
             LauncherMapperHelper.setupMaxExternalStatsSize(launcherJobConf, maxExternalStatsSize);
             LauncherMapperHelper.setupMaxFSGlob(launcherJobConf, maxFSGlobMax);
 
@@ -1098,6 +1102,16 @@ public class JavaActionExecutor extends ActionExecutor {
             dependencyDeduplicator.deduplicate(conf, MRJobConfig.CACHE_FILES);
             dependencyDeduplicator.deduplicate(conf, MRJobConfig.CACHE_ARCHIVES);
         }
+    }
+
+    @VisibleForTesting
+    protected static int getMaxOutputData(Configuration actionConf) {
+        String userMaxActionOutputLen = actionConf.get("oozie.action.max.output.data");
+        if (userMaxActionOutputLen != null) {
+            Integer i = Ints.tryParse(userMaxActionOutputLen);
+            return i != null ? i : maxActionOutputLen;
+        }
+        return maxActionOutputLen;
     }
 
     private boolean checkPropertiesToDisableUber(Configuration launcherConf) {
