@@ -1,5 +1,6 @@
 -- Backport and Internal patches --
 
+BUG-89505 Backport OOZIE-2872: Address backward compatibility issue introduced by OOZIE-2748 (pbacsko)
 BUG-80807 Backport OOZIE-2748: NPE in LauncherMapper.printArgs()
 BUG-80806 Backport OOZIE-2727: OozieDBCLI creates temporary directories and do not delete them
 BUG-80805 Backport OOZIE-2724: coord:current resolves monthly/yearly dependencies incorrectly
