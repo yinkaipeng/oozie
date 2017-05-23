@@ -124,6 +124,16 @@ public class SparkActionExecutor extends JavaActionExecutor {
             conf.set(MAPRED_CHILD_ENV, mapredChildEnv + "," + sparkHome);
             conf.set("oozie.launcher." + MAPRED_CHILD_ENV, mapredChildEnv + "," + sparkHome);
         }
+
+        // This is HDP specific fix. BUG-80651
+        mapredChildEnv = conf.get("oozie.launcher." + MAPRED_CHILD_ENV);
+        if (!mapredChildEnv.contains("HDP_VERSION")) {
+            String hdpVersion = System.getProperty("hdp.version", "");
+            mapredChildEnv += ",HDP_VERSION=" + hdpVersion;
+            conf.set("oozie.launcher." + MAPRED_CHILD_ENV, mapredChildEnv);
+            conf.set(MAPRED_CHILD_ENV, mapredChildEnv);
+            LOG.info("Added into spark action configuration {0}={1}", MAPRED_CHILD_ENV, mapredChildEnv);
+        }
         return conf;
     }
 
