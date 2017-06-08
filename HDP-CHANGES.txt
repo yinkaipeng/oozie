@@ -56,6 +56,12 @@ BUG-62891 Support for multiple HCat uri into parsing
 BUG-69393 upgrading joda-time version
 BUG-69659 Flip the null check condition for preventing NPE
 
+-- Oozie patches over Oozie 4.2.0
+
+OOZIE-2923 Improve Spark options parsing (andras.piros via gezapeti)
+OOZIE-2799 Setting log location for spark sql on hive (satishsaley)
+OOZIE-2792 Hive2 action is not parsing Spark application ID from log file properly when Hive is on Spark (zhengxb2005 via rkanter)
+OOZIE-2571 Add spark.scala.binary.version Maven property so that Scala 2.11 can be used (jonathak via rkanter)
 
 -- Oozie patches since Oozie 4.2.0
 
