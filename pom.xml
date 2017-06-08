@@ -93,6 +93,7 @@
          <pig.classifier>h2</pig.classifier>
          <sqoop.version>1.4.3</sqoop.version>
          <spark.version>1.6.1</spark.version>
+
          <spark.streaming.kafka.version>1.6.1</spark.streaming.kafka.version>
          <spark.bagel.version>1.6.1</spark.bagel.version>
          <spark.guava.version>14.0.1</spark.guava.version>
@@ -1961,7 +1962,6 @@
             </modules>
         </profile>
         <profile>
-<<<<<<< HEAD
             <id>winpkg</id>
             <activation>
                 <activeByDefault>false</activeByDefault>
