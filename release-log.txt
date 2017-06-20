@@ -1,5 +1,6 @@
 -- Oozie 4.3.1 release
 
+OOZIE-2769 Extend FS action to allow setrep on a file (Artem Ervits via gezapeti)
 OOZIE-3085 Improve logging in ActionExecutors: add log entry for start(), end() and kill() (kmarton via andras.piros)
 OOZIE-1393 Allow sending emails via TLS (mbalakrishnan, dionusos via andras.piros)
 OOZIE-3227 Eliminate duplicate dependencies when using Hadoop 3 DistributedCache (dionusos via andras.piros)

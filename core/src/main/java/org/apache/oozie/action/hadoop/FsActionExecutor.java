@@ -226,6 +226,16 @@ public class FsActionExecutor extends ActionExecutor {
                                         chgrp(context, fsConf, nameNodePath, path, context.getWorkflow().getUser(),
                                                 group, dirFiles, recursive);
                                     }
+                                    else {
+                                        if (command.equals("setrep")) {
+                                            Path path = getPath(commandElement, "path");
+                                            String replicationFactor =
+                                            commandElement.getAttributeValue("replication-factor");
+                                            if (commandElement.getAttributeValue("replication-factor") != null) {
+                                                setrep(context, path, Short.parseShort(replicationFactor));
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
