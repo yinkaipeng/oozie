@@ -43,7 +43,7 @@
         <class>org.apache.oozie.util.db.ValidateConnectionBean</class>
 
         <properties>
-            <property name="openjpa.ConnectionDriverName" value="org.apache.commons.dbcp.BasicDataSource"/>
+            <property name="openjpa.ConnectionDriverName" value="org.apache.oozie.util.db.BasicDataSourceWrapper"/>
 
             <property name="openjpa.ConnectionProperties" value="**INVALID**"/> <!--Set by StoreService at init time -->
 
@@ -103,7 +103,7 @@
         <class>org.apache.oozie.util.db.ValidateConnectionBean</class>
 
         <properties>
-            <property name="openjpa.ConnectionDriverName" value="org.apache.commons.dbcp.BasicDataSource"/>
+            <property name="openjpa.ConnectionDriverName" value="org.apache.oozie.util.db.BasicDataSourceWrapper"/>
 
             <property name="openjpa.ConnectionProperties" value="**INVALID**"/> <!--Set by StoreService at init time -->
 
@@ -165,7 +165,7 @@
         <class>org.apache.oozie.util.db.ValidateConnectionBean</class>
 
         <properties>
-            <property name="openjpa.ConnectionDriverName" value="org.apache.commons.dbcp.BasicDataSource"/>
+            <property name="openjpa.ConnectionDriverName" value="org.apache.oozie.util.db.BasicDataSourceWrapper"/>
 
             <property name="openjpa.ConnectionProperties" value="**INVALID**"/> <!--Set by StoreService at init time -->
 
@@ -225,7 +225,7 @@
         <class>org.apache.oozie.util.db.ValidateConnectionBean</class>
 
         <properties>
-            <property name="openjpa.ConnectionDriverName" value="org.apache.commons.dbcp.BasicDataSource"/>
+            <property name="openjpa.ConnectionDriverName" value="org.apache.oozie.util.db.BasicDataSourceWrapper"/>
 
             <property name="openjpa.ConnectionProperties" value="**INVALID**"/> <!--Set by StoreService at init time -->
 
@@ -286,7 +286,7 @@
         <class>org.apache.oozie.util.db.ValidateConnectionBean</class>
 
         <properties>
-            <property name="openjpa.ConnectionDriverName" value="org.apache.commons.dbcp.BasicDataSource"/>
+            <property name="openjpa.ConnectionDriverName" value="org.apache.oozie.util.db.BasicDataSourceWrapper"/>
 
             <property name="openjpa.ConnectionProperties" value="**INVALID**"/> <!--Set by StoreService at init time -->
 
@@ -347,7 +347,7 @@
         <class>org.apache.oozie.util.db.ValidateConnectionBean</class>
 
         <properties>
-            <property name="openjpa.ConnectionDriverName" value="org.apache.commons.dbcp.BasicDataSource"/>
+            <property name="openjpa.ConnectionDriverName" value="org.apache.oozie.util.db.BasicDataSourceWrapper"/>
 
             <property name="openjpa.ConnectionProperties" value="**INVALID**"/> <!--Set by StoreService at init time -->
 
