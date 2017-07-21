@@ -16,6 +16,19 @@
 -- limitations under the License.
 --
 
+DROP TABLE IF EXISTS dbo.BUNDLE_ACTIONS;
+DROP TABLE IF EXISTS dbo.BUNDLE_JOBS;
+DROP TABLE IF EXISTS dbo.COORD_ACTIONS;
+DROP TABLE IF EXISTS dbo.COORD_JOBS;
+DROP TABLE IF EXISTS dbo.OOZIE_SYS;
+DROP TABLE IF EXISTS dbo.OPENJPA_SEQUENCE_TABLE;
+DROP TABLE IF EXISTS dbo.SLA_EVENTS;
+DROP TABLE IF EXISTS dbo.SLA_REGISTRATION;
+DROP TABLE IF EXISTS dbo.SLA_SUMMARY;
+DROP TABLE IF EXISTS dbo.VALIDATE_CONN;
+DROP TABLE IF EXISTS dbo.WF_ACTIONS;
+DROP TABLE IF EXISTS dbo.WF_JOBS;
+
 CREATE TABLE dbo.BUNDLE_ACTIONS (bundle_action_id varchar(255) NOT NULL, bundle_id varchar(255), coord_id varchar(255), coord_name varchar(255), critical int, last_modified_time datetime2, pending int, status varchar(255));
 CREATE TABLE dbo.BUNDLE_JOBS (id varchar(255) NOT NULL, app_name varchar(255), app_path varchar(255), conf image, created_time datetime2, end_time datetime2, external_id varchar(255), group_name varchar(255), job_xml image, kickoff_time datetime2, last_modified_time datetime2, orig_job_xml image, pause_time datetime2, pending int, start_time datetime2, status varchar(255), suspended_time datetime2, time_out int, time_unit varchar(255), user_name varchar(255));
 CREATE TABLE dbo.COORD_ACTIONS (id varchar(255) NOT NULL, action_number int, action_xml image, console_url varchar(255), created_conf image, created_time datetime2, error_code varchar(255), error_message varchar(255), external_id varchar(255), external_status varchar(255), job_id varchar(255), last_modified_time datetime2, missing_dependencies image, nominal_time datetime2, pending int, push_missing_dependencies image, rerun_time datetime2, run_conf image, sla_xml image, status varchar(255), time_out int, tracker_uri varchar(255), job_type varchar(255));
