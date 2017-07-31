@@ -1,5 +1,6 @@
 -- Backport and Internal patches --
 
+BUG-92179 OOZIE-3018 Use Hadoop's CredentialProvider for passwords in SchemaCheckerService (andras.piros via gezapeti)
 BUG-90267: Addendum patch
 BUG-90400 Backport OOZIE-2908: Fix typo in oozie.actions.null.args.allowed property in oozie-default.xml
 BUG-89505 Backport OOZIE-2872: Address backward compatibility issue introduced by OOZIE-2748 (pbacsko)
