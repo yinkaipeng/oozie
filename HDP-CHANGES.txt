@@ -1,5 +1,6 @@
 -- Backport and Internal patches --
 
+BUG-82808 OOZIE-2928 Unit Tests using LocalOozie fail randomly (Denes Bodo via pbacsko)
 BUG-80809 Backport OOZIE-2781 HCat partition available notification is not sent to coordinator actions if coordinator job is using a different hostname (cname, IP address, etc. ) for HCat URL
 BUG-80811 Backport OOZIE-2807 Oozie gets RM delegation token even for checking job status (satishsaley)
 BUG-85803 OOZIE-2588 Support getting credentials for same cluster hcat when credentials config is empty (satishsaley via rohini)
