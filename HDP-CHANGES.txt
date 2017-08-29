@@ -1,7 +1,12 @@
 -- Backport and Internal patches --
 
+BUG-80809 Backport OOZIE-2781 HCat partition available notification is not sent to coordinator actions if coordinator job is using a different hostname (cname, IP address, etc. ) for HCat URL
+BUG-80811 Backport OOZIE-2807 Oozie gets RM delegation token even for checking job status (satishsaley)
+BUG-85803 OOZIE-2588 Support getting credentials for same cluster hcat when credentials config is empty (satishsaley via rohini)
 BUG-85803 Backport OOZIE-2819: Make Oozie REST API accept multibyte characters for script Actions (asasvari via rkanter)
 BUG-85738 Backport OOZIE-2656: OozieShareLibCLI uses op system username instead of Kerberos to upload jars
+BUG-80808 Backport OOZIE-2777: Config-default.xml longer than 64k results in java.io.UTFDataFormatException (gezapeti via harsh)
+BUG-80800 Backport OOZIE-2658: --driver-class-path can overwrite the classpath in SparkMain (gezapeti via rkanter)
 BUG-80807 Backport OOZIE-2748: NPE in LauncherMapper.printArgs()
 BUG-80806 Backport OOZIE-2727: OozieDBCLI creates temporary directories and do not delete them
 BUG-80805 Backport OOZIE-2724: coord:current resolves monthly/yearly dependencies incorrectly
