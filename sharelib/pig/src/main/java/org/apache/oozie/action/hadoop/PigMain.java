@@ -29,16 +29,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 
-import java.io.BufferedWriter;
-import java.io.FileNotFoundException;
-import java.io.FileWriter;
-import java.io.OutputStream;
-import java.io.FileOutputStream;
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.File;
-import java.io.IOException;
-import java.util.Arrays;
+import java.io.*;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.List;
@@ -120,14 +111,12 @@ public class PigMain extends LauncherMain {
         pigProperties.setProperty("pig.use.overriden.hadoop.configs","true");
 
         //setting oozie workflow id as caller context id for pig
-        String callerId = "oozie:" + System.getProperty("oozie.job.id");
+        String callerId = "oozie:" + System.getProperty(LauncherMapper.OOZIE_JOB_ID);
         pigProperties.setProperty("pig.log.trace.id", callerId);
 
-        OutputStream os = new FileOutputStream("pig.properties");
-        pigProperties.store(os, "");
-        os.close();
-
-        logMasking("pig.properties:", Arrays.asList("password"), pigProperties.entrySet());
+        createFileWithContentIfNotExists("pig.properties", pigProperties);
+        logMasking("pig.properties:",
+                (Iterable<Map.Entry<String, String>>)(Iterable<?>) pigProperties.entrySet());
 
         List<String> arguments = new ArrayList<String>();
         String script = actionConf.get(PigActionExecutor.PIG_SCRIPT);
@@ -183,9 +172,7 @@ public class PigMain extends LauncherMain {
         log4jProperties.setProperty("log4j.logger.org.apache.hadoop.yarn.client.api.impl.YarnClientImpl", "INFO, B");
 
         String localProps = new File("piglog4j.properties").getAbsolutePath();
-        try (OutputStream os1 = new FileOutputStream(localProps)) {
-            log4jProperties.store(os1, "");
-        }
+        createFileWithContentIfNotExists(localProps, log4jProperties);
 
         arguments.add("-log4jconf");
         arguments.add(localProps);
