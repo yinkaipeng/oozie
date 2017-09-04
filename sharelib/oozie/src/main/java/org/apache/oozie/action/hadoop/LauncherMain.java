@@ -18,18 +18,11 @@
 
 package org.apache.oozie.action.hadoop;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.StringWriter;
+import java.io.*;
 import java.net.URL;
 import java.util.Arrays;
-import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Properties;
@@ -46,6 +39,9 @@ import com.google.common.base.Preconditions;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.mapred.JobConf;
+
+import static org.apache.oozie.action.hadoop.LauncherMainHadoopUtils.CHILD_MAPREDUCE_JOB_TAGS;
+import static org.apache.oozie.action.hadoop.LauncherMapper.PROPAGATION_CONF_XML;
 
 public abstract class LauncherMain {
 
@@ -174,24 +170,17 @@ public abstract class LauncherMain {
      * any of the strings in the maskSet will be masked when writting it to STDOUT.
      *
      * @param header message for the beginning of the Configuration/Properties dump.
-     * @param maskSet set with substrings of property names to mask.
      * @param conf Configuration/Properties object to dump to STDOUT
      * @throws IOException thrown if an IO error ocurred.
      */
-    @SuppressWarnings("unchecked")
-    protected static void logMasking(String header, Collection<String> maskSet, Iterable conf) throws IOException {
+    protected static void logMasking(String header, Iterable<Map.Entry<String,String>> conf)
+            throws IOException {
         StringWriter writer = new StringWriter();
         writer.write(header + "\n");
         writer.write("--------------------\n");
-        for (Map.Entry entry : (Iterable<Map.Entry>) conf) {
-            String name = (String) entry.getKey();
-            String value = (String) entry.getValue();
-            for (String mask : maskSet) {
-                if (name.contains(mask)) {
-                    value = "*MASKED*";
-                }
-            }
-            writer.write(" " + name + " : " + value + "\n");
+        PasswordMasker masker = new PasswordMasker();
+        for (Map.Entry<String, String> entry : conf) {
+            writer.write(" " + entry.getKey() + " : " + masker.mask(entry) + "\n");
         }
         writer.write("--------------------\n");
         writer.close();
@@ -265,13 +254,13 @@ public abstract class LauncherMain {
     }
 
     protected static void setYarnTag(Configuration actionConf) {
-        if(actionConf.get(LauncherMainHadoopUtils.CHILD_MAPREDUCE_JOB_TAGS) != null) {
+        if(actionConf.get(CHILD_MAPREDUCE_JOB_TAGS) != null) {
             // in case the user set their own tags, appending the launcher tag.
             if(actionConf.get(MAPREDUCE_JOB_TAGS) != null) {
                 actionConf.set(MAPREDUCE_JOB_TAGS, actionConf.get(MAPREDUCE_JOB_TAGS) + ","
-                        + actionConf.get(LauncherMainHadoopUtils.CHILD_MAPREDUCE_JOB_TAGS));
+                        + actionConf.get(CHILD_MAPREDUCE_JOB_TAGS));
             } else {
-                actionConf.set(MAPREDUCE_JOB_TAGS, actionConf.get(LauncherMainHadoopUtils.CHILD_MAPREDUCE_JOB_TAGS));
+                actionConf.set(MAPREDUCE_JOB_TAGS, actionConf.get(CHILD_MAPREDUCE_JOB_TAGS));
             }
         }
     }
@@ -327,6 +316,37 @@ public abstract class LauncherMain {
             dstFiles[i] = new File(basrDir, HADOOP_SITE_FILES[i]);
         }
         copyFileMultiplex(actionXmlFile, dstFiles);
+    }
+
+    protected static URL createFileWithContentIfNotExists(String filename, Configuration content) throws IOException {
+        File output = new File(filename);
+        try (OutputStream os = createStreamIfFileNotExists(output)) {
+            if(os != null) {
+                content.writeXml(os);
+            }
+        }
+        return output.toURI().toURL();
+    }
+
+    protected static URL createFileWithContentIfNotExists(String filename, Properties content) throws IOException {
+        File output = new File(filename);
+        try (OutputStream os = createStreamIfFileNotExists(output)) {
+            if(os != null) {
+                content.store(os, "");
+            }
+        }
+        return output.toURI().toURL();
+    }
+
+    static FileOutputStream createStreamIfFileNotExists(File output) throws IOException {
+        if (output.exists()) {
+            System.out.println(output + " exists, skipping. The action will use the "
+                    + output.getName() + " defined in the workflow.");
+            return null;
+        } else {
+            System.out.println("Creating " + output.getAbsolutePath());
+            return new FileOutputStream(output);
+        }
     }
 }
 
