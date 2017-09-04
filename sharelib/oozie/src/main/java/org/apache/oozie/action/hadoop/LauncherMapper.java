@@ -18,16 +18,7 @@
 
 package org.apache.oozie.action.hadoop;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
-import java.io.StringWriter;
+import java.io.*;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.security.Permission;
@@ -358,7 +349,10 @@ public class LauncherMapper<K1, V1, K2, V2> implements Mapper<K1, V1, K2, V2>, R
                     actionConf.get(LauncherMainHadoopUtils.CHILD_MAPREDUCE_JOB_TAGS));
         }
 
-        propagationConf.writeXml(new FileWriter(PROPAGATION_CONF_XML));
+        try (Writer writer = new FileWriter(PROPAGATION_CONF_XML)) {
+            propagationConf.writeXml(writer);
+        }
+
         Configuration.dumpConfiguration(propagationConf, new OutputStreamWriter(System.out));
         Configuration.addDefaultResource(PROPAGATION_CONF_XML);
     }

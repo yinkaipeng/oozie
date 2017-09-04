@@ -19,14 +19,13 @@
 package org.apache.oozie.action.hadoop;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.*;
-import java.util.jar.JarFile;
-import java.util.jar.Manifest;
+import java.net.URL;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 import org.apache.commons.io.FileUtils;
@@ -218,10 +217,8 @@ public class SparkMain extends LauncherMain {
         log4jProperties.setProperty("log4j.logger.org.apache.hadoop.mapreduce.Job", "INFO, jobid");
         log4jProperties.setProperty("log4j.logger.org.apache.hadoop.yarn.client.api.impl.YarnClientImpl", "INFO, jobid");
 
-        String localProps = new File(SPARK_LOG4J_PROPS).getAbsolutePath();
-        try (OutputStream os1 = new FileOutputStream(localProps)) {
-            log4jProperties.store(os1, "");
-        }
+        final String localProps = new File(SPARK_LOG4J_PROPS).getAbsolutePath();
+        createFileWithContentIfNotExists(localProps, log4jProperties);
 
         PropertyConfigurator.configure(SPARK_LOG4J_PROPS);
         return logFile;
@@ -267,20 +264,11 @@ public class SparkMain extends LauncherMain {
         hiveConf.unset("hive.exec.local.scratchdir");
 
         // Write the action configuration out to hive-site.xml
-        OutputStream os = null;
-        try {
-            os = new FileOutputStream(HIVE_SITE_CONF);
-            hiveConf.writeXml(os);
-        }
-        finally {
-            if (os != null) {
-                os.close();
-            }
-        }
+        URL hiveSiteURL = createFileWithContentIfNotExists(HIVE_SITE_CONF, hiveConf);
         // Reset the hiveSiteURL static variable as we just created
         // hive-site.xml.
         // If prepare block had a drop partition it would have been initialized
         // to null.
-        HiveConf.setHiveSiteLocation(HiveConf.class.getClassLoader().getResource("hive-site.xml"));
+        HiveConf.setHiveSiteLocation(hiveSiteURL);
     }
 }
