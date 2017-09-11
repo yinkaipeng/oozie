@@ -118,6 +118,7 @@ public class JavaActionExecutor extends ActionExecutor {
     public static final String ACTION_SHARELIB_FOR = "oozie.action.sharelib.for.";
     public static final String SHARELIB_EXCLUDE_SUFFIX = ".exclude";
     public static final String OOZIE_ACTION_DEPENDENCY_DEDUPLICATE = "oozie.action.dependency.deduplicate";
+    private static final String OOZIE_ACTION_NAME = "oozie.action.name";
 
     private static int maxActionOutputLen;
     private static int maxExternalStatsSize;
@@ -1012,11 +1013,8 @@ public class JavaActionExecutor extends ActionExecutor {
 
             String jobName = launcherJobConf.get(HADOOP_JOB_NAME);
             if (jobName == null || jobName.isEmpty()) {
-                jobName = XLog.format(
-                        "oozie:launcher:T={0}:W={1}:A={2}:ID={3}", getType(),
-                        context.getWorkflow().getAppName(), action.getName(),
-                        context.getWorkflow().getId());
-            launcherJobConf.setJobName(jobName);
+                jobName = getAppName(context);
+                launcherJobConf.setJobName(jobName);
             }
 
             // Inject Oozie job information if enabled.
@@ -1169,6 +1167,7 @@ public class JavaActionExecutor extends ActionExecutor {
 
             // action job configuration
             Configuration actionConf = loadHadoopDefaultResources(context, actionXml);
+            addAppNameContext(action, context);
             setupActionConf(actionConf, context, actionXml, appPathRoot);
             LOG.debug("Setting LibFilesArchives ");
 
@@ -1176,9 +1175,7 @@ public class JavaActionExecutor extends ActionExecutor {
 
             String jobName = actionConf.get(HADOOP_JOB_NAME);
             if (jobName == null || jobName.isEmpty()) {
-                jobName = XLog.format("oozie:action:T={0}:W={1}:A={2}:ID={3}",
-                        getType(), context.getWorkflow().getAppName(),
-                        action.getName(), context.getWorkflow().getId());
+                jobName = getAppName(context);
                 actionConf.set(HADOOP_JOB_NAME, jobName);
             }
 
@@ -1304,6 +1301,19 @@ public class JavaActionExecutor extends ActionExecutor {
                 }
             }
         }
+    }
+
+    protected void addAppNameContext(WorkflowAction action, Context context) {
+        String oozieActionName = String.format("oozie:launcher:T=%s:W=%s:A=%s:ID=%s",
+                getType(),
+                context.getWorkflow().getAppName(),
+                action.getName(),
+                context.getWorkflow().getId());
+        context.setVar(OOZIE_ACTION_NAME, oozieActionName);
+    }
+
+    protected String getAppName(Context context) {
+        return context.getVar(OOZIE_ACTION_NAME);
     }
 
     private URI getSharelibRoot() {
