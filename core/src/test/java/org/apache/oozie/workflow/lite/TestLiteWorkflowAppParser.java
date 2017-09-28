@@ -609,6 +609,17 @@ public class TestLiteWorkflowAppParser extends XTestCase {
         assertEquals(expectedB.replaceAll(" ", ""), b.replaceAll(" ", ""));
     }
 
+
+    public void testWfWithSameOkAndErrorNode() throws Exception {
+        LiteWorkflowAppParser parser = new LiteWorkflowAppParser(null,
+                LiteWorkflowStoreService.LiteControlNodeHandler.class,
+                LiteWorkflowStoreService.LiteDecisionHandler.class,
+                LiteWorkflowStoreService.LiteActionHandler.class);
+
+        String workflow = "test-workflow-with-same-ok-error-node.xml";
+        parser.validateAndParse(IOUtils.getResourceAsReader(workflow, -1), new Configuration());
+    }
+
     public void testParser() throws Exception {
         LiteWorkflowAppParser parser = new LiteWorkflowAppParser(null,
                                                                  LiteWorkflowStoreService.LiteControlNodeHandler.class,
