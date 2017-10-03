@@ -18,9 +18,11 @@
 
 package org.apache.oozie.action.hadoop;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
@@ -35,6 +37,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -61,6 +64,7 @@ import org.apache.oozie.client.OozieClient;
 import org.apache.oozie.client.WorkflowAction;
 import org.apache.oozie.client.WorkflowJob;
 import org.apache.oozie.hadoop.utils.HadoopShims;
+import org.apache.oozie.local.LocalOozie;
 import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.HadoopAccessorService;
 import org.apache.oozie.service.LiteWorkflowStoreService;
@@ -85,6 +89,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import static org.apache.oozie.action.hadoop.JavaActionExecutor.ACTION_SHARELIB_FOR;
+import static org.apache.oozie.action.hadoop.JavaActionExecutor.HADOOP_JOB_TRACKER;
 import static org.apache.oozie.action.hadoop.JavaActionExecutor.SHARELIB_EXCLUDE_SUFFIX;
 
 
@@ -3064,6 +3069,103 @@ public class TestJavaActionExecutor extends ActionExecutorTestCase {
         } else {
             assertEquals(4, conf.size());
         }
+    }
+
+    public void testDefaultConfigurationInActionConf() throws Exception {
+        JavaActionExecutor ae = new JavaActionExecutor();
+        String xmlStr = getJavaActionXml(true);
+        Element actionXml = XmlUtils.parseXml(xmlStr);
+        Context context = createContext(xmlStr, getTestGroup());
+        Configuration conf = new Configuration(true);
+        conf.set(HADOOP_JOB_TRACKER, getJobTrackerUri());
+        assertEquals("MapReduce's default value changed", "4", conf.get("mapreduce.map.maxattempts"));
+        ae.setupActionConf(conf, context, actionXml, new Path(context.getWorkflow().getAppPath()));
+        assertEquals("failed to inject property >action.foo<","AA", conf.get("action.foo"));
+        assertEquals("failed to inject property >oozie.launcher.action.foofoo<","action.barbar",
+                conf.get("oozie.launcher.action.foofoo"));
+        assertEquals("Maxattempts should've been overwritten by setupActionConf", "1",
+                conf.get("mapreduce.map.maxattempts"));
+    }
+
+    private String getJavaActionXml(boolean addConfig) {
+        String config = addConfig ? "<configuration>" +
+                "<property><name>action.foo</name><value>AA</value></property>" +
+                "</configuration>" : "";
+        return "<java>" + "<job-tracker>" + getJobTrackerUri() + "</job-tracker>" +
+                "<name-node>" + getNameNodeUri() + "</name-node>" +
+                config +
+                "<main-class>MAIN-CLASS</main-class>" +
+                "</java>";
+    }
+
+    private String createTestWorkflowXml() throws IOException {
+        String workflowUri = getTestCaseFileUri("workflow.xml");
+        String appXml = "<workflow-app xmlns=\"uri:oozie:workflow:0.4\" name=\"workflow\">" +
+                "<global>" +
+                "   <configuration>" +
+                "        <property>" +
+                "            <name>action.foo</name>" +
+                "            <value>foo2</value>" +
+                "        </property>" +
+                "    </configuration>" +
+                "</global>" +
+                "<start to=\"java\"/>" +
+                "<action name=\"java\">" +
+                getJavaActionXml(false)+
+                "     <ok to=\"end\"/>" +
+                "     <error to=\"fail\"/>" +
+                "</action>" +
+                "<kill name=\"fail\">" +
+                "     <message>Sub workflow failed, error message[${wf:errorMessage(wf:lastErrorNode())}]</message>" +
+                "</kill>" +
+                "<end name=\"end\"/>" +
+                "</workflow-app>";
+
+        final File f = new File(URI.create(workflowUri));
+        final ByteArrayInputStream inputStream = new ByteArrayInputStream(appXml.getBytes("UTF-8"));
+        IOUtils.copyStream(inputStream, new FileOutputStream(f));
+        return workflowUri;
+    }
+
+    public void testGlobalConfigurationWithActionDefaults() throws Exception {
+        try {
+            String workflowUri = createTestWorkflowXml();
+            LocalOozie.start();
+            final OozieClient wfClient = LocalOozie.getClient();
+            Properties conf = wfClient.createConfiguration();
+            conf.setProperty(OozieClient.APP_PATH, workflowUri);
+            conf.setProperty(OozieClient.USER_NAME, getTestUser());
+            conf.setProperty("appName", "var-app-name");
+            final String jobId = wfClient.submit(conf);
+            wfClient.start(jobId);
+            WorkflowJob workflow = wfClient.getJobInfo(jobId);
+            waitFor(20 * 1000, new Predicate() {
+                @Override
+                public boolean evaluate() throws Exception {
+                    WorkflowAction javaAction = getJavaAction(wfClient.getJobInfo(jobId));
+                    return javaAction != null && !javaAction.getStatus().equals("PREP");
+                }
+            });
+            final WorkflowAction workflowAction = getJavaAction(workflow);
+            Element eConf = XmlUtils.parseXml(workflowAction.getConf());
+            Element element = eConf.getChild("configuration", eConf.getNamespace());
+            Configuration actionConf = new XConfiguration(new StringReader(XmlUtils.prettyPrint(element).toString()));
+
+            assertEquals("Config value set in <global> section is not propagated correctly",
+                    "foo2", actionConf.get("action.foo"));
+        } finally {
+            LocalOozie.stop();
+        }
+    }
+
+    private WorkflowAction getJavaAction(WorkflowJob workflowJob){
+        List<WorkflowAction> actions = workflowJob.getActions();
+        for(WorkflowAction wa : actions){
+            if(wa.getType().equals("java")){
+                return wa;
+            }
+        }
+        return null;
     }
 
     public void testSetRootLoggerLevel() throws Exception {

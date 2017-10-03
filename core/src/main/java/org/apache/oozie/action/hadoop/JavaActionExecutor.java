@@ -1167,8 +1167,8 @@ public class JavaActionExecutor extends ActionExecutor {
 
             // action job configuration
             Configuration actionConf = loadHadoopDefaultResources(context, actionXml);
-            addAppNameContext(action, context);
             setupActionConf(actionConf, context, actionXml, appPathRoot);
+            addAppNameContext(action, context);
             LOG.debug("Setting LibFilesArchives ");
 
             setLibFilesArchives(context, actionXml, appPathRoot, actionConf);
