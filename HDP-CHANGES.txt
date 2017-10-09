@@ -1,5 +1,6 @@
 -- Backport and Internal patches --
 
+BUG-89103: Backport OOZIE-2440 Exponential re-try policy for workflow action
 BUG-88432 OOZIE-2608: Comma in oozie.service.JPAService.jdbc.password value results in authentication error
 BUG-87155 OOZIE-2615 Flaky tests TestCoordActionsKillXCommand.testActionKillCommandActionNumbers and testActionKillCommandDate (pbacsko via rkanter)
 BUG-82808 OOZIE-2928 Unit Tests using LocalOozie fail randomly (Denes Bodo via pbacsko)
