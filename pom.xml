@@ -298,6 +298,10 @@
                          <artifactId>jsp-api</artifactId>
                          <groupId>javax.servlet.jsp</groupId>
                      </exclusion>
+                     <exclusion>
+                         <groupId>jdk.tools</groupId>
+                         <artifactId>jdk.tools</artifactId>
+                     </exclusion>
                  </exclusions>
              </dependency>
              
@@ -2035,6 +2039,10 @@
                         <exclusion>
                             <groupId>org.apache.httpcomponents</groupId>
                             <artifactId>httpclient</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>jdk.tools</groupId>
+                            <artifactId>jdk.tools</artifactId>
                         </exclusion>
                     </exclusions>
                 </dependency>
