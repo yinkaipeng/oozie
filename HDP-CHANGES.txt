@@ -1,7 +1,9 @@
 -- Backport and Internal patches --
 
+BUG-90267: Addendum patch
 BUG-90400 Backport OOZIE-2908: Fix typo in oozie.actions.null.args.allowed property in oozie-default.xml
 BUG-89505 Backport OOZIE-2872: Address backward compatibility issue introduced by OOZIE-2748 (pbacsko)
+BUG-90267: Refactor jdk.tools and c3p0 dependencies
 BUG-83293: Oozie fails to submit job with validation error.
 BUG-89103: Backport OOZIE-2440 Exponential re-try policy for workflow action
 BUG-88432 OOZIE-2608: Comma in oozie.service.JPAService.jdbc.password value results in authentication error
