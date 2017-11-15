@@ -61,3 +61,4 @@ Subscribe using the link:
 http://oozie.apache.org/mail-lists.html
 
 
+Patch Upgrade - Nov 15, 2017
