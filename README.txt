@@ -62,3 +62,4 @@ http://oozie.apache.org/mail-lists.html
 
 
 Patch Upgrade - Nov 15, 2017
+Patch Upgrade - Sat Nov 25 14:55:59 UTC 2017
