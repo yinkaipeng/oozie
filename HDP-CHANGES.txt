@@ -1,5 +1,6 @@
 -- Backport and Internal patches --
 
+BUG-92477 OOZIE-3139 Oozie validates workflow incorrectly (dionusos via pbacsko)
 BUG-90400 Backport OOZIE-2908: Fix typo in oozie.actions.null.args.allowed property in oozie-default.xml
 BUG-89505 Backport OOZIE-2872: Address backward compatibility issue introduced by OOZIE-2748 (pbacsko)
 BUG-83293: Oozie fails to submit job with validation error.
