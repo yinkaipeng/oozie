@@ -19,6 +19,7 @@
 package org.apache.oozie.workflow.lite;
 
 
+import java.io.IOException;
 import java.io.StringReader;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -34,6 +35,7 @@ import org.apache.oozie.util.IOUtils;
 import org.apache.oozie.workflow.WorkflowException;
 import org.apache.oozie.workflow.lite.TestLiteWorkflowLib.TestActionNodeHandler;
 import org.apache.oozie.workflow.lite.TestLiteWorkflowLib.TestDecisionNodeHandler;
+import org.junit.Assert;
 
 public class TestLiteWorkflowAppParser extends XTestCase {
     public static String dummyConf = "<java></java>";
@@ -1462,6 +1464,33 @@ public class TestLiteWorkflowAppParser extends XTestCase {
         }
 
         assertFalse("Workflow validation failed", failure.get());
+    }
+
+    public void testMultipleErrorTransitions() throws WorkflowException, IOException {
+        LiteWorkflowAppParser parser = new LiteWorkflowAppParser(null,
+                LiteWorkflowStoreService.LiteControlNodeHandler.class,
+                LiteWorkflowStoreService.LiteDecisionHandler.class, LiteWorkflowStoreService.LiteActionHandler.class);
+        try {
+            parser.validateAndParse(IOUtils.getResourceAsReader(
+                    "wf-multiple-error-parent.xml", -1), new Configuration());
+        } catch (final WorkflowException e) {
+            e.printStackTrace();
+            Assert.fail("This workflow has to be correct.");
+        }
+    }
+
+    public void testOkToTransitionToKillTransitions() throws WorkflowException, IOException {
+        LiteWorkflowAppParser parser = new LiteWorkflowAppParser(null,
+                LiteWorkflowStoreService.LiteControlNodeHandler.class,
+                LiteWorkflowStoreService.LiteDecisionHandler.class, LiteWorkflowStoreService.LiteActionHandler.class);
+        try {
+
+            parser.validateAndParse(IOUtils.getResourceAsReader(
+                    "wf-kill-with-ok.xml", -1), new Configuration());
+        } catch (final WorkflowException e) {
+            e.printStackTrace();
+            Assert.fail("This workflow has to be correct.");
+        }
     }
 
     private void invokeForkJoin(LiteWorkflowAppParser parser, LiteWorkflowApp def) throws WorkflowException {
