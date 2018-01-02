@@ -40,6 +40,7 @@ import org.apache.curator.utils.ThreadUtils;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.MapMaker;
+import org.apache.zookeeper.KeeperException;
 
 /**
  * Service that provides distributed locks via ZooKeeper.  Requires that a ZooKeeper ensemble is available.  The locks will be
@@ -59,6 +60,8 @@ public class ZKLocksService extends MemoryLocksService implements Service, Instr
     public static final String REAPING_THRESHOLD = CONF_PREFIX + "ZKLocksService.locks.reaper.threshold";
     public static final String REAPING_THREADS = CONF_PREFIX + "ZKLocksService.locks.reaper.threads";
     private ChildReaper reaper = null;
+    private static final String RELEASE_RETRY_TIME_LIMIT_MINUTES = CONF_PREFIX + "ZKLocksService.lock.release.retry.time.limit"
+            + ".minutes";
 
     /**
      * Initialize the zookeeper locks service
@@ -186,17 +189,39 @@ public class ZKLocksService extends MemoryLocksService implements Service, Instr
         @Override
         public void release() {
             try {
-                switch (type) {
-                    case WRITE:
-                        lockEntry.writeLock().release();
-                        break;
-                    case READ:
-                        lockEntry.readLock().release();
-                        break;
-                }
+                retriableRelease();
             }
             catch (Exception ex) {
                 LOG.warn("Could not release lock: " + ex.getMessage(), ex);
+            }
+        }
+
+        /**
+         * Retires on failure to release lock
+         *
+         * @throws InterruptedException
+         */
+        private void retriableRelease() throws Exception {
+            long retryTimeLimit = TimeUnit.MINUTES.toSeconds(ConfigurationService.getLong(RELEASE_RETRY_TIME_LIMIT_MINUTES, 30));
+            int sleepSeconds = 10;
+            for(int retryCount = 1; retryTimeLimit>=0; retryTimeLimit -= sleepSeconds, retryCount++) {
+                try {
+                    switch (type) {
+                        case WRITE:
+                            lockEntry.writeLock().release();
+                            break;
+                        case READ:
+                            lockEntry.readLock().release();
+                            break;
+                    }
+                    break;
+                }
+                catch (KeeperException.ConnectionLossException ex) {
+                    LOG.warn("Could not release lock: " + ex.getMessage() + ". Retry will be after " + sleepSeconds + " seconds",
+                            ex);
+                    Thread.sleep(TimeUnit.SECONDS.toMillis(sleepSeconds));
+                    LOG.info("Retrying to release lock. Retry number=" + retryCount);
+                }
             }
         }
     }
