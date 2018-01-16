@@ -50,6 +50,7 @@ import org.apache.oozie.service.Services;
 import org.apache.oozie.service.UserGroupInformationService;
 import org.apache.oozie.service.URIHandlerService;
 import org.apache.oozie.util.XConfiguration;
+import org.apache.oozie.util.XLog;
 import org.apache.oozie.util.XmlUtils;
 import org.jdom.Element;
 
@@ -61,6 +62,8 @@ public class FsActionExecutor extends ActionExecutor {
     public static final String ACTION_TYPE = "fs";
 
     private final int maxGlobCount;
+
+    private final XLog LOG = XLog.getLog(getClass());
 
     public FsActionExecutor() {
         super(ACTION_TYPE);
@@ -238,6 +241,7 @@ public class FsActionExecutor extends ActionExecutor {
     void chgrp(Context context, XConfiguration fsConf, Path nameNodePath, Path path, String user, String group,
             boolean dirFiles, boolean recursive) throws ActionExecutorException {
 
+        LOG.info("Setting ownership for [{0}] to group: [{1}], user: [{2}]. Recursive mode: [{3}]", path, group, user, recursive);
         HashMap<String, String> argsMap = new HashMap<String, String>();
         argsMap.put("user", user);
         argsMap.put("group", group);
@@ -341,6 +345,7 @@ public class FsActionExecutor extends ActionExecutor {
     }
 
     void mkdir(Context context, XConfiguration fsConf, Path nameNodePath, Path path) throws ActionExecutorException {
+        LOG.info("Creating directory [{0}]", path);
         try {
             path = resolveToFullPath(nameNodePath, path, true);
             FileSystem fs = getFileSystemFor(path, context, fsConf);
@@ -350,6 +355,8 @@ public class FsActionExecutor extends ActionExecutor {
                     throw new ActionExecutorException(ActionExecutorException.ErrorType.ERROR, "FS004",
                                                       "mkdir, path [{0}] could not create directory", path);
                 }
+            } else {
+                LOG.info("[{0}] already exist, no need for creation", path);
             }
         }
         catch (Exception ex) {
@@ -379,6 +386,7 @@ public class FsActionExecutor extends ActionExecutor {
      */
     public void delete(Context context, XConfiguration fsConf, Path nameNodePath, Path path, boolean skipTrash)
             throws ActionExecutorException {
+        LOG.info("Deleting [{0}]. Skipping trash: [{1}]", path, skipTrash);
         URI uri = path.toUri();
         URIHandler handler;
         org.apache.oozie.dependency.URIHandler.Context hcatContext = null;
@@ -482,6 +490,7 @@ public class FsActionExecutor extends ActionExecutor {
      */
     public void move(Context context, XConfiguration fsConf, Path nameNodePath, Path source, Path target, boolean recovery)
             throws ActionExecutorException {
+        LOG.info("Moving [{0}] to [{1}]", source, target);
         try {
             source = resolveToFullPath(nameNodePath, source, true);
             validateSameNN(source, target);
@@ -523,6 +532,7 @@ public class FsActionExecutor extends ActionExecutor {
     void chmod(Context context, XConfiguration fsConf, Path nameNodePath, Path path, String permissions,
             boolean dirFiles, boolean recursive) throws ActionExecutorException {
 
+        LOG.info("Setting permissions [{0}] on [{1}]. Recursive mode: [{2}]", permissions, path, recursive);
         HashMap<String, String> argsMap = new HashMap<String, String>();
         argsMap.put("permissions", permissions);
         try {
@@ -549,6 +559,8 @@ public class FsActionExecutor extends ActionExecutor {
     }
 
     void touchz(Context context, XConfiguration fsConf, Path nameNodePath, Path path) throws ActionExecutorException {
+
+        LOG.info ("Performing touch on [{0}]", path);
         try {
             path = resolveToFullPath(nameNodePath, path, true);
             FileSystem fs = getFileSystemFor(path, context, fsConf);
@@ -603,6 +615,7 @@ public class FsActionExecutor extends ActionExecutor {
 
     @Override
     public void start(Context context, WorkflowAction action) throws ActionExecutorException {
+        LOG.info("Starting action");
         try {
             context.setStartData("-", "-", "-");
             Element actionXml = XmlUtils.parseXml(action.getConf());
@@ -629,6 +642,7 @@ public class FsActionExecutor extends ActionExecutor {
                 throw convertException(ex);
             }
         }
+        LOG.info("Action ended with external status [{0}]", action.getExternalStatus());
     }
 
     @Override
@@ -651,6 +665,21 @@ public class FsActionExecutor extends ActionExecutor {
         if(pathArr.length > maxGlobCount) {
             throw new ActionExecutorException(ActionExecutorException.ErrorType.ERROR, "FS013",
                     "too many globbed files/dirs to do FS operation");
+        }
+    }
+
+    void setrep(Context context, Path path, short replicationFactor)
+            throws ActionExecutorException, HadoopAccessorException {
+        LOG.info("Setting replication factor: [{0}] for [{1}]", replicationFactor, path);
+        try {
+            path = resolveToFullPath(null, path, true);
+            FileSystem fs = getFileSystemFor(path, context, null);
+
+            if (fs.isFile(path)) {
+                fs.setReplication(path, replicationFactor);
+            }
+        } catch (IOException ex) {
+            convertException(ex);
         }
     }
 
