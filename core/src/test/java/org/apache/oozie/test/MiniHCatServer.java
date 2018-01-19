@@ -38,7 +38,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.HiveMetaStore;
-import org.apache.hadoop.hive.metastore.HiveMetaStore.HMSHandler;
 import org.apache.hadoop.hive.shims.ShimLoader;
 import org.apache.hive.hcatalog.api.HCatAddPartitionDesc;
 import org.apache.hive.hcatalog.api.HCatClient;
@@ -85,7 +84,6 @@ public class MiniHCatServer {
             initMetastoreServerConf();
         }
         hcatClient = HCatClient.create(hiveConf);
-        resetDefaultDBCreation();
     }
 
     public void shutdown() throws Exception {

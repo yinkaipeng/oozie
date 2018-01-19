@@ -19,7 +19,6 @@
 package org.apache.oozie.action.hadoop;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.oozie.action.ActionExecutorException;
@@ -72,20 +71,6 @@ public class Hive2ActionExecutor extends ScriptLanguageActionExecutor {
     @Override
     protected String getLauncherMain(Configuration launcherConf, Element actionXml) {
         return launcherConf.get(CONF_OOZIE_ACTION_MAIN_CLASS, HIVE2_MAIN_CLASS_NAME);
-    }
-
-    @Override
-    JobConf createLauncherConf(FileSystem actionFs, Context context, WorkflowAction action, Element actionXml,
-                               Configuration actionConf) throws ActionExecutorException {
-
-        JobConf launcherJobConf = super.createLauncherConf(actionFs, context, action, actionXml, actionConf);
-        if (launcherJobConf.get("oozie.launcher." + TASK_USER_PRECEDENCE) == null) {
-            launcherJobConf.set(TASK_USER_PRECEDENCE, "true");
-        }
-        if (launcherJobConf.get("oozie.launcher." + TASK_USER_CLASSPATH_PRECEDENCE) == null) {
-            launcherJobConf.set(TASK_USER_CLASSPATH_PRECEDENCE, "true");
-        }
-        return launcherJobConf;
     }
 
     @Override

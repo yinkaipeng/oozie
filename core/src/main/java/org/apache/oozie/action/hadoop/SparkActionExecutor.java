@@ -24,6 +24,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.oozie.action.ActionExecutorException;
 import org.apache.oozie.client.WorkflowAction;
+import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.service.SparkConfigurationService;
 import org.jdom.Element;
@@ -44,6 +45,7 @@ public class SparkActionExecutor extends JavaActionExecutor {
     public static final String SPARK_CLASS = "oozie.spark.class";
     public static final String SPARK_JAR = "oozie.spark.jar";
     public static final String MAPRED_CHILD_ENV = "mapred.child.env";
+    private static final String CONF_OOZIE_SPARK_SETUP_HADOOP_CONF_DIR = "oozie.action.spark.setup.hadoop.conf.dir";
 
     public SparkActionExecutor() {
         super("spark");
@@ -90,6 +92,10 @@ public class SparkActionExecutor extends JavaActionExecutor {
             actionConf.set(SPARK_OPTS, sparkOptsSb.toString().trim());
         }
 
+        // Setting if SparkMain should setup hadoop config *-site.xml
+        boolean setupHadoopConf = actionConf.getBoolean(CONF_OOZIE_SPARK_SETUP_HADOOP_CONF_DIR,
+                ConfigurationService.getBoolean(CONF_OOZIE_SPARK_SETUP_HADOOP_CONF_DIR));
+        actionConf.setBoolean(CONF_OOZIE_SPARK_SETUP_HADOOP_CONF_DIR, setupHadoopConf);
         return actionConf;
     }
 

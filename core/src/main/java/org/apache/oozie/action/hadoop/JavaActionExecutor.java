@@ -46,7 +46,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.AccessControlException;
-import org.apache.hadoop.hive.shims.HadoopShims;
+import org.apache.oozie.hadoop.utils.HadoopShims;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobConf;
@@ -695,12 +695,10 @@ public class JavaActionExecutor extends ActionExecutor {
                         if (listOfPaths != null && !listOfPaths.isEmpty()) {
                             for (Path actionLibPath : listOfPaths) {
                                 String fragmentName = new URI(actionLibPath.toString()).getFragment();
-                                Path pathWithFragment = fragmentName == null ? actionLibPath : new Path(new URI(
-                                        actionLibPath.toString()).getPath());
                                 String fileName = fragmentName == null ? actionLibPath.getName() : fragmentName;
                                 if (confSet.contains(fileName)) {
                                     Configuration jobXmlConf = shareLibService.getShareLibConf(actionShareLibName,
-                                            pathWithFragment);
+                                            actionLibPath);
                                     if (jobXmlConf != null) {
                                         checkForDisallowedProps(jobXmlConf, actionLibPath.getName());
                                         XConfiguration.injectDefaults(jobXmlConf, conf);
@@ -1061,7 +1059,7 @@ public class JavaActionExecutor extends ActionExecutor {
         return disable;
     }
 
-    private void injectCallback(Context context, Configuration conf) {
+    protected void injectCallback(Context context, Configuration conf) {
         String callback = context.getCallbackUrl("$jobStatus");
         if (conf.get("job.end.notification.url") != null) {
             LOG.warn("Overriding the action job end notification URI");
@@ -1070,7 +1068,7 @@ public class JavaActionExecutor extends ActionExecutor {
     }
 
     void injectActionCallback(Context context, Configuration actionConf) {
-        injectCallback(context, actionConf);
+        // action callback needs to be injected only for mapreduce actions.
     }
 
     void injectLauncherCallback(Context context, Configuration launcherConf) {

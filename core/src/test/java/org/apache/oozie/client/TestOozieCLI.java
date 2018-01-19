@@ -31,7 +31,6 @@ import java.util.concurrent.Callable;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.oozie.BaseEngine;
 import org.apache.oozie.BuildInfo;
 import org.apache.oozie.cli.CLIParser;
 import org.apache.oozie.cli.OozieCLI;
@@ -887,37 +886,52 @@ public class TestOozieCLI extends DagServletTestCase {
                 assertEquals(RestConstants.JOBS_FILTER_PARAM, MockDagEngineService.did);
 
                 args = new String[]{"jobs", "-timezone", "PST", "-len", "3", "-offset", "2", "-oozie", oozieUrl,
-                    "-filter", "name=x"};
+                        "-filter", "name=x"};
                 assertEquals(0, new OozieCLI().run(args));
                 assertEquals(RestConstants.JOBS_FILTER_PARAM, MockDagEngineService.did);
 
-                args = new String[]{"jobs", "-jobtype", "coord",  "-filter", "status=FAILED", "-oozie", oozieUrl};
+                args = new String[]{"jobs", "-jobtype", "coord", "-filter", "status=FAILED", "-oozie", oozieUrl};
                 assertEquals(0, new OozieCLI().run(args));
                 assertEquals(RestConstants.JOBS_FILTER_PARAM, MockDagEngineService.did);
 
-                args = new String[] { "jobs", "-filter",
-                        "startcreatedtime=2014-04-01T00:00Z;endcreatedtime=2014-05-01T00:00Z", "-oozie", oozieUrl };
+                args = new String[]{"jobs", "-filter",
+                        "startcreatedtime=2014-04-01T00:00Z;endcreatedtime=2014-05-01T00:00Z", "-oozie", oozieUrl};
                 assertEquals(0, new OozieCLI().run(args));
                 assertEquals(RestConstants.JOBS_FILTER_PARAM, MockDagEngineService.did);
 
-                args = new String[] { "jobs", "-filter",
-                        "startcreatedtime=-10d;endcreatedtime=-20m", "-oozie", oozieUrl };
+                args = new String[]{"jobs", "-filter",
+                        "startcreatedtime=-10d;endcreatedtime=-20m", "-oozie", oozieUrl};
                 assertEquals(0, new OozieCLI().run(args));
                 assertEquals(RestConstants.JOBS_FILTER_PARAM, MockDagEngineService.did);
 
-                args = new String[] { "jobs", "-filter",
-                        "startcreatedtime=-10d;endcreatedtime=-20m","-jobtype", "coord", "-oozie", oozieUrl };
+                args = new String[]{"jobs", "-filter",
+                        "sortby=lastmodifiedtime", "-oozie", oozieUrl};
                 assertEquals(0, new OozieCLI().run(args));
                 assertEquals(RestConstants.JOBS_FILTER_PARAM, MockDagEngineService.did);
 
-                args = new String[] { "jobs", "-filter",
-                        "startcreatedtime=-10d;endcreatedtime=-20m","-jobtype", "bundle", "-oozie", oozieUrl };
+                args = new String[]{"jobs", "-filter",
+                        "sortby=lastmodifiedtime", "-jobtype", "coord", "-oozie", oozieUrl};
+                assertEquals(0, new OozieCLI().run(args));
+                assertEquals(RestConstants.JOBS_FILTER_PARAM, MockDagEngineService.did);
+
+                args = new String[]{"jobs", "-filter",
+                        "sortby=lastmodifiedtime", "-jobtype", "bundle", "-oozie", oozieUrl};
+                assertEquals(0, new OozieCLI().run(args));
+                assertEquals(RestConstants.JOBS_FILTER_PARAM, MockDagEngineService.did);
+
+                args = new String[]{"jobs", "-filter",
+                        "startcreatedtime=-10d;endcreatedtime=-20m", "-jobtype", "coord", "-oozie", oozieUrl};
+                assertEquals(0, new OozieCLI().run(args));
+                assertEquals(RestConstants.JOBS_FILTER_PARAM, MockDagEngineService.did);
+
+                args = new String[]{"jobs", "-filter",
+                        "startcreatedtime=-10d;endcreatedtime=-20m", "-jobtype", "bundle", "-oozie", oozieUrl};
                 assertEquals(0, new OozieCLI().run(args));
                 assertEquals(RestConstants.JOBS_FILTER_PARAM, MockDagEngineService.did);
 
                 return null;
             }
-        });
+        } );
     }
 
     public void testHeaderPropagation() throws Exception {

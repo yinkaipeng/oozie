@@ -21,11 +21,12 @@
     <parent>
         <groupId>org.apache.oozie</groupId>
         <artifactId>oozie-main</artifactId>
-        <version>4.2.0.2.6.3.0-SNAPSHOT</version>
+
+        <version>4.3.0.2.6.3.0-SNAPSHOT</version>
     </parent>
     <groupId>org.apache.oozie</groupId>
     <artifactId>oozie-core</artifactId>
-    <version>4.2.0.2.6.3.0-SNAPSHOT</version>
+    <version>4.3.0.2.6.3.0-SNAPSHOT</version>
     <description>Apache Oozie Core</description>
     <name>Apache Oozie Core</name>
     <packaging>jar</packaging>
@@ -34,6 +35,18 @@
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>org.apache.curator</groupId>
+             <artifactId>curator-client</artifactId>
+             <scope>compile</scope>
+         </dependency>
+
+         <dependency>
+            <groupId>org.apache.curator</groupId>
+            <artifactId>curator-framework</artifactId>
+            <scope>compile</scope>
+        </dependency>
+
         <dependency>
             <groupId>io.dropwizard.metrics</groupId>
             <artifactId>metrics-core</artifactId>
@@ -87,13 +100,28 @@
             <artifactId>hbase-client</artifactId>
              <scope>provided</scope>
         </dependency>
-
         <dependency>
             <groupId>org.apache.hive.hcatalog</groupId>
             <artifactId>hive-webhcat-java-client</artifactId>
             <scope>compile</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.hive</groupId>
+                    <artifactId>hive-exec</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
-
+        <dependency>
+            <groupId>com.esotericsoftware.kryo</groupId>
+            <artifactId>kryo</artifactId>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hive</groupId>
+            <artifactId>hive-exec</artifactId>
+            <scope>compile</scope>
+            <classifier>${hive.classifier}</classifier>
+        </dependency>
         <dependency>
             <groupId>org.apache.hive.hcatalog</groupId>
             <artifactId>hive-hcatalog-server-extensions</artifactId>
@@ -157,6 +185,14 @@
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.sun</groupId>
+            <artifactId>tools</artifactId>
+            <version>${targetJavaVersion}</version>
+            <systemPath>${java.home}/../lib/tools.jar</systemPath>
+            <scope>system</scope>
         </dependency>
 
         <dependency>

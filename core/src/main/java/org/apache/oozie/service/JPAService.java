@@ -179,8 +179,9 @@ public class JPAService implements Service, Instrumentable {
             url = "\"".concat(url).concat("\"");
             LOG.info("A jdbc replication url is provided. Url: [{0}]", url);
         }
-        String connProps = "DriverClassName={0},Url={1},MaxActive={2}";
-        connProps = MessageFormat.format(connProps, driver, url, maxConn);
+        String connProps = "DriverClassName={0},Url={1},Username={2},Password={3},MaxActive={4}";
+        connProps = MessageFormat.format(connProps, driver, url, user, password, maxConn);
+
         Properties props = new Properties();
         if (autoSchemaCreation) {
             connProps += ",TestOnBorrow=false,TestOnReturn=false,TestWhileIdle=false";

@@ -70,6 +70,14 @@
     </property>
 
     <property>
+        <name>oozie.jmx_monitoring.enable</name>
+        <value>false</value>
+        <description>
+            If the oozie functional metrics needs to be exposed via JMX interface, set it to true.
+        </description>
+    </property>
+
+    <property>
         <name>oozie.action.mapreduce.uber.jar.enable</name>
         <value>false</value>
         <description>
@@ -163,8 +171,7 @@
             org.apache.oozie.service.ProxyUserService,
             org.apache.oozie.service.XLogStreamingService,
             org.apache.oozie.service.JvmPauseMonitorService,
-            org.apache.oozie.service.SparkConfigurationService,
-            org.apache.oozie.service.SchemaCheckerService
+            org.apache.oozie.service.SparkConfigurationService
         </value>
         <description>
             All services to be created and managed by Oozie Services singleton.
@@ -549,7 +556,7 @@
 	</property>
 
     <property>
-        <name>oozie.service.coord.input.check.requeue.interval.increase</name>
+        <name>oozie.service.coord.input.check.requeue.interval.additional.delay</name>
         <value>0</value>
         <description>This value (in seconds) will be added into oozie.service.coord.input.check.requeue.interval and resulting value
 will be the requeue interval for the actions which are waiting for a long time without any input.
@@ -1814,6 +1821,17 @@ will be the requeue interval for the actions which are waiting for a long time w
         <description>
             The Shell action may have issues with the $PATH environment when using Uber Mode, and so Uber Mode is disabled by
             default for it.  See oozie.action.launcher.mapreduce.job.ubertask.enable
+        </description>
+    </property>
+
+    <property>
+        <name>oozie.action.spark.setup.hadoop.conf.dir</name>
+        <value>false</value>
+        <description>
+            Oozie action.xml (oozie.action.conf.xml) contains all the hadoop configuration and user provided configurations.
+            This property will allow users to copy Oozie action.xml as hadoop *-site configurations files. The advantage is,
+            user need not to manage these files into spark sharelib. If user wants to manage the hadoop configurations
+            themselves, it should should disable it.
         </description>
     </property>
 

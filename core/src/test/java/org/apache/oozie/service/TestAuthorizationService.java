@@ -66,6 +66,9 @@ public class TestAuthorizationService extends XDataTestCase {
             } if ("foo".equals(user)) {
                 return Arrays.asList("users", "foogrp");
             }
+            if ("foo".equals(user)) {
+                return Arrays.asList("users", "foogrp");
+            }
             else {
                 return Arrays.asList("users");
             }

@@ -26,7 +26,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.apache.oozie</groupId>
     <artifactId>oozie-main</artifactId>
-    <version>4.2.0.2.6.3.0-SNAPSHOT</version>
+    <version>4.3.0.2.6.3.0-SNAPSHOT</version>
     <description>Apache Oozie Main</description>
     <name>Apache Oozie Main</name>
     <packaging>pom</packaging>
@@ -45,6 +45,8 @@
 
     <properties>
         <targetJavaVersion>1.7</targetJavaVersion>
+        <sourceJavaVersion>1.7</sourceJavaVersion>
+        <minJavaVersion>1.7</minJavaVersion>
 
         <distMgmtSnapshotsName>Apache Development Snapshot Repository</distMgmtSnapshotsName>
         <distMgmtSnapshotsUrl>https://repository.apache.org/content/repositories/snapshots</distMgmtSnapshotsUrl>
@@ -92,7 +94,14 @@
          <pig.classifier>h2</pig.classifier>
          <sqoop.version>1.4.6.2.6.3.0-SNAPSHOT</sqoop.version>
          <spark.version>1.6.3.2.6.3.0-SNAPSHOT</spark.version>
+
+         <hive.jline.version>2.12</hive.jline.version>
+         <hive.classifier>core</hive.classifier>
+         <spark.streaming.kafka.version>1.6.1</spark.streaming.kafka.version>
+         <spark.bagel.version>1.6.1</spark.bagel.version>
+
          <spark.guava.version>14.0.1</spark.guava.version>
+         <spark.scala.binary.version>2.10</spark.scala.binary.version>
          <sqoop.classifier>hadoop100</sqoop.classifier>
          <streaming.version>${hadoop.version}</streaming.version>
          <distcp.version>${hadoop.version}</distcp.version>
@@ -100,8 +109,8 @@
 
          <!-- Tomcat version -->
          <tomcat.version>6.0.48</tomcat.version>
-
-         <openjpa.version>2.2.2</openjpa.version>
+         <jline.version>0.9.94</jline.version>
+         <openjpa.version>2.4.1</openjpa.version>
          <xerces.version>2.10.0</xerces.version>
          <curator.version>2.5.0</curator.version>
 
@@ -109,11 +118,14 @@
         <hadoop.library.path />
          <jackson.version>1.8.8</jackson.version>
          <log4j.version>1.2.17</log4j.version>
+
         <jackson.databind.version>2.4.4</jackson.databind.version>
         <httpclient.version>4.4</httpclient.version>
         <httpcore.version>4.4</httpcore.version>
         <joda-time.version>2.9.6</joda-time.version>
-         <activemq.version>5.13.3</activemq.version>
+        <activemq.version>5.13.3</activemq.version>
+        <kyro.version>2.22</kyro.version>
+
     </properties>
 
     <modules>
@@ -950,7 +962,7 @@
             <dependency>
                 <groupId>jline</groupId>
                 <artifactId>jline</artifactId>
-                <version>2.12</version>
+                <version>${jline.version}</version>
                 <exclusions>
                     <exclusion>
                         <groupId>junit</groupId>
@@ -1056,10 +1068,6 @@
                     </exclusion>
                     <exclusion>
                         <artifactId>hive-builtins</artifactId>
-                        <groupId>org.apache.hive</groupId>
-                    </exclusion>
-                    <exclusion>
-                        <artifactId>hive-common</artifactId>
                         <groupId>org.apache.hive</groupId>
                     </exclusion>
                     <exclusion>
@@ -1355,6 +1363,12 @@
             </dependency>
 
             <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>3.3.2</version>
+            </dependency>
+
+            <dependency>
                 <groupId>javax.mail</groupId>
                 <artifactId>mail</artifactId>
                 <version>1.4</version>
@@ -1448,11 +1462,42 @@
                 <version>${curator.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>org.apache.curator</groupId>
+                <artifactId>curator-framework</artifactId>
+                <version>${curator.version}</version>
+            </dependency>
+
+             <dependency>
+                <groupId>org.apache.curator</groupId>
+                <artifactId>curator-client</artifactId>
+                <version>${curator.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.esotericsoftware.kryo</groupId>
+                <artifactId>kryo</artifactId>
+                <version>${kyro.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.hive</groupId>
+                <artifactId>hive-exec</artifactId>
+                <version>${hive.version}</version>
+                <classifier>${hive.classifier}</classifier>
+            </dependency>
+
             <!-- examples -->
             <dependency>
                 <groupId>org.apache.httpcomponents</groupId>
                 <artifactId>httpclient</artifactId>
                 <version>${httpclient.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.httpcomponents</groupId>
+                <artifactId>httpcore</artifactId>
+                <version>${httpcore.version}</version>
             </dependency>
 
             <dependency>
@@ -1582,9 +1627,9 @@
             </dependency>
 
             <dependency>
-                <groupId>org.apache.httpcomponents</groupId>
-                <artifactId>httpcore</artifactId>
-                <version>${httpcore.version}</version>
+                <groupId>com.google.code.gson</groupId>
+                <artifactId>gson</artifactId>
+                <version>2.7</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -1627,7 +1672,8 @@
                     <artifactId>maven-javadoc-plugin</artifactId>
                     <version>2.10.3</version>
                     <configuration>
-                            <additionalparam>${maven.javadoc.opts}</additionalparam>
+                        <additionalparam>${maven.javadoc.opts}</additionalparam>
+                        <failOnError>false</failOnError>
                     </configuration>
                 </plugin>
                 <plugin>
@@ -1687,6 +1733,16 @@
                     <artifactId>maven-bundle-plugin</artifactId>
                     <version>2.4.0</version>
                 </plugin>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>findbugs-maven-plugin</artifactId>
+                    <version>3.0.0</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>xml-maven-plugin</artifactId>
+                    <version>1.0</version>
+                </plugin>
             </plugins>
         </pluginManagement>
 
@@ -1718,17 +1774,70 @@
                     </excludes>
                 </configuration>
             </plugin>
+
+            <!-- findbugs plugin. Execute 'mvn verify' and look for target/findbugs/findbugsXml.html under each module -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>findbugs-maven-plugin</artifactId>
                 <configuration>
+                    <excludeSubProjects>false</excludeSubProjects>
                     <xmlOutput>true</xmlOutput>
                     <findbugsXmlOutput>true</findbugsXmlOutput>
                     <findbugsXmlWithMessages>true</findbugsXmlWithMessages>
+                    <effort>Max</effort>
+                    <failOnError>false</failOnError>
+                    <threshold>Low</threshold>
+                    <xmlOutput>true</xmlOutput>
+                    <findbugsXmlOutputDirectory>${project.build.directory}/findbugs</findbugsXmlOutputDirectory>
                 </configuration>
+                <executions>
+                 <execution>
+                    <id>findbug</id>
+                    <phase>verify</phase>
+                    <goals>
+                        <goal>check</goal>
+                    </goals>
+                 </execution>
+             </executions>
+            </plugin>
+            <!-- xml plugin is used for transforming the findbugs xml output into a friendlier html page -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>xml-maven-plugin</artifactId>
+                <configuration>
+                    <excludeSubProjects>false</excludeSubProjects>
+                    <transformationSets>
+                        <transformationSet>
+                            <dir>${project.build.directory}/findbugs</dir>
+                            <outputDir>${project.build.directory}/findbugs</outputDir>
+                            <stylesheet>fancy-hist.xsl</stylesheet>
+                            <fileMappers>
+                                <fileMapper
+                                       implementation="org.codehaus.plexus.components.io.filemappers.FileExtensionMapper">
+                                    <targetExtension>.html</targetExtension>
+                                </fileMapper>
+                            </fileMappers>
+                        </transformationSet>
+                    </transformationSets>
+                </configuration>
+                <executions>
+                    <execution>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>transform</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <dependencies>
+                    <dependency>
+                        <groupId>com.google.code.findbugs</groupId>
+                        <artifactId>findbugs</artifactId>
+                        <version>2.0.3</version>
+                    </dependency>
+                </dependencies>
             </plugin>
 
-            <!-- checkstyle plugin. Execute 'mvn verify' and look for checkstyle-result.xml under target folder -->
+            <!-- checkstyle plugin. Execute 'mvn verify' and look for target/checkstyle-result.xml under each module -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
@@ -1758,7 +1867,7 @@
                             <version>[3.0.0,)</version>
                         </requireMavenVersion>
                         <requireJavaVersion>
-                            <version>1.6</version>
+                            <version>${minJavaVersion}</version>
                         </requireJavaVersion>
                     </rules>
                 </configuration>
@@ -1790,7 +1899,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <source>1.7</source>
+                    <source>${sourceJavaVersion}</source>
                     <target>${targetJavaVersion}</target>
                 </configuration>
             </plugin>
@@ -1912,32 +2021,6 @@
             </properties>
         </profile>
         <profile>
-            <id>wfgen</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
-            <modules>
-                <module>workflowgenerator</module>
-            </modules>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-compiler-plugin</artifactId>
-                        <configuration>
-                            <fork>true</fork>
-                            <source>1.6</source>
-                            <target>1.6</target>
-                            <compilerArguments>
-                                <Xlint />
-                                <Xmaxwarns>9999</Xmaxwarns>
-                            </compilerArguments>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
             <id>hadoop-1</id>
             <activation>
                 <activeByDefault>false</activeByDefault>
@@ -1947,24 +2030,16 @@
                 <hadoop.majorversion>1</hadoop.majorversion>
                 <pig.classifier>h2</pig.classifier>
                 <sqoop.classifier>hadoop100</sqoop.classifier>
-            </properties>
-        </profile>
-        <profile>
-            <id>hadoop-0.23</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
-            <properties>
-                <hadoop.version>2.7.3.2.6.3.0-SNAPSHOT</hadoop.version>
-                <hadoop.majorversion>0.23</hadoop.majorversion>
-                <pig.classifier>h2</pig.classifier>
-                <sqoop.classifier>hadoop23</sqoop.classifier>
+
+                <hive.version>0.13.1</hive.version>
+                <hive.classifier></hive.classifier>
+                <hive.jline.version>0.9.94</hive.jline.version>
             </properties>
         </profile>
         <profile>
             <id>hadoop-2</id>
             <activation>
-                <activeByDefault>false</activeByDefault>
+                <activeByDefault>true</activeByDefault>
             </activation>
             <properties>
                 <hadoop.version>2.7.3.2.6.3.0-SNAPSHOT</hadoop.version>
@@ -2107,6 +2182,30 @@
                     <version>${jackson.databind.version}</version>
                 </dependency>
            </dependencies>
+        </profile>
+
+        <profile>
+            <id>spark-1</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <spark.version>1.6.1</spark.version>
+                <spark.streaming.kafka.version>1.6.1</spark.streaming.kafka.version>
+                <spark.bagel.version>1.6.1</spark.bagel.version>
+            </properties>
+        </profile>
+        <profile>
+            <id>spark-2</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <properties>
+                <spark.version>2.0.0</spark.version>
+                <spark.streaming.kafka.version>1.6.2</spark.streaming.kafka.version>
+                <spark.bagel.version>1.6.2</spark.bagel.version>
+            </properties>
+
         </profile>
     </profiles>
 </project>

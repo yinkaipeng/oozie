@@ -18,7 +18,12 @@
 
 package org.apache.oozie.executor.jpa;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.oozie.BundleJobBean;
 import org.apache.oozie.BundleJobInfo;
@@ -214,4 +219,43 @@ public class TestBundleJobInfoGetJPAExecutor extends XDataTestCase {
         assertEquals(ret.getBundleJobs().size(), 1);
     }
 
+    public void testBundleJobsSortBy() throws Exception {
+        BundleJobBean bundleJob1 = addRecordToBundleJobTable(Job.Status.PREP, false);
+        BundleJobBean bundleJob2 = addRecordToBundleJobTable(Job.Status.RUNNING, false);
+
+        bundleJob1.setLastModifiedTime(DateUtils.parseDateUTC("2012-01-04T10:00Z"));
+        bundleJob1.setCreatedTime(DateUtils.parseDateUTC("2012-01-03T10:00Z"));
+        BundleJobQueryExecutor.getInstance().executeUpdate(BundleJobQueryExecutor.BundleJobQuery.UPDATE_BUNDLE_JOB, bundleJob1);
+
+        bundleJob2.setLastModifiedTime(DateUtils.parseDateUTC("2012-01-05T10:00Z"));
+        bundleJob2.setCreatedTime(DateUtils.parseDateUTC("2012-01-02T10:00Z"));
+        BundleJobQueryExecutor.getInstance().executeUpdate(BundleJobQueryExecutor.BundleJobQuery.UPDATE_BUNDLE_JOB, bundleJob2);
+
+        JPAService jpaService = Services.get().get(JPAService.class);
+        assertNotNull(jpaService);
+        Map<String, List<String>> filter = new HashMap<String, List<String>>();
+        List<String> list = new ArrayList<String>();
+        list.add("lastmodifiedTime");
+        filter.put(OozieClient.FILTER_SORT_BY, list);
+
+        BundleJobInfoGetJPAExecutor bundleInfoGetCmd = new BundleJobInfoGetJPAExecutor(filter, 1, 20);
+        BundleJobInfo ret = jpaService.execute(bundleInfoGetCmd);
+        assertNotNull(ret);
+        assertEquals(2, ret.getBundleJobs().size());
+        compareBundleJobs(bundleJob2, ret.getBundleJobs().get(0));
+        //test the default behavior
+        filter.clear();
+        list.clear();
+        bundleInfoGetCmd = new BundleJobInfoGetJPAExecutor(filter, 1, 20);
+        ret = jpaService.execute(bundleInfoGetCmd);
+        assertNotNull(ret);
+        assertEquals(2, ret.getBundleJobs().size());
+        compareBundleJobs(bundleJob1, ret.getBundleJobs().get(0));
+    }
+
+    private void compareBundleJobs(BundleJobBean bundleJobBean, BundleJobBean retBundleJobBean) {
+        assertEquals(bundleJobBean.getId(), retBundleJobBean.getId());
+        assertEquals(bundleJobBean.getCreatedTime(), retBundleJobBean.getCreatedTime());
+        assertEquals(bundleJobBean.getStatusStr(), retBundleJobBean.getStatusStr());
+    }
 }

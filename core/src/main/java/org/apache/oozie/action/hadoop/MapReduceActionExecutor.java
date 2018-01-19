@@ -344,4 +344,10 @@ public class MapReduceActionExecutor extends JavaActionExecutor {
 
         return runningJob;
     }
+
+    @Override
+    void injectActionCallback(Context context, Configuration actionConf) {
+        injectCallback(context, actionConf);
+    }
+
 }
