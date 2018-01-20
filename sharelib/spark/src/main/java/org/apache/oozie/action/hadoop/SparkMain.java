@@ -82,7 +82,7 @@ public class SparkMain extends LauncherMain {
     protected void run(String[] args) throws Exception {
         boolean isPyspark = false;
         Configuration actionConf = loadActionConf();
-        prepareHadoopConfig(actionConf);
+        prepareHadoopConfig();
 
         setYarnTag(actionConf);
         LauncherMainHadoopUtils.killChildYarnJobs(actionConf);
@@ -267,6 +267,14 @@ public class SparkMain extends LauncherMain {
         }
     }
 
+    private void prepareHadoopConfig() throws IOException {
+        // Copying oozie.action.conf.xml into hadoop configuration *-site file.
+        String actionXml = System.getProperty("oozie.action.conf.xml");
+        if (actionXml != null) {
+            File currentDir = new File(actionXml).getParentFile();
+            writeHadoopConfig(actionXml, currentDir);
+        }
+    }
 
     private void prepareHadoopConfig(Configuration actionConf) throws IOException {
         // Copying oozie.action.conf.xml into hadoop configuration *-site files.
