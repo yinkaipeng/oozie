@@ -69,6 +69,8 @@ public class SparkMain extends LauncherMain {
             .compile("^spark-assembly((?:(-|_|(\\d+\\.))\\d+(?:\\.\\d+)*))*\\.jar$");
     public static final Pattern SPARK_YARN_JAR_PATTERN = Pattern
             .compile("^spark-yarn((?:(-|_|(\\d+\\.))\\d+(?:\\.\\d+)*))*\\.jar$");
+    public static final Pattern SPARK_ASSEMBLY_JAR_LESS_STRICT_PATTERN = Pattern.compile("^spark-assembly.*\\.jar$");
+    public static final Pattern SPARK_YARN_JAR_LESS_STRICT_PATTERN = Pattern.compile("^spark-yarn.*\\.jar$");
     private static final Pattern SPARK_VERSION_1 = Pattern.compile("^1.*");
     private static final String SPARK_YARN_JAR = "spark.yarn.jar";
     private static final String SPARK_YARN_JARS = "spark.yarn.jars";
@@ -82,7 +84,7 @@ public class SparkMain extends LauncherMain {
     protected void run(String[] args) throws Exception {
         boolean isPyspark = false;
         Configuration actionConf = loadActionConf();
-        prepareHadoopConfig();
+        prepareHadoopConfig(actionConf);
 
         setYarnTag(actionConf);
         LauncherMainHadoopUtils.killChildYarnJobs(actionConf);
@@ -267,18 +269,9 @@ public class SparkMain extends LauncherMain {
         }
     }
 
-    private void prepareHadoopConfig() throws IOException {
-        // Copying oozie.action.conf.xml into hadoop configuration *-site file.
-        String actionXml = System.getProperty("oozie.action.conf.xml");
-        if (actionXml != null) {
-            File currentDir = new File(actionXml).getParentFile();
-            writeHadoopConfig(actionXml, currentDir);
-        }
-    }
-
     private void prepareHadoopConfig(Configuration actionConf) throws IOException {
         // Copying oozie.action.conf.xml into hadoop configuration *-site files.
-        if (actionConf.getBoolean(CONF_OOZIE_SPARK_SETUP_HADOOP_CONF_DIR, false)) {
+        if (actionConf.getBoolean(CONF_OOZIE_SPARK_SETUP_HADOOP_CONF_DIR, true)) {
             String actionXml = System.getProperty("oozie.action.conf.xml");
             if (actionXml != null) {
                 File currentDir = new File(actionXml).getParentFile();
@@ -487,6 +480,15 @@ public class SparkMain extends LauncherMain {
             else if (SPARK_ASSEMBLY_JAR_PATTERN.matcher(p.getName()).find()) {
                 matchedFile = getMatchingFile(SPARK_ASSEMBLY_JAR_PATTERN);
             }
+
+            else if(SPARK_YARN_JAR_LESS_STRICT_PATTERN.matcher(p.getName()).find()){
+                matchedFile = getMatchingFile(SPARK_YARN_JAR_LESS_STRICT_PATTERN);
+            }
+
+            else if(SPARK_ASSEMBLY_JAR_LESS_STRICT_PATTERN.matcher(p.getName()).find()){
+                matchedFile = getMatchingFile(SPARK_ASSEMBLY_JAR_LESS_STRICT_PATTERN);
+            }
+
             if (matchedFile != null) {
                 sparkYarnJar = uri.toString();
                 try {
