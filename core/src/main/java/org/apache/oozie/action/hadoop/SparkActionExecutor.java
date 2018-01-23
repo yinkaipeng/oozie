@@ -94,7 +94,7 @@ public class SparkActionExecutor extends JavaActionExecutor {
 
         // Setting if SparkMain should setup hadoop config *-site.xml
         boolean setupHadoopConf = actionConf.getBoolean(CONF_OOZIE_SPARK_SETUP_HADOOP_CONF_DIR,
-                ConfigurationService.getBoolean(CONF_OOZIE_SPARK_SETUP_HADOOP_CONF_DIR));
+                true);
         actionConf.setBoolean(CONF_OOZIE_SPARK_SETUP_HADOOP_CONF_DIR, setupHadoopConf);
         return actionConf;
     }
