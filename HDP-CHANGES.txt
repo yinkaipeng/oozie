@@ -1,5 +1,6 @@
 -- Backport and Internal patches --
 
+OOZIE-3173 Coordinator job with frequency using cron syntax creates only one action in catchup mode (andras.piros)
 BUG-99803 Oozie should disable HBase dynamic class loading - amendum for BUG-96737
 BUG-97859 Permission issue- r+x for others under hadoop fs -ls /user/oozie/share/lib/lib_XXXX
 BUG-96737 OOZIE-3199 Let system property restriction configurable
