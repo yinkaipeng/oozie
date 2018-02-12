@@ -310,19 +310,6 @@ public class TestHive2ActionExecutor extends ActionExecutorTestCase {
         return buffer.toString();
     }
 
-    private String getHive2BadScript(String inputPath, String outputPath) {
-        StringBuilder buffer = new StringBuilder(NEW_LINE);
-        buffer.append("set -v;").append(NEW_LINE);
-        buffer.append("DROP TABLE IF EXISTS test;").append(NEW_LINE);
-        buffer.append("CREATE EXTERNAL TABLE test (a INT) STORED AS");
-        buffer.append(NEW_LINE).append("TEXTFILE LOCATION '");
-        buffer.append(inputPath).append("';").append(NEW_LINE);
-        buffer.append("INSERT OVERWRITE DIRECTORY '");
-        buffer.append(outputPath).append("'").append(NEW_LINE);
-        buffer.append("SELECT (a-1) FROM test-bad;").append(NEW_LINE);
-        return buffer.toString();
-    }
-
     public void testExternalChildIdsInFailure() throws Exception {
         setupHiveServer2();
         Path inputDir = new Path(getFsTestCaseDir(), INPUT_DIRNAME);
