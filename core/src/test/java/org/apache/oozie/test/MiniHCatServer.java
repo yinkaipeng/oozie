@@ -39,6 +39,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.HiveMetaStore;
 import org.apache.hadoop.hive.metastore.HiveMetaStore.HMSHandler;
+import org.apache.hadoop.hive.metastore.security.HadoopThriftAuthBridge;
 import org.apache.hadoop.hive.shims.ShimLoader;
 import org.apache.hive.hcatalog.api.HCatAddPartitionDesc;
 import org.apache.hive.hcatalog.api.HCatClient;
@@ -138,7 +139,7 @@ public class MiniHCatServer {
             @Override
             public void run() {
                 try {
-                    HiveMetaStore.startMetaStore(msPort, ShimLoader.getHadoopThriftAuthBridge(), serverConf);
+                    HiveMetaStore.startMetaStore(msPort, HadoopThriftAuthBridge.getBridge(), serverConf);
                     LOG.info("Started metastore server on port " + msPort);
                 }
                 catch (Throwable e) {
