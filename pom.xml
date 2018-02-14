@@ -109,8 +109,8 @@
 
         <!-- Native libraries path -->
         <hadoop.library.path />
-         <jackson.version>1.8.8</jackson.version>
-         <log4j.version>1.2.17</log4j.version>
+        <jackson.version>2.9.5</jackson.version>
+        <log4j.version>1.2.17</log4j.version>
         <jackson.databind.version>2.4.4</jackson.databind.version>
         <httpclient.version>4.4</httpclient.version>
         <httpcore.version>4.4</httpcore.version>
@@ -347,14 +347,20 @@
           </dependency>
 
             <dependency>
-                <groupId>org.codehaus.jackson</groupId>
-                <artifactId>jackson-mapper-asl</artifactId>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-annotations</artifactId>
                 <version>${jackson.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>org.codehaus.jackson</groupId>
-                <artifactId>jackson-core-asl</artifactId>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-core</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
                 <version>${jackson.version}</version>
             </dependency>
 
@@ -1974,7 +1980,6 @@
                 <hadoop.majorversion>2</hadoop.majorversion>
                 <pig.classifier>h2</pig.classifier>
                 <sqoop.classifier>hadoop200</sqoop.classifier>
-                <jackson.version>1.9.13</jackson.version>
             </properties>
         </profile>
         <profile>
@@ -1987,7 +1992,6 @@
                 <hadoop.majorversion>3</hadoop.majorversion>
                 <pig.classifier>h2</pig.classifier>
                 <sqoop.classifier>hadoop200</sqoop.classifier>
-                <jackson.version>1.9.13</jackson.version>
             </properties>
         </profile>
         <profile>
