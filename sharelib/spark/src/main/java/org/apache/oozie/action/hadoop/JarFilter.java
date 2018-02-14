@@ -70,6 +70,15 @@ class JarFilter {
             else if (SparkMain.SPARK_ASSEMBLY_JAR_PATTERN.matcher(p.getName()).find()) {
                 matchedFile = SparkMain.getMatchingFile(SparkMain.SPARK_ASSEMBLY_JAR_PATTERN);
             }
+
+            else if (SparkMain.SPARK_YARN_JAR_LESS_STRICT_PATTERN.matcher(p.getName()).find()) {
+                matchedFile = SparkMain.getMatchingFile(SparkMain.SPARK_YARN_JAR_LESS_STRICT_PATTERN);
+            }
+
+            else if (SparkMain.SPARK_ASSEMBLY_JAR_LESS_STRICT_PATTERN.matcher(p.getName()).find()) {
+                matchedFile = SparkMain.getMatchingFile(SparkMain.SPARK_ASSEMBLY_JAR_LESS_STRICT_PATTERN);
+            }
+
             if (matchedFile != null) {
                 sparkYarnJar = uri.toString();
                 try {

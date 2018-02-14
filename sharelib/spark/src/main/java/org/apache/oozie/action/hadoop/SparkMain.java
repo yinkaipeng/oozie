@@ -51,6 +51,13 @@ public class SparkMain extends LauncherMain {
     @VisibleForTesting
     static final Pattern SPARK_YARN_JAR_PATTERN = Pattern
             .compile("^spark-yarn((?:(-|_|(\\d+\\.))\\d+(?:\\.\\d+)*))*\\.jar$");
+
+    @VisibleForTesting
+    public static final Pattern SPARK_ASSEMBLY_JAR_LESS_STRICT_PATTERN = Pattern.compile("^spark-assembly.*\\.jar$");
+
+    @VisibleForTesting
+    public static final Pattern SPARK_YARN_JAR_LESS_STRICT_PATTERN = Pattern.compile("^spark-yarn.*\\.jar$");
+
     static final String HIVE_SITE_CONF = "hive-site.xml";
     static final String SPARK_LOG4J_PROPS = "spark-log4j.properties";
 
@@ -65,7 +72,7 @@ public class SparkMain extends LauncherMain {
     @Override
     protected void run(final String[] args) throws Exception {
         final Configuration actionConf = loadActionConf();
-        prepareHadoopConfig(actionConf);
+        prepareHadoopConfig();
 
         setYarnTag(actionConf);
         LauncherMainHadoopUtils.killChildYarnJobs(actionConf);
@@ -110,7 +117,7 @@ public class SparkMain extends LauncherMain {
 
     private void prepareHadoopConfig(final Configuration actionConf) throws IOException {
         // Copying oozie.action.conf.xml into hadoop configuration *-site files.
-        if (actionConf.getBoolean(CONF_OOZIE_SPARK_SETUP_HADOOP_CONF_DIR, false)) {
+        if (actionConf.getBoolean(CONF_OOZIE_SPARK_SETUP_HADOOP_CONF_DIR, true)) {
             final String actionXml = System.getProperty("oozie.action.conf.xml");
             if (actionXml != null) {
                 final File currentDir = new File(actionXml).getParentFile();
