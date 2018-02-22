@@ -87,7 +87,7 @@
                         <configuration>
                             <target>
                                 <mkdir dir="downloads" />
-                                <get dest="downloads/tomcat-${tomcat.version}.tar.gz" skipexisting="true" src="http://dev.hortonworks.com.s3.amazonaws.com/ARTIFACTS/dist/tomcat/tomcat-6/v${tomcat.version}/bin/apache-tomcat-${tomcat.version}.tar.gz" verbose="true" />
+                                <get dest="downloads/tomcat-${tomcat.version}.tar.gz" skipexisting="true" src="http://public-repo-1.hortonworks.com/ARTIFACTS/dist/tomcat/tomcat-6/v${tomcat.version}/bin/apache-tomcat-${tomcat.version}.tar.gz" verbose="true" />
                                 <delete dir="target/tomcat" />
                                 <mkdir dir="target/tomcat" />
                                 <gunzip dest="target/tomcat/tomcat-${tomcat.version}.tar" src="downloads/tomcat-${tomcat.version}.tar.gz" />
