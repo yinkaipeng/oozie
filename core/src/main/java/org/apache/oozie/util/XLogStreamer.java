@@ -28,6 +28,7 @@ import java.util.Date;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.io.BufferedReader;
+import org.apache.commons.lang.StringEscapeUtils;
 
 /**
  * XLogStreamer streams the given log file to writer after applying the given filter.
@@ -63,7 +64,7 @@ public class XLogStreamer {
         BufferedReader reader = new BufferedReader(getReader(startTime, endTime));
         try {
             if(logFilter.isDebugMode()){
-                writer.write(logFilter.getDebugMessage());
+                writer.write(StringEscapeUtils.escapeHtml(logFilter.getDebugMessage()));
             }
             // Process the entire logs from the reader using the logFilter
             new TimestampedMessageParser(reader, logFilter).processRemaining(writer, bufferLen);

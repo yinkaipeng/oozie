@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.curator.x.discovery.ServiceInstance;
 import org.apache.oozie.ErrorCode;
 import org.apache.oozie.client.OozieClient;
@@ -260,7 +261,7 @@ public class ZKXLogStreamingService extends XLogStreamingService implements Serv
 
             //If log param debug is set, we need to write start date and end date to outputstream.
             if(filter.isDebugMode()){
-                writer.write(filter.getDebugMessage());
+                writer.write(StringEscapeUtils.escapeHtml(filter.getDebugMessage()));
             }
 
             // Add a message about any servers we couldn't contact
@@ -268,7 +269,7 @@ public class ZKXLogStreamingService extends XLogStreamingService implements Serv
                 writer.write("Unable to contact the following Oozie Servers for logs (log information may be incomplete):\n");
                 for (String badOozie : badOozies) {
                     writer.write("     ");
-                    writer.write(badOozie);
+                    writer.write(StringEscapeUtils.escapeHtml(badOozie));
                     writer.write("\n");
                 }
                 writer.write("\n");
@@ -281,7 +282,7 @@ public class ZKXLogStreamingService extends XLogStreamingService implements Serv
                 parser.processRemaining(writer, bufferLen);
             }
             else {
-                // Now that we have a Reader for each server to get the logs from that server, we have to collate them.  Within each
+                // Now that we have a Reader for each server to get the logs from that server, we have to collate them. Within each
                 // server, the logs should already be in the correct order, so we can take advantage of that.  We'll use the
                 // BufferedReaders to read the messages from the logs of each server and put them in order without having to bring
                 // every message into memory at the same time.
@@ -297,7 +298,7 @@ public class ZKXLogStreamingService extends XLogStreamingService implements Serv
                     // The first entry will be the earliest based on the timestamp (also removes it) from the map
                     TimestampedMessageParser earliestParser = timestampMap.pollFirstEntry().getValue();
                     // Write the message from that parser at that timestamp
-                    writer.write(earliestParser.getLastMessage());
+                    writer.write(StringEscapeUtils.escapeHtml(earliestParser.getLastMessage()));
                     bytesWritten = earliestParser.getLastMessage().length();
                     if (bytesWritten > bufferLen) {
                         writer.flush();
@@ -312,7 +313,7 @@ public class ZKXLogStreamingService extends XLogStreamingService implements Serv
                 // If there's only one parser left in the map, then we can simply copy the rest of its lines directly to be faster
                 if (timestampMap.size() == 1) {
                     TimestampedMessageParser parser = timestampMap.values().iterator().next();
-                    writer.write(parser.getLastMessage());  // don't forget the last message read by the parser
+                    writer.write(StringEscapeUtils.escapeHtml(parser.getLastMessage())); // don't forget the last message read by the parser
                     parser.processRemaining(writer, bufferLen, bytesWritten + parser.getLastMessage().length());
                 }
             }
