@@ -724,6 +724,10 @@ public class TestShareLibService extends XFsTestCase {
     }
 
     private URI[] setUpPigJob(boolean useSystemSharelib) throws Exception {
+        return setUpPigJob(useSystemSharelib, new Configuration());
+    }
+
+    private URI[] setUpPigJob(boolean useSystemSharelib, Configuration conf) throws Exception {
         services.init();
         String actionXml = "<pig>" + "<job-tracker>" + getJobTrackerUri() + "</job-tracker>" + "<name-node>"
                 + getNameNodeUri() + "</name-node></pig>";
@@ -739,8 +743,16 @@ public class TestShareLibService extends XFsTestCase {
         PigActionExecutor ae = new PigActionExecutor();
         Configuration jobConf = ae.createBaseHadoopConf(context, eActionXml);
         jobConf.set("oozie.action.sharelib.for.pig", "pig");
+        XConfiguration.copy(conf, jobConf);
         ae.setLibFilesArchives(context, eActionXml, new Path("hdfs://dummyAppPath"), jobConf);
         return DistributedCache.getCacheFiles(jobConf);
+    }
+
+    private void createFileInDir(String dir, String... filenames) throws IOException {
+        for (String filename : filenames) {
+            Path path = new Path(dir, filename);
+            createFile(path);
+        }
     }
 
     private void createFile(String... filenames) throws IOException {
@@ -965,6 +977,39 @@ public class TestShareLibService extends XFsTestCase {
         prop.put(tag, "/user/test/" + sharelibPath);
         setupSharelibConf(file, tag, prop);
 
+    }
+
+    public void testExclusionList() throws Exception {
+        services = new Services();
+        setSystemProps();
+        Configuration conf = services.get(ConfigurationService.class).getConf();
+        conf.set(ShareLibService.SHIP_LAUNCHER_JAR, "true");
+
+        FileSystem fs = getFileSystem();
+        Date time = new Date(System.currentTimeMillis());
+
+        Path basePath = new Path(conf.get(WorkflowAppService.SYSTEM_LIB_PATH));
+        Path libpath = new Path(basePath, ShareLibService.SHARE_LIB_PREFIX + ShareLibService.dateFormat.format(time));
+        fs.mkdirs(libpath);
+
+        Path pigPath = new Path(libpath.toString() + Path.SEPARATOR + "pig_10");
+        fs.mkdirs(pigPath);
+        createFileInDir(pigPath.toString(), "pig-10.jar", "json-1.2.jar", "jersey-1.2.jar");
+
+        services.init();
+        Configuration jobConf = new Configuration();
+        jobConf.set("oozie.action.sharelib.for.pig", "pig_10");
+        jobConf.set("oozie.action.sharelib.for.pig.exclusion", "pig_10\\/json.*");
+
+        verifyFilesInDistributedCache(setUpPigJob(true, jobConf), "jersey-1.2.jar", "pig-10.jar", "MyOozie.jar",
+                "MyPig.jar");
+
+        Configuration newConf = new Configuration();
+        newConf.set("oozie.action.sharelib.for.pig", "pig_10");
+        newConf.set("oozie.action.sharelib.for.pig.exclusion", "pig_10\\/json.*|pig_10\\/jersey-1.2.*");
+        verifyFilesInDistributedCache(setUpPigJob(true, newConf), "pig-10.jar", "MyOozie.jar", "MyPig.jar");
+
+        services.destroy();
     }
 
     private void setupSharelibConf(final String file, final String tag, Properties prop) throws IOException,

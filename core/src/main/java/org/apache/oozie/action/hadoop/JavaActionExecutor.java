@@ -52,7 +52,6 @@ import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.JobID;
 import org.apache.hadoop.mapred.RunningJob;
-import org.apache.hadoop.mapreduce.security.token.delegation.DelegationTokenIdentifier;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.security.token.TokenIdentifier;
@@ -688,6 +687,8 @@ public class JavaActionExecutor extends ActionExecutor {
         if (actionShareLibNames != null) {
             try {
                 ShareLibService shareLibService = Services.get().get(ShareLibService.class);
+                Pattern exclusionPattern = buildConditionalExclusionPatterns(conf);
+
                 FileSystem fs = shareLibService.getFileSystem();
                 if (fs != null) {
                     for (String actionShareLibName : actionShareLibNames) {
@@ -698,6 +699,11 @@ public class JavaActionExecutor extends ActionExecutor {
                                 Path pathWithFragment = fragmentName == null ? actionLibPath : new Path(new URI(
                                         actionLibPath.toString()).getPath());
                                 String fileName = fragmentName == null ? actionLibPath.getName() : fragmentName;
+                                //Exclude file based on exclusion pattern
+                                if (isExclude(actionLibPath, exclusionPattern)) {
+                                    continue;
+                                }
+
                                 if (confSet.contains(fileName)) {
                                     Configuration jobXmlConf = shareLibService.getShareLibConf(actionShareLibName,
                                             pathWithFragment);
@@ -768,14 +774,23 @@ public class JavaActionExecutor extends ActionExecutor {
                     throw new ActionExecutorException(ActionExecutorException.ErrorType.FAILED, "EJ001",
                             "Could not locate Oozie sharelib");
                 }
+                Pattern exclusionPattern = buildConditionalExclusionPatterns(conf);
                 FileSystem fs = listOfPaths.get(0).getFileSystem(conf);
                 for (Path actionLibPath : listOfPaths) {
+                    //Exclude file based on exclusion pattern
+                    if (isExclude(actionLibPath, exclusionPattern)) {
+                        continue;
+                    }
                     JobUtils.addFileToClassPath(actionLibPath, conf, fs);
                     DistributedCache.createSymlink(conf);
                 }
                 listOfPaths = shareLibService.getSystemLibJars(getType());
                 if (listOfPaths != null) {
                     for (Path actionLibPath : listOfPaths) {
+                        //Exclude file based on exclusion pattern
+                        if (isExclude(actionLibPath, exclusionPattern)) {
+                            continue;
+                        }
                         JobUtils.addFileToClassPath(actionLibPath, conf, fs);
                         DistributedCache.createSymlink(conf);
                     }
@@ -819,6 +834,31 @@ public class JavaActionExecutor extends ActionExecutor {
         }
     }
 
+
+    protected void loadLibExclusionPattern(Context context, Configuration conf) {
+        String exclusionProperty = ACTION_SHARELIB_FOR + getType() + ACTION_SHARELIB_EXCLUSION_SUFFIX;
+        String pattern = conf.get(exclusionProperty);
+        if (pattern == null) {
+            try {
+                XConfiguration jobConf = getWorkflowConf(context);
+                pattern = jobConf.get(exclusionProperty);
+            } catch (IOException ex) {
+                throw new RuntimeException("It cannot happen, " + ex.toString(), ex);
+            }
+        }
+
+        if (pattern == null) {
+            pattern = Services.get().getConf().get(exclusionProperty);
+        }
+
+        if (pattern == null) {
+            LOG.debug("ShareLib exclusion pattern not found.");
+            return;
+        }
+
+        conf.set(exclusionProperty, pattern);
+    }
+
     @SuppressWarnings("unchecked")
     public void setLibFilesArchives(Context context, Element actionXml, Path appPath, Configuration conf)
             throws ActionExecutorException {
@@ -857,6 +897,8 @@ public class JavaActionExecutor extends ActionExecutor {
     // Adds action specific share libs and common share libs
     private void addAllShareLibs(Path appPath, Configuration conf, Context context, Element actionXml)
             throws ActionExecutorException {
+        // Add lib exclusion patterns to launcher config
+        loadLibExclusionPattern(context, conf);
         // Add action specific share libs
         addActionShareLib(appPath, conf, context, actionXml);
         // Add common sharelibs for Oozie and launcher jars
@@ -1742,7 +1784,7 @@ public class JavaActionExecutor extends ActionExecutor {
     }
 
     private final static String ACTION_SHARELIB_FOR = "oozie.action.sharelib.for.";
-
+    private final static String ACTION_SHARELIB_EXCLUSION_SUFFIX = ".exclusion";
 
     /**
      * Returns the default sharelib name for the action if any.
@@ -1799,5 +1841,25 @@ public class JavaActionExecutor extends ActionExecutor {
         }
         return workflowConf;
 
+    }
+
+    private Pattern buildConditionalExclusionPatterns(final Configuration conf) throws IOException {
+        String exclusionPattern = conf.get(ACTION_SHARELIB_FOR + getType() + ACTION_SHARELIB_EXCLUSION_SUFFIX);
+        if (exclusionPattern == null) {
+            return null;
+        }
+        LOG.debug("The following ShareLib exclusion pattern will be used: " + exclusionPattern);
+        return Pattern.compile(exclusionPattern);
+    }
+
+    private boolean isExclude(Path actionLibPath, Pattern exclusionPatterns) {
+        if (exclusionPatterns != null && exclusionPatterns.matcher(
+                actionLibPath.getParent().getName() + Path.SEPARATOR + actionLibPath.getName()).matches()) {
+            LOG.debug("File is excluded because it matches exclusion list. File : " +
+                    actionLibPath.getParent().getName() + Path.SEPARATOR + actionLibPath.getName()
+                    + " Exclusion pattern : " + exclusionPatterns.toString());
+            return true;
+        }
+        return false;
     }
 }

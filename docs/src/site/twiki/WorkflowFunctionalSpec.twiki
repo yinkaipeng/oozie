@@ -2533,6 +2533,9 @@ More than one share library directory name can be specified for an action by usi
 For example: When using HCatLoader and HCatStorer in pig, =oozie.action.sharelib.for.pig= can be set to =pig,hcatalog= to include
 both pig and hcatalog jars.
 
+One can also exclude sharelib jars by using property action.sharelib.for.#ACTIONTYPE#.exclusion.
+Any sharelib jar which matches the pattern () will not be included.
+
 ---++ 18 User-Retry for Workflow Actions (since Oozie 3.1)
 
 Oozie provides User-Retry capabilities when an action is in =ERROR= or =FAILED= state.
