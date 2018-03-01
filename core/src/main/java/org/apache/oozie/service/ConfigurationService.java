@@ -19,6 +19,7 @@
 package org.apache.oozie.service;
 
 import com.google.common.annotations.VisibleForTesting;
+import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.oozie.ErrorCode;
 import org.apache.oozie.util.ConfigUtils;
@@ -103,6 +104,7 @@ public class ConfigurationService implements Service, Instrumentable {
 
     private static final String IGNORE_TEST_SYS_PROPS = "oozie.test.";
     private static final Set<String> MASK_PROPS = new HashSet<String>();
+    public static final String HADOOP_SECURITY_CREDENTIAL_PROVIDER_PATH = "hadoop.security.credential.provider.path";
     private static Map<String,String> defaultConfigs = new HashMap<String,String>();
 
     private static Method getPasswordMethod;
@@ -253,6 +255,7 @@ public class ConfigurationService implements Service, Instrumentable {
             else {
                 inputStream = new FileInputStream(configFile);
                 XConfiguration siteConfiguration = loadConfig(inputStream, false);
+                fixJceksUrl(siteConfiguration);
                 XConfiguration.injectDefaults(configuration, siteConfiguration);
                 configuration = siteConfiguration;
             }
@@ -624,4 +627,17 @@ public class ConfigurationService implements Service, Instrumentable {
         return getPassword(conf, name, defaultValue);
     }
 
+    private void fixJceksUrl(XConfiguration siteConfiguration) {
+        String jceksUrl = siteConfiguration.get(HADOOP_SECURITY_CREDENTIAL_PROVIDER_PATH);
+        if(StringUtils.isEmpty(jceksUrl)) {
+            return;
+        }
+        if(jceksUrl.startsWith("jceks://file/")) {
+            siteConfiguration.set(
+                    HADOOP_SECURITY_CREDENTIAL_PROVIDER_PATH,
+                    jceksUrl.replaceFirst("jceks", "localjceks"));
+            log.info(HADOOP_SECURITY_CREDENTIAL_PROVIDER_PATH + " is changed to " +
+                    siteConfiguration.get(HADOOP_SECURITY_CREDENTIAL_PROVIDER_PATH));
+        }
+    }
 }
