@@ -1,5 +1,6 @@
 -- Backport and Internal patches --
 
+BUG-96737 Use java io filesystem methods to access local files
 BUG-96984 Unable to find spark yarn jars due to strict regex pattern in sharelib
 BUG-90041 SCA : JavaScript Hijacking
 BUG-94900 Set spark.yarn.jars to fix Spark 2.0 with Oozie
