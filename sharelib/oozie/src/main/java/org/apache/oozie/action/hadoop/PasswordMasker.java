@@ -82,6 +82,7 @@ public class PasswordMasker {
         return Maps.transformEntries(unmasked, new Maps.EntryTransformer<String, String, String>() {
             @Override
             public String transformEntry(@Nonnull String key, @Nonnull String value) {
+
                 checkNotNull(key, "key has to be set");
                 checkNotNull(value, "value has to be set");
 
@@ -116,6 +117,9 @@ public class PasswordMasker {
     }
 
     private boolean containsPasswordFragment(String maybePasswordFragments) {
+        if (maybePasswordFragments == null || maybePasswordFragments.length() == 0) {
+            return false;
+        }
         return PASSWORD_CONTAINING_PATTERN
                 .matcher(maybePasswordFragments)
                 .matches();

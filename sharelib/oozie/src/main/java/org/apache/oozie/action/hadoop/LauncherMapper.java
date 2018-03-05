@@ -649,6 +649,10 @@ public class LauncherMapper<K1, V1, K2, V2> implements Mapper<K1, V1, K2, V2>, R
         System.out.println(banner);
         boolean maskNextArg = false;
         for (String arg : args) {
+            if (arg == null) {
+                arg = "null"; // prevent NPE in pwd masking
+            }
+
             if (maskNextArg) {
                 System.out.println("             " + "********");
                 maskNextArg = false;

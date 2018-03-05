@@ -26,7 +26,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.apache.oozie</groupId>
     <artifactId>oozie-main</artifactId>
-    <version>4.3.0.2.6.3.0-SNAPSHOT</version>
+    <version>4.3.0.2.6.5.0-SNAPSHOT</version>
     <description>Apache Oozie Main</description>
     <name>Apache Oozie Main</name>
     <packaging>pom</packaging>
@@ -108,10 +108,10 @@
          <hadoop.auth.version>2.7.3.2.6.3.0-SNAPSHOT</hadoop.auth.version>
 
          <!-- Tomcat version -->
-         <tomcat.version>6.0.48</tomcat.version>
+         <tomcat.version>6.0.53</tomcat.version>
          <jline.version>0.9.94</jline.version>
          <openjpa.version>2.4.1</openjpa.version>
-         <xerces.version>2.10.0</xerces.version>
+         <xerces.version>2.11.0</xerces.version>
          <curator.version>2.5.0</curator.version>
 
         <!-- Native libraries path -->
@@ -890,6 +890,42 @@
             </dependency>
 
             <dependency>
+                <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-yarn-api</artifactId>
+                <version>${hadoop.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-yarn-common</artifactId>
+                <version>${hadoop.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-yarn-server-applicationhistoryservice</artifactId>
+                <version>${hadoop.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-yarn-server-common</artifactId>
+                <version>${hadoop.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-yarn-server-resourcemanager</artifactId>
+                <version>${hadoop.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-yarn-server-web-proxy</artifactId>
+                <version>${hadoop.version}</version>
+            </dependency>
+
+            <dependency>
                 <groupId>org.apache.pig</groupId>
                 <artifactId>pig</artifactId>
                 <version>${pig.version}</version>
@@ -1371,7 +1407,7 @@
             <dependency>
                 <groupId>javax.mail</groupId>
                 <artifactId>mail</artifactId>
-                <version>1.4</version>
+                <version>1.4.7</version>
             </dependency>
 
             <dependency>
@@ -1388,8 +1424,8 @@
 
             <dependency>
                 <groupId>org.python</groupId>
-                <artifactId>jython</artifactId>
-                <version>2.5.3</version>
+                <artifactId>jython-standalone</artifactId>
+                <version>2.7.1</version>
             </dependency>
 
             <dependency>
@@ -2201,7 +2237,7 @@
                 <activeByDefault>false</activeByDefault>
             </activation>
             <properties>
-                <spark.version>2.0.0</spark.version>
+                <spark.version>2.1.0</spark.version>
                 <spark.streaming.kafka.version>1.6.2</spark.streaming.kafka.version>
                 <spark.bagel.version>1.6.2</spark.bagel.version>
             </properties>

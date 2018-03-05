@@ -29,6 +29,7 @@ import java.io.PrintWriter;
 import java.io.StringReader;
 import java.net.URI;
 
+import org.apache.commons.lang.RandomStringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.oozie.ErrorCode;
 import org.apache.oozie.WorkflowActionBean;
@@ -421,6 +422,7 @@ public class TestSubmitXCommand extends XDataTestCase {
         assertEquals("default_value", actionConf.get("key"));
         assertEquals(getNameNodeUri()+"/default-output-dir", actionConf.get("mixed"));
     }
+
 
     private void writeToFile(String appXml, String appPath) throws IOException {
         File wf = new File(URI.create(appPath));
