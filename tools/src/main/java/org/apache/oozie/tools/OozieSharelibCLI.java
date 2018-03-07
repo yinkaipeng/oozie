@@ -39,9 +39,11 @@ import org.apache.commons.cli.ParseException;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.oozie.cli.CLIParser;
 import org.apache.oozie.service.HadoopAccessorService;
 import org.apache.oozie.service.Services;
@@ -187,6 +189,11 @@ public class OozieSharelibCLI {
                 new SparkSharelibFixer(fs, oozieHome, srcPath, dstPath, srcFile).fixIt();
                 new Spark2SharelibFixer(fs, oozieHome, srcPath, dstPath, srcFile).fixIt();
             }
+
+            // Set world readability to newly created sharelib
+            if (sharelibAction.equals(CREATE_CMD) || sharelibAction.equals(UPGRADE_CMD)) {
+                fixSharelibPermission(fs, dstPath);
+            }
             services.destroy();
             FileUtils.deleteDirectory(temp);
 
@@ -275,5 +282,16 @@ public class OozieSharelibCLI {
             }
         }
         return taskList;
+    }
+
+    private void fixSharelibPermission(final FileSystem fs, final Path dstPath) throws IOException {
+        for(FileStatus stat: fs.listStatus(dstPath)) {
+            if(stat.isDirectory()) {
+                fs.setPermission(stat.getPath(), new FsPermission("755"));
+                fixSharelibPermission(fs, stat.getPath());
+            } else {
+                fs.setPermission(stat.getPath(), new FsPermission("544"));
+            }
+        }
     }
 }

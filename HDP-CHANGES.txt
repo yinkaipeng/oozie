@@ -1,5 +1,6 @@
 -- Backport and Internal patches --
 
+BUG-97859 Permission issue- r+x for others under hadoop fs -ls /user/oozie/share/lib/lib_XXXX
 BUG-96737 OOZIE-3199 Let system property restriction configurable
 BUG-79059 OOZIE-3109 SCA : Cross-Site Scripting: Reflected
 BUG-97742 OOZIE-1624 Exclusion pattern for sharelib.
