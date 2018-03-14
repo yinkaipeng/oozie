@@ -41,7 +41,7 @@ public class SqoopMain extends LauncherMain {
     @VisibleForTesting
     static final Pattern[] SQOOP_JOB_IDS_PATTERNS = {
             Pattern.compile("Job complete: (job_\\S*)"),
-            Pattern.compile("Job (job_\\S*) completed successfully"),
+            Pattern.compile("Job (job_\\S*) has completed successfully"),
             Pattern.compile("Submitted application (application[0-9_]*)")
     };
 
