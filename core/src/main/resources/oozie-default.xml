@@ -2770,6 +2770,20 @@ will be the requeue interval for the actions which are waiting for a long time w
             If set -1, No limitation on substitution.
         </description>
     </property>
+    <property>
+        <name>oozie.configuration.environment.whitelist</name>
+        <value>hdp.version</value>
+        <description>
+            This value determines which environment variables are safe to get.
+        </description>
+    </property>
+    <property>
+        <name>oozie.configuration.sysprop.whitelist</name>
+        <value>hdp.version</value>
+        <description>
+            This value determines which system properties has to be replaced initially.
+        </description>
+    </property>
 
     <property>
         <name>oozie.service.SparkConfigurationService.spark.configurations</name>

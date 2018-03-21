@@ -1,5 +1,6 @@
 -- Backport and Internal patches --
 
+BUG-96737 OOZIE-3199 Let system property restriction configurable
 BUG-100499 oozie fails to start
 BUG-96984 Unable to find spark yarn jars due to strict regex pattern in sharelib
 BUG-97674 OOZIE-3186 Oozie is unable to use configuration linked using jceks://file/
