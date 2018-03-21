@@ -253,7 +253,7 @@ public class HadoopAccessorService implements Service {
             File f = new File(dir, file);
             if (f.exists()) {
                 InputStream is = new FileInputStream(f);
-                Configuration conf = new XConfiguration(is, false);
+                Configuration conf = new XConfiguration(is, false).resolveAllowdSystemProperties();
                 is.close();
                 XConfiguration.copy(conf, hadoopConf);
             }
@@ -359,7 +359,7 @@ public class HadoopAccessorService implements Service {
     }
 
     private void loadCachedConf() {
-        cachedConf = new Configuration();
+        cachedConf = new XConfiguration(true);
         //for lazy loading
         cachedConf.size();
     }

@@ -18,6 +18,7 @@
 
 package org.apache.oozie.util;
 
+import java.util.Set;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.Services;
@@ -37,8 +38,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.io.ByteArrayOutputStream;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Properties;
+import java.util.HashSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -49,6 +54,8 @@ import java.util.regex.Pattern;
 public class XConfiguration extends Configuration {
 
     public static final String CONFIGURATION_SUBSTITUTE_DEPTH = "oozie.configuration.substitute.depth";
+    public static final String CONFIGURATION_ENVIRONMENT_WHITELIST = "oozie.configuration.environment.whitelist";
+    public static final String SYSTEM_PROPERTY_WHITELIST = "oozie.configuration.sysprop.whitelist";
 
     private boolean restrictSystemProperties = true;
     private boolean restrictParser = true;
@@ -57,6 +64,11 @@ public class XConfiguration extends Configuration {
      */
     public XConfiguration() {
         super(false);
+        initSubstituteDepth();
+    }
+
+    public XConfiguration(final boolean loadDefaults) {
+        super(loadDefaults);
         initSubstituteDepth();
     }
 
@@ -174,10 +186,19 @@ public class XConfiguration extends Configuration {
 
     private static Pattern varPat = Pattern.compile("\\$\\{[^\\}\\$\u0020]+\\}");
     private static int MAX_SUBST = 20;
+    private static Collection<String> ENVIRONMENT_WHITELIST = Collections.emptySet();
+    private static Collection<String> SYSPROP_WHITELIST = Collections.emptySet();
     protected static volatile boolean initalized = false;
     private static void initSubstituteDepth() {
         if (!initalized && Services.get() != null && Services.get().get(ConfigurationService.class) != null) {
             MAX_SUBST = ConfigurationService.getInt(CONFIGURATION_SUBSTITUTE_DEPTH);
+            ENVIRONMENT_WHITELIST = new HashSet<>(
+                    Arrays.asList(ConfigurationService.getStrings(CONFIGURATION_ENVIRONMENT_WHITELIST)));
+            XLog.getLog(XConfiguration.class).info("Whitelist for allowed system properties to substitute set to " + ENVIRONMENT_WHITELIST);
+
+            SYSPROP_WHITELIST = new HashSet<>(
+                    Arrays.asList(ConfigurationService.getStrings(SYSTEM_PROPERTY_WHITELIST)));
+            XLog.getLog(XConfiguration.class).info("Whitelist for initially replacable system properties set to " + SYSPROP_WHITELIST);
             initalized = true;
         }
     }
@@ -199,10 +220,11 @@ public class XConfiguration extends Configuration {
 
             String val = getRaw(var);
 
-            if (val == null && !this.restrictSystemProperties) {
-                val =  System.getProperty(var);
+            if (val == null) {
+                if (!this.restrictSystemProperties || ENVIRONMENT_WHITELIST.contains(var)) {
+                    val =  System.getProperty(var);
+                }
             }
-
             if (val == null) {
                 return eval; // return literal ${var}: var is unbound
             }
@@ -274,6 +296,30 @@ public class XConfiguration extends Configuration {
             resolved.set(entry.getKey(), get(entry.getKey()));
         }
         return resolved;
+    }
+
+    public XConfiguration resolveAllowdSystemProperties() {
+        XConfiguration resolved = new XConfiguration();
+        for (Map.Entry<String, String> entry : this) {
+            if(containsAnyFromList(entry.getValue(), SYSPROP_WHITELIST)) {
+                resolved.set(entry.getKey(), get(entry.getKey()));
+            } else {
+                resolved.set(entry.getKey(), entry.getValue());
+            }
+        }
+        return resolved;
+    }
+
+    private boolean containsAnyFromList(String subject, Collection<String> collection) {
+        if(subject == null || collection == null) {
+            return false;
+        }
+        for(String elem : collection) {
+            if (subject.contains(elem)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // Canibalized from Hadoop <code>Configuration.loadResource()</code>.
