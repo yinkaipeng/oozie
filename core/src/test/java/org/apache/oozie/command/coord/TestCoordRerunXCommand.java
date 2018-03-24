@@ -60,6 +60,7 @@ import org.apache.oozie.service.StatusTransitService;
 import org.apache.oozie.service.URIHandlerService;
 import org.apache.oozie.store.StoreException;
 import org.apache.oozie.test.XDataTestCase;
+import org.apache.oozie.test.XTestCase;
 import org.apache.oozie.util.DateUtils;
 import org.apache.oozie.util.IOUtils;
 import org.apache.oozie.util.XLog;
@@ -562,14 +563,16 @@ public class TestCoordRerunXCommand extends XDataTestCase {
         // after cleanup
         assertFalse(fs.exists(success));
     }
-
+    
     /**
      * Test : rerun with refresh option when input dependency is hcat partition
      *
      * @throws Exception
      */
     public void testCoordRerunCleanupForHCat() throws Exception {
-
+        //setting current user as test user because directory structure created by HCat have current user permissions (755).
+        setSystemProperty(XTestCase.TEST_USER1_PROP, System.getProperty("user.name"));
+        super.setupHCatalogServer();
         services = super.setupServicesForHCatalog();
         services.init();
 
@@ -1378,6 +1381,52 @@ public class TestCoordRerunXCommand extends XDataTestCase {
             }
         });
         assertNotSame(externalId,coordClient.getCoordActionInfo(actionId).getExternalId());
+    }
+
+
+    /**
+     * Test : -failed option of rerun. If failed option is provided it should not delete the output directories.
+     *
+     * @throws Exception
+     */
+    public void testCoordRerunWithFailedOptionDirectoryPresent() throws Exception {
+        final String jobId = "0000000-" + new Date().getTime() + "-testCoordRerun-C";
+        final int actionNum = 1;
+        final String actionId = jobId + "@" + actionNum;
+        try {
+            addRecordToJobTable(jobId, CoordinatorJob.Status.SUCCEEDED);
+            addRecordToActionTable(jobId, actionNum, actionId, CoordinatorAction.Status.SUCCEEDED,
+                    "coord-rerun-action1.xml");
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            fail("Could not update db.");
+        }
+        Path appPath = new Path(getFsTestCaseDir(), "coord");
+        String outputDir = appPath.toString() + "/coord-input/2009/12/14/11/00";
+        Path success = new Path(outputDir, "_SUCCESS");
+        FileSystem fs = getFileSystem();
+        fs.mkdirs(new Path(outputDir));
+        fs.create(success, true);
+        // before cleanup
+        assertTrue(fs.exists(success));
+
+        final OozieClient coordClient = LocalOozie.getCoordClient();
+        coordClient.reRunCoord(jobId, RestConstants.JOB_COORD_SCOPE_ACTION, Integer.toString(actionNum), false, false,
+                true, new Properties());
+
+        CoordinatorActionBean action2 = getCoordinatorAction(actionId);
+        assertNotSame(action2.getStatus(), CoordinatorAction.Status.SUCCEEDED);
+
+        waitFor(120 * 1000, new Predicate() {
+            @Override
+            public boolean evaluate() throws Exception {
+                CoordinatorAction bean = coordClient.getCoordActionInfo(actionId);
+                return (bean.getStatus() == CoordinatorAction.Status.WAITING || bean.getStatus() == CoordinatorAction.Status.READY);
+            }
+        });
+
+        assertTrue(fs.exists(success));
     }
 
     /**

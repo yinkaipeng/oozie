@@ -49,9 +49,11 @@ import org.apache.oozie.util.XmlUtils;
 
 public class TestCoordMaterializeTriggerService extends XDataTestCase {
     private Services services;
+
     private String[] excludedServices = {"org.apache.oozie.service.StatusTransitService",
             "org.apache.oozie.service.CoordMaterializeTriggerService",
             "org.apache.oozie.service.RecoveryService" };
+
 
     JPAService jpaService;
     @Override

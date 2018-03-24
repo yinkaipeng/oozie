@@ -24,6 +24,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.oozie.action.ActionExecutorException;
 import org.apache.oozie.client.WorkflowAction;
+import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.service.SparkConfigurationService;
 import org.jdom.Element;
@@ -31,7 +32,7 @@ import org.jdom.Namespace;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
+import java.util.Properties;
 
 public class SparkActionExecutor extends JavaActionExecutor {
     public static final String SPARK_MAIN_CLASS_NAME = "org.apache.oozie.action.hadoop.SparkMain";
@@ -44,6 +45,7 @@ public class SparkActionExecutor extends JavaActionExecutor {
     public static final String SPARK_CLASS = "oozie.spark.class";
     public static final String SPARK_JAR = "oozie.spark.jar";
     public static final String MAPRED_CHILD_ENV = "mapred.child.env";
+    private static final String CONF_OOZIE_SPARK_SETUP_HADOOP_CONF_DIR = "oozie.action.spark.setup.hadoop.conf.dir";
 
     public SparkActionExecutor() {
         super("spark");
@@ -77,9 +79,11 @@ public class SparkActionExecutor extends JavaActionExecutor {
         StringBuilder sparkOptsSb = new StringBuilder();
         if (master.startsWith("yarn")) {
             String resourceManager = actionConf.get(HADOOP_JOB_TRACKER);
-            Map<String, String> sparkConfig = Services.get().get(SparkConfigurationService.class).getSparkConfig(resourceManager);
-            for (Map.Entry<String, String> entry : sparkConfig.entrySet()) {
-                sparkOptsSb.append("--conf ").append(entry.getKey()).append("=").append(entry.getValue()).append(" ");
+            Properties sparkConfig =
+                    Services.get().get(SparkConfigurationService.class).getSparkConfig(resourceManager);
+            for (String property : sparkConfig.stringPropertyNames()) {
+                sparkOptsSb.append("--conf ")
+                        .append(property).append("=").append(sparkConfig.getProperty(property)).append(" ");
             }
         }
         String sparkOpts = actionXml.getChildTextTrim("spark-opts", ns);
@@ -90,6 +94,10 @@ public class SparkActionExecutor extends JavaActionExecutor {
             actionConf.set(SPARK_OPTS, sparkOptsSb.toString().trim());
         }
 
+        // Setting if SparkMain should setup hadoop config *-site.xml
+        boolean setupHadoopConf = actionConf.getBoolean(CONF_OOZIE_SPARK_SETUP_HADOOP_CONF_DIR,
+                true);
+        actionConf.setBoolean(CONF_OOZIE_SPARK_SETUP_HADOOP_CONF_DIR, setupHadoopConf);
         return actionConf;
     }
 
@@ -164,4 +172,10 @@ public class SparkActionExecutor extends JavaActionExecutor {
     protected String getLauncherMain(Configuration launcherConf, Element actionXml) {
         return launcherConf.get(LauncherMapper.CONF_OOZIE_ACTION_MAIN_CLASS, SPARK_MAIN_CLASS_NAME);
     }
+
+    @Override
+    public String[] getShareLibFilesForActionConf() {
+        return new String[] { "hive-site.xml" };
+    }
+
 }

@@ -639,14 +639,14 @@ public class LauncherMapper<K1, V1, K2, V2> implements Mapper<K1, V1, K2, V2>, R
         }
     }
 
-    /*
-     * Print arguments to standard output stream.   Will mask out argument values to option with name
-     * password in them
+
+    /**
+     * Print arguments to standard output stream. Mask out argument values to option with name 'password' in them.
+     * @param banner source banner
+     * @param args arguments to be printed
      */
     public static void printArgs(String banner, String[] args) {
-
         System.out.println(banner);
-
         boolean maskNextArg = false;
         for (String arg : args) {
             if (arg == null) {
@@ -659,6 +659,7 @@ public class LauncherMapper<K1, V1, K2, V2> implements Mapper<K1, V1, K2, V2>, R
             }
             else {
                 System.out.println("             " + arg);
+
                 if (arg.toLowerCase().contains("password") || arg.toLowerCase().equals("-p")) {
                     maskNextArg = true;
                 }

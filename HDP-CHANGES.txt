@@ -1,5 +1,9 @@
 -- Backport and Internal patches --
 
+BUG-96984 Unable to find spark yarn jars due to strict regex pattern in sharelib
+BUG-97674 OOZIE-3186 Oozie is unable to use configuration linked using jceks://file/
+BUG-96737 Use java io filesystem methods to access local files
+BUG-90041 SCA : JavaScript Hijacking
 BUG-94900 Set spark.yarn.jars to fix Spark 2.0 with Oozie
 BUG-95290 Upgrade jackson version in Oozie from 2.4.4 to 2.6.5
 BUG-92477 OOZIE-3139 Oozie validates workflow incorrectly (dionusos via pbacsko)

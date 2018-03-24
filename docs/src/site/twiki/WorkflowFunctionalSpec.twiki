@@ -213,7 +213,7 @@ The workflow definition language is XML based and it is called hPDL (Hadoop Proc
 Refer to the Appendix A for the[[WorkflowFunctionalSpec#OozieWFSchema][Oozie Workflow Definition XML Schema]]. Appendix
 B has [[WorkflowFunctionalSpec#OozieWFExamples][Workflow Definition Examples]].
 
----++ 2.1 Cycles in Workflow Definitions
+---+++ 2.1 Cycles in Workflow Definitions
 
 Oozie does not support cycles in workflow definitions, workflow definitions must be a strict DAG.
 
@@ -1883,17 +1883,17 @@ This function is only applicable to action nodes that produce output data on com
 
 The output data is in a Java Properties format and via this EL function it is available as a =Map<String, String>=.
 
-*int wf:actionExternalId(String node)*
+*String wf:actionExternalId(String node)*
 
 It returns the external Id for an action node, or an empty string if the action has not being executed or it has not
 completed yet.
 
-*int wf:actionTrackerUri(String node)*
+*String wf:actionTrackerUri(String node)*
 
 It returns the tracker URI for an action node, or an empty string if the action has not being executed or it has not
 completed yet.
 
-*int wf:actionExternalStatus(String node)*
+*String wf:actionExternalStatus(String node)*
 
 It returns the external status for an action node, or an empty string if the action has not being executed or it has
 not completed yet.
@@ -2275,6 +2275,7 @@ the notification:
 
    * =$jobId= : The workflow job ID
    * =$status= : the workflow current state
+   * =$parentId= : The parent ID of the workflow job. If there is no parent ID, it will be replaced with an empty string.
 
 ---+++ 5.2 Node Start and End Notifications
 

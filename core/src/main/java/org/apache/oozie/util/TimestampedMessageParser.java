@@ -92,11 +92,13 @@ public class TimestampedMessageParser {
         lastTimestamp = parseTimestamp(nextLine);
         String nextTimestamp = null;
         while (nextTimestamp == null) {
+
             message.append(nextLine.getLine()).append(SYSTEM_LINE_SEPARATOR);
             nextLine = parseNextLogLine();
             if (nextLine != null && nextLine.getLine() != null) {
                 // exit loop if we have a timestamp, continue if not
                 nextTimestamp = parseTimestamp(nextLine);
+
             }
             else {                                          // reader finished
                 empty = true;

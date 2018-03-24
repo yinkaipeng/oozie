@@ -43,6 +43,7 @@ public class JobsFilterUtils {
         FILTER_NAMES.add(OozieClient.FILTER_GROUP);
         FILTER_NAMES.add(OozieClient.FILTER_STATUS);
         FILTER_NAMES.add(OozieClient.FILTER_ID);
+        FILTER_NAMES.add(OozieClient.FILTER_SORT_BY);
         FILTER_NAMES.add(OozieClient.FILTER_CREATED_TIME_START);
         FILTER_NAMES.add(OozieClient.FILTER_CREATED_TIME_END);
     }

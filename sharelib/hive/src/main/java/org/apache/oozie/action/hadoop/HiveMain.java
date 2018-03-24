@@ -40,8 +40,11 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.cli.CliDriver;
 import org.apache.hadoop.hive.conf.HiveConf;
 
+import com.google.common.annotations.VisibleForTesting;
+
 public class HiveMain extends LauncherMain {
-    private static final Pattern[] HIVE_JOB_IDS_PATTERNS = {
+    @VisibleForTesting
+    static final Pattern[] HIVE_JOB_IDS_PATTERNS = {
             Pattern.compile("Ended Job = (job_\\S*)"),
             Pattern.compile("Submitted application (application[0-9_]*)")
     };
@@ -148,18 +151,23 @@ public class HiveMain extends LauncherMain {
 
         hadoopProps.setProperty("log4j.rootLogger", rootLogLevel + ", A");
         hadoopProps.setProperty("log4j.logger.org.apache.hadoop.hive", logLevel + ", A");
+        hadoopProps.setProperty("log4j.additivity.org.apache.hadoop.hive", "false");
         hadoopProps.setProperty("log4j.logger.hive", logLevel + ", A");
+        hadoopProps.setProperty("log4j.additivity.hive", "false");
         hadoopProps.setProperty("log4j.logger.DataNucleus", logLevel + ", A");
+        hadoopProps.setProperty("log4j.additivity.DataNucleus", "false");
         hadoopProps.setProperty("log4j.logger.DataStore", logLevel + ", A");
+        hadoopProps.setProperty("log4j.additivity.DataStore", "false");
         hadoopProps.setProperty("log4j.logger.JPOX", logLevel + ", A");
+        hadoopProps.setProperty("log4j.additivity.JPOX", "false");
         hadoopProps.setProperty("log4j.appender.A", "org.apache.log4j.ConsoleAppender");
         hadoopProps.setProperty("log4j.appender.A.layout", "org.apache.log4j.PatternLayout");
-        hadoopProps.setProperty("log4j.appender.A.layout.ConversionPattern", "%-4r [%t] -5p %c %x - %m%n");
+        hadoopProps.setProperty("log4j.appender.A.layout.ConversionPattern", "%d [%t] %-5p %c %x - %m%n");
 
         hadoopProps.setProperty("log4j.appender.jobid", "org.apache.log4j.FileAppender");
         hadoopProps.setProperty("log4j.appender.jobid.file", logFile);
         hadoopProps.setProperty("log4j.appender.jobid.layout", "org.apache.log4j.PatternLayout");
-        hadoopProps.setProperty("log4j.appender.jobid.layout.ConversionPattern", "%-4r [%t] %-5p %c %x - %m%n");
+        hadoopProps.setProperty("log4j.appender.jobid.layout.ConversionPattern", "%d [%t] %-5p %c %x - %m%n");
         hadoopProps.setProperty("log4j.logger.org.apache.hadoop.hive.ql.exec", "INFO, jobid");
         hadoopProps.setProperty("log4j.logger.SessionState", "INFO, jobid");
         hadoopProps.setProperty("log4j.logger.org.apache.hadoop.yarn.client.api.impl.YarnClientImpl", "INFO, jobid");

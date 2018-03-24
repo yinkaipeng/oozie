@@ -23,10 +23,13 @@ import org.apache.oozie.util.XConfiguration;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 
 import org.apache.oozie.action.hadoop.DistcpMain;
 
@@ -84,7 +87,7 @@ public class TestDistcpMain extends MainTestCase {
 
         // test -D option
         jobConf.set("mapred.job.queue.name", "non-exist");
-        fs.delete(new Path(getTestCaseDir(), "action.xml"), true);
+        new File(getTestCaseDir(), "action.xml").delete();
         os = new FileOutputStream(actionXml);
         jobConf.writeXml(os);
 
@@ -92,7 +95,28 @@ public class TestDistcpMain extends MainTestCase {
         String option = "-Dmapred.job.queue.name=default"; // overwrite queue setting
         DistcpMain.main(new String[] { option, inputDir.toString(), outputDir.toString() });
         assertTrue(getFileSystem().exists(outputDir));
-
+        new File(getTestCaseDir(), "action.xml").delete();
         return null;
+    }
+
+    public void testJobIDPattern() {
+        List<String> lines = new ArrayList<String>();
+        lines.add("Job complete: job_001");
+        lines.add("Job job_002 completed successfully");
+        lines.add("Submitted application application_003");
+        // Non-matching ones
+        lines.add("Job complete: job004");
+        lines.add("Job complete: (job_005");
+        lines.add("Job abc job_006 completed successfully");
+        lines.add("Submitted application. application_007");
+        Set<String> jobIds = new LinkedHashSet<String>();
+        for (String line : lines) {
+            LauncherMain.extractJobIDs(line, DistcpMain.DISTCP_JOB_IDS_PATTERNS, jobIds);
+        }
+        Set<String> expected = new LinkedHashSet<String>();
+        expected.add("job_001");
+        expected.add("job_002");
+        expected.add("job_003");
+        assertEquals(expected, jobIds);
     }
 }

@@ -18,7 +18,15 @@
 
 package org.apache.oozie.command.wf;
 
-import java.io.*;
+import org.apache.commons.lang.RandomStringUtils;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintWriter;
+import java.io.StringReader;
 import java.net.URI;
 
 import org.apache.commons.lang.RandomStringUtils;
@@ -306,7 +314,7 @@ public class TestSubmitXCommand extends XDataTestCase {
 
         waitFor(15 * 1000, new Predicate() {
             public boolean evaluate() throws Exception {
-                return wfClient.getJobInfo(jobId).getStatus() == WorkflowJob.Status.SUCCEEDED;
+                return wfClient.getJobInfo(jobId).getStatus() == WorkflowJob.Status.PREP;
             }
         });
         WorkflowJobBean wf = WorkflowJobQueryExecutor.getInstance().get(WorkflowJobQuery.GET_WORKFLOW, jobId);
@@ -329,7 +337,7 @@ public class TestSubmitXCommand extends XDataTestCase {
 
         waitFor(15 * 1000, new Predicate() {
             public boolean evaluate() throws Exception {
-                return wfClient.getJobInfo(jobId1).getStatus() == WorkflowJob.Status.SUCCEEDED;
+                return wfClient.getJobInfo(jobId1).getStatus() == WorkflowJob.Status.PREP;
             }
         });
         wf = WorkflowJobQueryExecutor.getInstance().get(WorkflowJobQuery.GET_WORKFLOW, jobId1);
@@ -344,6 +352,7 @@ public class TestSubmitXCommand extends XDataTestCase {
     }
 
     public void testWFConfigDefaultVarResolve() throws Exception {
+        final OozieClient wfClient = LocalOozie.getClient();
         OutputStream os = new FileOutputStream(getTestCaseDir() + "/config-default.xml");
         XConfiguration defaultConf = new XConfiguration();
         defaultConf.set("outputDir", "default-output-dir");
@@ -351,6 +360,7 @@ public class TestSubmitXCommand extends XDataTestCase {
         defaultConf.set("foobarRef", "${foo.bar}");
         defaultConf.set("key", "default_value");
         defaultConf.set("should_resolve", "${should.resolve}");
+        defaultConf.set("mixed", "${nameNode}/${outputDir}");
         defaultConf.writeXml(os);
         os.close();
 
@@ -391,9 +401,15 @@ public class TestSubmitXCommand extends XDataTestCase {
         SubmitXCommand sc = new SubmitXCommand(conf);
         final String jobId = sc.call();
         new StartXCommand(jobId).call();
-        sleep(200);
+
+        waitFor(15 * 1000, new Predicate() {
+            public boolean evaluate() throws Exception {
+                return wfClient.getJobInfo(jobId).getStatus() == WorkflowJob.Status.KILLED;
+            }
+        });
+        String actionId = jobId + "@mr-node";
         WorkflowActionBean action = WorkflowActionQueryExecutor.getInstance().get(WorkflowActionQueryExecutor.WorkflowActionQuery
-                .GET_ACTION, jobId + "@mr-node");
+                .GET_ACTION, actionId);
         Element eAction = XmlUtils.parseXml(action.getConf());
         Element eConf = eAction.getChild("configuration", eAction.getNamespace());
         Configuration actionConf = new XConfiguration(new StringReader(XmlUtils.prettyPrint(eConf).toString()));
@@ -404,6 +420,7 @@ public class TestSubmitXCommand extends XDataTestCase {
         assertEquals("default-foo-bar", actionConf.get("foo.bar"));
         assertEquals("default-foo-bar", actionConf.get("foobarRef"));
         assertEquals("default_value", actionConf.get("key"));
+        assertEquals(getNameNodeUri()+"/default-output-dir", actionConf.get("mixed"));
     }
 
 

@@ -9,7 +9,7 @@
 ---++ System Requirements
 
    * Unix box (tested on Mac OS X and Linux)
-   * Java JDK 1.6+
+   * Java JDK 1.7+
    * [[http://maven.apache.org/][Maven 3.0.1+]]
    * [[http://hadoop.apache.org/core/releases.html][Hadoop 0.20.2+]]
    * [[http://hadoop.apache.org/pig/releases.html][Pig 0.7+]]
@@ -52,8 +52,8 @@ $ ssh localhost
 
 ---++ Building with different Java Versions
 
-Oozie requires a minimum Java version of 1.6. Any newer version can be used but by default bytecode will be generated
-which is compatible with 1.6. This can be changed by specifying the build property *targetJavaVersion*.
+Oozie requires a minimum Java version of 1.7. Any newer version can be used but by default bytecode will be generated
+which is compatible with 1.7. This can be changed by specifying the build property *targetJavaVersion*.
 
 ---++ Building and Testing Oozie
 
@@ -114,7 +114,7 @@ specified in the =test.properties= file (which is loaded by the =XTestCase= clas
 
 *hadoop.version* =(*)=: indicates the Hadoop version(Hadoop-1 or Hadoop-2) you wish to build Oozie against specifically. It will
 substitute this value in the Oozie POM properties and pull the corresponding Hadoop artifacts from Maven. Default version is 1.2.1
-for Hadoop-1 (the most common case). For Hadoop-2, the version you can pass is *2.3.0*.
+for Hadoop-1 (the most common case). For Hadoop-2, the version you can pass is *2.4.0*.
 
 *generateSite* (*): generates Oozie documentation, default is undefined (no documentation is generated)
 
@@ -212,21 +212,20 @@ $ bin/mkdistro.sh [-DskipTests]
 Running =mkdistro.sh= will create the binary distribution of Oozie. The following options are available to customise
 the versions of the dependencies:
 -Puber - Bundle required hadoop and hcatalog libraries in oozie war
--P<profile> - default hadoop-1. Valid are hadoop-1, hadoop-0.23, hadoop-2 or hadoop-3. Choose the correct hadoop
+-P<profile> - default hadoop-2. Valid are hadoop-1, hadoop-2 or hadoop-3. Choose the correct hadoop
 profile depending on the hadoop version used.
--Dhadoop.version=<version> - default 1.2.1 for hadoop-1, 0.23.5 for hadoop-0.23, 2.3.0 for hadoop-2 and 3.0
-.0-SNAPSHOT for hadoop-3
+-Dhadoop.version=<version> - default 1.2.1 for hadoop-1, 2.4.0 for hadoop-2 and 3.0.0-SNAPSHOT for hadoop-3
 -Dhadoop.auth.version=<version> - defaults to hadoop version
 -Ddistcp.version=<version> - defaults to hadoop version
--Dpig.version=<version> - default 0.12.1
+-Dpig.version=<version> - default 0.16.0
 -Dpig.classifier=<classifier> - default none
 -Dsqoop.version=<version> - default 1.4.3
 -Dsqoop.classifier=<classifier> - default hadoop100
--Dtomcat.version=<version> - default 6.0.44
+-Dtomcat.version=<version> - default 6.0.53
 -Dopenjpa.version=<version> - default 2.2.2
 -Dxerces.version=<version> - default 2.10.0
 -Dcurator.version=<version> - default 2.5.0
--Dhive.version=<version> - default 0.13.1
+-Dhive.version=<version> - default 0.13.1 for hadoop-1, 1.2.0 for hadoop-2 and hadoop-3 profile
 -Dhbase.version=<version> - default 0.94.2
 </verbatim>
 

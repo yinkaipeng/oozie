@@ -19,7 +19,10 @@
 package org.apache.oozie.service;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -48,6 +51,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.fs.permission.FsPermission;
+import org.apache.hadoop.io.IOUtils;
 import org.apache.oozie.action.ActionExecutor;
 import org.apache.oozie.action.hadoop.JavaActionExecutor;
 import org.apache.oozie.client.rest.JsonUtils;
@@ -259,12 +263,29 @@ public class ShareLibService implements Service, Instrumentable {
         List<Path> listOfPaths = new ArrayList<Path>();
         for (String localJarStr : localJarSet) {
             File localJar = new File(localJarStr);
-            fs.copyFromLocalFile(new Path(localJar.getPath()), executorDir);
+            copyFromLocalFile(localJar, fs, executorDir);
             Path path = new Path(executorDir, localJar.getName());
             listOfPaths.add(path);
             LOG.info(localJar.getName() + " uploaded to " + executorDir.toString());
         }
         launcherLibMap.put(type, listOfPaths);
+
+    }
+
+    private static boolean copyFromLocalFile(File src, FileSystem dstFS, Path dstDir) throws IOException {
+      Path dst = new Path(dstDir, src.getName());
+      InputStream in=null;
+      OutputStream out = null;
+      try {
+        in = new FileInputStream(src);
+        out = dstFS.create(dst, true);
+        IOUtils.copyBytes(in, out, dstFS.getConf(), true);
+      } catch (IOException e) {
+        IOUtils.closeStream(out);
+        IOUtils.closeStream(in);
+        throw e;
+      }
+      return true;
 
     }
 
@@ -289,7 +310,7 @@ public class ShareLibService implements Service, Instrumentable {
                 Path filePath = new Path(new URI(rootDir.toString()).getPath());
                 Path qualifiedRootDirPath = fs.makeQualified(rootDir);
                 if (isFilePartOfConfList(rootDir)) {
-                    cachePropertyFile(filePath, shareLibKey, shareLibConfigMap);
+                    cachePropertyFile(qualifiedRootDirPath, filePath, shareLibKey, shareLibConfigMap);
                 }
                 listOfPaths.add(qualifiedRootDirPath);
                 return;
@@ -307,7 +328,7 @@ public class ShareLibService implements Service, Instrumentable {
                 }
                 else {
                     if (isFilePartOfConfList(file.getPath())) {
-                        cachePropertyFile(file.getPath(), shareLibKey, shareLibConfigMap);
+                        cachePropertyFile(file.getPath(), file.getPath(), shareLibKey, shareLibConfigMap);
                     }
                     listOfPaths.add(file.getPath());
                 }
@@ -642,7 +663,7 @@ public class ShareLibService implements Service, Instrumentable {
             Path path = new Path(dfsPath);
             getPathRecursively(fs, new Path(dfsPath), listOfPaths, shareLibKey, shareLibConfigMap);
             if (HadoopShims.isSymlinkSupported() && fileSystem.isSymlink(path)) {
-                symlinkMappingforAction.put(path, fileSystem.getSymLinkTarget(path));
+                symlinkMappingforAction.put(fs.makeQualified(path), fileSystem.getSymLinkTarget(path));
             }
         }
         if (HadoopShims.isSymlinkSupported()) {
@@ -783,7 +804,7 @@ public class ShareLibService implements Service, Instrumentable {
                 if (shareLibSymlinkMapping != null && !shareLibSymlinkMapping.isEmpty()
                         && shareLibSymlinkMapping.values() != null && !shareLibSymlinkMapping.values().isEmpty()) {
                     StringBuffer bf = new StringBuffer();
-                    for (Entry<String, Map<Path, Path>> entry : shareLibSymlinkMapping.entrySet())
+                    for (Entry<String, Map<Path, Path>> entry : shareLibSymlinkMapping.entrySet()) {
                         if (entry.getKey() != null && !entry.getValue().isEmpty()) {
                             for (Path path : entry.getValue().keySet()) {
                                 bf.append(path).append("(").append(entry.getKey()).append(")").append("=>")
@@ -791,6 +812,7 @@ public class ShareLibService implements Service, Instrumentable {
                                                 .get(entry.getKey()).get(path) : "").append(",");
                             }
                         }
+                    }
                     return bf.toString();
                 }
                 return "(none)";
@@ -834,7 +856,7 @@ public class ShareLibService implements Service, Instrumentable {
      * @throws IOException Signals that an I/O exception has occurred.
      * @throws JDOMException
      */
-    private void cachePropertyFile(Path hdfsPath, String shareLibKey,
+    private void cachePropertyFile(Path qualifiedHdfsPath, Path hdfsPath, String shareLibKey,
             Map<String, Map<Path, Configuration>> shareLibConfigMap) throws IOException, JDOMException {
         Map<Path, Configuration> confMap = shareLibConfigMap.get(shareLibKey);
         if (confMap == null) {
@@ -842,7 +864,7 @@ public class ShareLibService implements Service, Instrumentable {
             shareLibConfigMap.put(shareLibKey, confMap);
         }
         Configuration xmlConf = new XConfiguration(fs.open(hdfsPath));
-        confMap.put(hdfsPath, xmlConf);
+        confMap.put(qualifiedHdfsPath, xmlConf);
 
     }
 

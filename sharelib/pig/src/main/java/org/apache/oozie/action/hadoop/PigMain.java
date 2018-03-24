@@ -22,6 +22,9 @@ import org.apache.pig.Main;
 import org.apache.pig.PigRunner;
 import org.apache.pig.tools.pigstats.JobStats;
 import org.apache.pig.tools.pigstats.PigStats;
+
+import com.google.common.annotations.VisibleForTesting;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -49,7 +52,8 @@ public class PigMain extends LauncherMain {
     private static final Set<String> DISALLOWED_PIG_OPTIONS = new HashSet<String>();
     public static final int STRING_BUFFER_SIZE = 100;
 
-    private static final Pattern[] PIG_JOB_IDS_PATTERNS = {
+    @VisibleForTesting
+    static final Pattern[] PIG_JOB_IDS_PATTERNS = {
             Pattern.compile("HadoopJobId: (job_\\S*)"),
             Pattern.compile("Submitted application (application[0-9_]*)")
     };
@@ -169,7 +173,7 @@ public class PigMain extends LauncherMain {
         if (log4jFile != null) {
 
             String pigLogLevel = actionConf.get("oozie.pig.log.level", "INFO");
-            String rootLogLevel = actionConf.get("oozie.action ." + LauncherMapper.ROOT_LOGGER_LEVEL, "INFO");
+            String rootLogLevel = actionConf.get("oozie.action." + LauncherMapper.ROOT_LOGGER_LEVEL, "INFO");
 
             // append required PIG properties to the default hadoop log4j file
             Properties hadoopProps = new Properties();

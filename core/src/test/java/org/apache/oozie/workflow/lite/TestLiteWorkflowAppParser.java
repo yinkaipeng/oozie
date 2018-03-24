@@ -37,6 +37,7 @@ import org.apache.oozie.workflow.lite.TestLiteWorkflowLib.TestActionNodeHandler;
 import org.apache.oozie.workflow.lite.TestLiteWorkflowLib.TestDecisionNodeHandler;
 import org.junit.Assert;
 
+
 public class TestLiteWorkflowAppParser extends XTestCase {
     public static String dummyConf = "<java></java>";
 

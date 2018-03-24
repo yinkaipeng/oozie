@@ -160,20 +160,9 @@ public class SubmitXCommand extends WorkflowXCommand<String> {
                     throw new IOException("default configuration file, " + ex.getMessage(), ex);
                 }
             }
-            // Resolving variables from config-default, which might be referencing into conf/defaultConf
+
             if (defaultConf != null) {
-                XConfiguration resolveDefaultConf = new XConfiguration();
-                for (Map.Entry<String, String> entry : defaultConf) {
-                    // if value is referencing some other key, first check within the default config to resolve,
-                    // second workflow conf (job.properties/coord conf).
-                    // This will not handle if value contains keys from both config-default and workflow conf.
-                    if (entry.getValue().contains("$") && defaultConf.get(entry.getKey()).contains("$")) {
-                        resolveDefaultConf.set(entry.getKey(), conf.get(entry.getKey()));
-                    } else {
-                        resolveDefaultConf.set(entry.getKey(), defaultConf.get(entry.getKey()));
-                    }
-                }
-                defaultConf = resolveDefaultConf;
+                defaultConf = resolveDefaultConfVariables(defaultConf);
             }
 
             WorkflowApp app = wps.parseDef(conf, defaultConf);
@@ -291,6 +280,27 @@ public class SubmitXCommand extends WorkflowXCommand<String> {
         catch (Exception ex) {
             throw new CommandException(ErrorCode.E0803, ex.getMessage(), ex);
         }
+    }
+
+    /**
+     * Resolving variables from config-default, which might be referencing into conf/defaultConf
+     * @param defaultConf config-default.xml
+     * @return resolved config-default configuration.
+     */
+    private Configuration resolveDefaultConfVariables(Configuration defaultConf) {
+        XConfiguration resolveDefaultConf = new XConfiguration();
+        for (Map.Entry<String, String> entry : defaultConf) {
+            String defaultConfKey = entry.getKey();
+            String defaultConfValue = entry.getValue();
+            // if value is referencing some other key, first check within the default config to resolve,
+            // then job.properties (conf)
+            if (defaultConfValue.contains("$") && defaultConf.get(defaultConfKey).contains("$")) {
+                resolveDefaultConf.set(defaultConfKey, conf.get(defaultConfKey));
+            } else {
+                resolveDefaultConf.set(defaultConfKey, defaultConf.get(defaultConfKey));
+            }
+        }
+        return resolveDefaultConf;
     }
 
     private void removeSlaElements(Element eWfJob) {

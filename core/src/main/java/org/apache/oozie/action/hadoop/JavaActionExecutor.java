@@ -39,7 +39,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
+import org.apache.hadoop.security.AccessControlException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.FileStatus;
@@ -51,8 +51,6 @@ import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.JobID;
 import org.apache.hadoop.mapred.RunningJob;
-import org.apache.hadoop.mapreduce.security.token.delegation.DelegationTokenIdentifier;
-import org.apache.hadoop.security.AccessControlException;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.security.token.TokenIdentifier;
@@ -695,12 +693,10 @@ public class JavaActionExecutor extends ActionExecutor {
                         if (listOfPaths != null && !listOfPaths.isEmpty()) {
                             for (Path actionLibPath : listOfPaths) {
                                 String fragmentName = new URI(actionLibPath.toString()).getFragment();
-                                Path pathWithFragment = fragmentName == null ? actionLibPath : new Path(new URI(
-                                        actionLibPath.toString()).getPath());
                                 String fileName = fragmentName == null ? actionLibPath.getName() : fragmentName;
                                 if (confSet.contains(fileName)) {
                                     Configuration jobXmlConf = shareLibService.getShareLibConf(actionShareLibName,
-                                            pathWithFragment);
+                                            actionLibPath);
                                     if (jobXmlConf != null) {
                                         checkForDisallowedProps(jobXmlConf, actionLibPath.getName());
                                         XConfiguration.injectDefaults(jobXmlConf, conf);
@@ -1061,7 +1057,7 @@ public class JavaActionExecutor extends ActionExecutor {
         return disable;
     }
 
-    private void injectCallback(Context context, Configuration conf) {
+    protected void injectCallback(Context context, Configuration conf) {
         String callback = context.getCallbackUrl("$jobStatus");
         if (conf.get("job.end.notification.url") != null) {
             LOG.warn("Overriding the action job end notification URI");
@@ -1070,7 +1066,7 @@ public class JavaActionExecutor extends ActionExecutor {
     }
 
     void injectActionCallback(Context context, Configuration actionConf) {
-        injectCallback(context, actionConf);
+        // action callback needs to be injected only for mapreduce actions.
     }
 
     void injectLauncherCallback(Context context, Configuration launcherConf) {
@@ -1144,6 +1140,9 @@ public class JavaActionExecutor extends ActionExecutor {
             }
 
             JobConf launcherJobConf = createLauncherConf(actionFs, context, action, actionXml, actionConf);
+
+            removeHBaseSettingFromOozieDefaultResource(launcherJobConf);
+            removeHBaseSettingFromOozieDefaultResource(actionConf);
 
             LOG.debug("Creating Job Client for action " + action.getId());
             jobClient = createJobClient(context, launcherJobConf);
@@ -1226,6 +1225,17 @@ public class JavaActionExecutor extends ActionExecutor {
             }
         }
     }
+
+    private void removeHBaseSettingFromOozieDefaultResource(final Configuration jobConf) {
+        final String[] propertySources = jobConf.getPropertySources(HbaseCredentials.HBASE_USE_DYNAMIC_JARS);
+        if (propertySources != null && propertySources.length > 0 &&
+                propertySources[0].contains(HbaseCredentials.OOZIE_HBASE_CLIENT_SITE_XML)) {
+            jobConf.unset(HbaseCredentials.HBASE_USE_DYNAMIC_JARS);
+            LOG.debug(String.format("Unset [%s] inserted from default Oozie resource XML [%s]",
+                    HbaseCredentials.HBASE_USE_DYNAMIC_JARS, HbaseCredentials.OOZIE_HBASE_CLIENT_SITE_XML));
+        }
+    }
+
     private boolean needInjectCredentials() {
         boolean methodExists = true;
 

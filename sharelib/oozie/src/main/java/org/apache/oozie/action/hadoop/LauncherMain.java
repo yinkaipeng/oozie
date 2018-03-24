@@ -38,6 +38,10 @@ import java.util.regex.Pattern;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.util.Shell;
+
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.mapred.JobConf;
 
@@ -51,7 +55,10 @@ public abstract class LauncherMain {
     public static final String HADOOP_JOBS = "hadoopJobs";
     public static final String MAPREDUCE_JOB_TAGS = "mapreduce.job.tags";
     public static final String TEZ_APPLICATION_TAGS = "tez.application.tags";
-    static String[] HADOOP_SITE_FILES = new String[] {"core-site.xml", "hdfs-site.xml", "mapred-site.xml", "yarn-site.xml"};
+    public static final String SPARK_YARN_TAGS = "spark.yarn.tags";
+    protected static String[] HADOOP_SITE_FILES = new String[]
+            {"core-site.xml", "hdfs-site.xml", "mapred-site.xml", "yarn-site.xml"};
+
 
     protected static void run(Class<? extends LauncherMain> klass, String[] args) throws Exception {
         LauncherMain main = klass.newInstance();
@@ -67,17 +74,7 @@ public abstract class LauncherMain {
             try (BufferedReader br = new BufferedReader(new FileReader(logFile))) {
                 String line = br.readLine();
                 while (line != null) {
-                    for (Pattern pattern : patterns) {
-                        Matcher matcher = pattern.matcher(line);
-                        if (matcher.find()) {
-                            String jobId = matcher.group(1);
-                            if (StringUtils.isEmpty(jobId) || jobId.equalsIgnoreCase("NULL")) {
-                                continue;
-                            }
-                            jobId = jobId.replaceAll("application", "job");
-                            jobIds.add(jobId);
-                        }
-                    }
+                    extractJobIDs(line, patterns, jobIds);
                     line = br.readLine();
                 }
             } catch (IOException e) {
@@ -86,6 +83,22 @@ public abstract class LauncherMain {
             }
         }
         return jobIds.isEmpty() ? null : StringUtils.join(jobIds, ",");
+    }
+
+    @VisibleForTesting
+    protected static void extractJobIDs(String line, Pattern[] patterns, Set<String> jobIds) {
+        Preconditions.checkNotNull(line);
+        for (Pattern pattern : patterns) {
+            Matcher matcher = pattern.matcher(line);
+            if (matcher.find()) {
+                String jobId = matcher.group(1);
+                if (StringUtils.isEmpty(jobId) || jobId.equalsIgnoreCase("NULL")) {
+                    continue;
+                }
+                jobId = jobId.replaceAll("application", "job");
+                jobIds.add(jobId);
+            }
+        }
     }
 
     protected static void writeExternalChildIDs(String logFile, Pattern[] patterns, String name) {

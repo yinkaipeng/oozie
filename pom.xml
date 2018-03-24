@@ -16,7 +16,8 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <parent>
         <groupId>org.apache</groupId>
         <artifactId>apache</artifactId>
@@ -26,7 +27,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.apache.oozie</groupId>
     <artifactId>oozie-main</artifactId>
-    <version>4.2.0.3.0.0.0-SNAPSHOT</version>
+    <version>4.3.1.3.0.0.0-SNAPSHOT</version>
     <description>Apache Oozie Main</description>
     <name>Apache Oozie Main</name>
     <packaging>pom</packaging>
@@ -45,6 +46,8 @@
 
     <properties>
         <targetJavaVersion>1.7</targetJavaVersion>
+        <sourceJavaVersion>1.7</sourceJavaVersion>
+        <minJavaVersion>1.7</minJavaVersion>
 
         <distMgmtSnapshotsName>Apache Development Snapshot Repository</distMgmtSnapshotsName>
         <distMgmtSnapshotsUrl>https://repository.apache.org/content/repositories/snapshots</distMgmtSnapshotsUrl>
@@ -66,7 +69,7 @@
 
         <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
         <maven.test.java.opts>-Xmx1024m -da -XX:MaxPermSize=512m</maven.test.java.opts>
-        <maven.javadoc.opts />
+        <maven.javadoc.opts/>
 
         <oozie.data.dir>${oozie.test.dir}</oozie.data.dir>
         <oozie.test.db.host>localhost</oozie.test.db.host>
@@ -85,35 +88,44 @@
 
         <clover.license>/home/jenkins/tools/clover/latest/lib/clover.license</clover.license>
 
-         <!-- Sharelib component versions -->
-         <hive.version>3.0.0.3.0.0.0-SNAPSHOT</hive.version>
-         <tez.version>0.9.0.3.0.0.0-SNAPSHOT</tez.version>
-         <pig.version>0.16.0.3.0.0.0-SNAPSHOT</pig.version>
-         <pig.classifier>h2</pig.classifier>
-         <sqoop.version>1.4.7.3.0.0.0-SNAPSHOT</sqoop.version>
-         <spark.version>2.3.0.3.0.0.0-SNAPSHOT</spark.version>
-         <spark.guava.version>14.0.1</spark.guava.version>
-         <sqoop.classifier>hadoop100</sqoop.classifier>
-         <streaming.version>${hadoop.version}</streaming.version>
-         <distcp.version>${hadoop.version}</distcp.version>
-         <hadoop.auth.version>3.0.0.3.0.0.0-SNAPSHOT</hadoop.auth.version>
+        <!-- Sharelib component versions -->
+        <hive.version>3.0.0.3.0.0.0-SNAPSHOT</hive.version>
+        <tez.version>0.9.0.3.0.0.0-SNAPSHOT</tez.version>
+        <pig.version>0.16.0.3.0.0.0-SNAPSHOT</pig.version>
+        <pig.classifier>h2</pig.classifier>
+        <sqoop.version>1.4.7.3.0.0.0-SNAPSHOT</sqoop.version>
+        <spark.version>2.3.0.3.0.0.0-SNAPSHOT</spark.version>
 
-         <!-- Tomcat version -->
-         <tomcat.version>6.0.48</tomcat.version>
+        <hive.jline.version>2.12</hive.jline.version>
+        <hive.classifier>core</hive.classifier>
+        <spark.streaming.kafka.version>1.6.1</spark.streaming.kafka.version>
+        <spark.bagel.version>1.6.1</spark.bagel.version>
 
-         <openjpa.version>2.2.2</openjpa.version>
-         <xerces.version>2.10.0</xerces.version>
-         <curator.version>2.5.0</curator.version>
+        <spark.guava.version>14.0.1</spark.guava.version>
+        <spark.scala.binary.version>2.11</spark.scala.binary.version>
+        <sqoop.classifier>hadoop100</sqoop.classifier>
+        <streaming.version>${hadoop.version}</streaming.version>
+        <distcp.version>${hadoop.version}</distcp.version>
+        <hadoop.auth.version>3.0.0.3.0.0.0-SNAPSHOT</hadoop.auth.version>
+
+        <!-- Tomcat version -->
+        <tomcat.version>6.0.53</tomcat.version>
+        <jline.version>0.9.94</jline.version>
+        <openjpa.version>2.4.1</openjpa.version>
+        <xerces.version>2.11.0</xerces.version>
+        <curator.version>2.5.0</curator.version>
 
         <!-- Native libraries path -->
-        <hadoop.library.path />
-         <jackson.version>1.8.8</jackson.version>
-         <log4j.version>1.2.17</log4j.version>
+        <hadoop.library.path/>
+        <jackson.version>1.8.8</jackson.version>
+        <log4j.version>1.2.17</log4j.version>
         <jackson.databind.version>2.6.5</jackson.databind.version>
         <httpclient.version>4.4</httpclient.version>
         <httpcore.version>4.4</httpcore.version>
         <joda-time.version>2.9.6</joda-time.version>
-         <activemq.version>5.13.3</activemq.version>
+        <activemq.version>5.13.3</activemq.version>
+        <kyro.version>2.22</kyro.version>
+
     </properties>
 
     <modules>
@@ -131,15 +143,15 @@
     </modules>
 
     <distributionManagement>
-       <repository>
-         <id>${repoid}</id>
-         <name>${reponame}</name>
-         <url>${repourl}</url>
-       </repository>
+        <repository>
+            <id>${repoid}</id>
+            <name>${reponame}</name>
+            <url>${repourl}</url>
+        </repository>
         <snapshotRepository>
-          <id>apache.snapshots.https</id>
-          <name>${distMgmtSnapshotsName}</name>
-          <url>${distMgmtSnapshotsUrl}</url>
+            <id>apache.snapshots.https</id>
+            <name>${distMgmtSnapshotsName}</name>
+            <url>${distMgmtSnapshotsUrl}</url>
         </snapshotRepository>
     </distributionManagement>
 
@@ -239,12 +251,12 @@
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                 <groupId>org.apache.oozie</groupId>
+                <groupId>org.apache.oozie</groupId>
                 <artifactId>oozie-sharelib-hcatalog</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                 <groupId>org.apache.oozie</groupId>
+                <groupId>org.apache.oozie</groupId>
                 <artifactId>oozie-sharelib-hive2</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -280,36 +292,36 @@
             </dependency>
             -->
 
-             <dependency>
-                 <groupId>org.apache.hadoop</groupId>
-                 <artifactId>hadoop-common</artifactId>
-                 <version>${hadoop.version}</version>
-                 <scope>compile</scope>
-                 <exclusions>
-                     <exclusion>
-                         <artifactId>jasper-runtime</artifactId>
-                         <groupId>tomcat</groupId>
-                     </exclusion>
-                     <exclusion>
-                         <artifactId>jasper-compiler</artifactId>
-                         <groupId>tomcat</groupId>
-                     </exclusion>
-                     <exclusion>
-                         <artifactId>jsp-api</artifactId>
-                         <groupId>javax.servlet.jsp</groupId>
-                     </exclusion>
-                     <exclusion>
-                         <groupId>jdk.tools</groupId>
-                         <artifactId>jdk.tools</artifactId>
-                     </exclusion>
-                 </exclusions>
-             </dependency>
-             
-             <dependency>
-	       <groupId>org.apache.hadoop</groupId>
-	       <artifactId>hadoop-azure</artifactId>
-	       <version>${hadoop.version}</version>
-             </dependency>
+            <dependency>
+                <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-common</artifactId>
+                <version>${hadoop.version}</version>
+                <scope>compile</scope>
+                <exclusions>
+                    <exclusion>
+                        <artifactId>jasper-runtime</artifactId>
+                        <groupId>tomcat</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>jasper-compiler</artifactId>
+                        <groupId>tomcat</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>jsp-api</artifactId>
+                        <groupId>javax.servlet.jsp</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>jdk.tools</groupId>
+                        <artifactId>jdk.tools</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-azure</artifactId>
+                <version>${hadoop.version}</version>
+            </dependency>
 
 
             <dependency>
@@ -337,11 +349,11 @@
                 <version>1.0</version>
             </dependency>
 
-          <dependency>
-              <groupId>org.slf4j</groupId>
-              <artifactId>slf4j-simple</artifactId>
-              <version>1.6.6</version>
-          </dependency>
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-simple</artifactId>
+                <version>1.6.6</version>
+            </dependency>
 
             <dependency>
                 <groupId>org.codehaus.jackson</groupId>
@@ -539,12 +551,12 @@
                 <scope>compile</scope>
                 <exclusions>
                     <exclusion>
-	                <groupId>org.apache.logging.log4j</groupId>
-	                <artifactId>log4j-web</artifactId>
+                        <groupId>org.apache.logging.log4j</groupId>
+                        <artifactId>log4j-web</artifactId>
                     </exclusion>
                     <exclusion>
-	                <groupId>org.apache.logging.log4j</groupId>
-	                <artifactId>log4j-1.2-api</artifactId>
+                        <groupId>org.apache.logging.log4j</groupId>
+                        <artifactId>log4j-1.2-api</artifactId>
                     </exclusion>
                     <exclusion>
                         <groupId>org.apache.hive</groupId>
@@ -878,6 +890,42 @@
             </dependency>
 
             <dependency>
+                <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-yarn-api</artifactId>
+                <version>${hadoop.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-yarn-common</artifactId>
+                <version>${hadoop.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-yarn-server-applicationhistoryservice</artifactId>
+                <version>${hadoop.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-yarn-server-common</artifactId>
+                <version>${hadoop.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-yarn-server-resourcemanager</artifactId>
+                <version>${hadoop.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-yarn-server-web-proxy</artifactId>
+                <version>${hadoop.version}</version>
+            </dependency>
+
+            <dependency>
                 <groupId>org.apache.pig</groupId>
                 <artifactId>pig</artifactId>
                 <version>${pig.version}</version>
@@ -950,7 +998,7 @@
             <dependency>
                 <groupId>jline</groupId>
                 <artifactId>jline</artifactId>
-                <version>2.12</version>
+                <version>${jline.version}</version>
                 <exclusions>
                     <exclusion>
                         <groupId>junit</groupId>
@@ -1059,10 +1107,6 @@
                         <groupId>org.apache.hive</groupId>
                     </exclusion>
                     <exclusion>
-                        <artifactId>hive-common</artifactId>
-                        <groupId>org.apache.hive</groupId>
-                    </exclusion>
-                    <exclusion>
                         <artifactId>hive-serde</artifactId>
                         <groupId>org.apache.hive</groupId>
                     </exclusion>
@@ -1102,6 +1146,10 @@
                 <artifactId>hive-jdbc</artifactId>
                 <version>${hive.version}</version>
                 <exclusions>
+                    <exclusion>
+                        <groupId>org.apache.logging.log4j</groupId>
+                        <artifactId>log4j-1.2-api</artifactId>
+                    </exclusion>
                     <exclusion>
                         <artifactId>JavaEWAH</artifactId>
                         <groupId>com.googlecode.javaewah</groupId>
@@ -1208,23 +1256,23 @@
                 <version>1.6.6</version>
             </dependency>
 
-           <dependency>
+            <dependency>
                 <groupId>org.apache.activemq</groupId>
                 <artifactId>activemq-client</artifactId>
-		<version>${activemq.version}</version>
-           </dependency>
+                <version>${activemq.version}</version>
+            </dependency>
 
-           <dependency>
+            <dependency>
                 <groupId>org.apache.activemq</groupId>
                 <artifactId>activemq-broker</artifactId>
-		<version>${activemq.version}</version>
-           </dependency>
+                <version>${activemq.version}</version>
+            </dependency>
 
-           <dependency>
+            <dependency>
                 <groupId>org.apache.activemq</groupId>
                 <artifactId>activemq-kahadb-store</artifactId>
-		<version>${activemq.version}</version>
-           </dependency>
+                <version>${activemq.version}</version>
+            </dependency>
 
             <dependency>
                 <groupId>commons-logging</groupId>
@@ -1355,9 +1403,15 @@
             </dependency>
 
             <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>3.3.2</version>
+            </dependency>
+
+            <dependency>
                 <groupId>javax.mail</groupId>
                 <artifactId>mail</artifactId>
-                <version>1.4</version>
+                <version>1.4.7</version>
             </dependency>
 
             <dependency>
@@ -1374,8 +1428,8 @@
 
             <dependency>
                 <groupId>org.python</groupId>
-                <artifactId>jython</artifactId>
-                <version>2.5.3</version>
+                <artifactId>jython-standalone</artifactId>
+                <version>2.7.1</version>
             </dependency>
 
             <dependency>
@@ -1387,7 +1441,7 @@
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>11.0.2</version>
+                <version>19.0</version>
             </dependency>
 
             <dependency>
@@ -1448,11 +1502,48 @@
                 <version>${curator.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>org.apache.curator</groupId>
+                <artifactId>curator-framework</artifactId>
+                <version>${curator.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.curator</groupId>
+                <artifactId>curator-client</artifactId>
+                <version>${curator.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.esotericsoftware.kryo</groupId>
+                <artifactId>kryo</artifactId>
+                <version>${kyro.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.hive</groupId>
+                <artifactId>hive-exec</artifactId>
+                <version>${hive.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.apache.logging.log4j</groupId>
+                        <artifactId>log4j-1.2-api</artifactId>
+                    </exclusion>
+                </exclusions>
+                <classifier>${hive.classifier}</classifier>
+            </dependency>
+
             <!-- examples -->
             <dependency>
                 <groupId>org.apache.httpcomponents</groupId>
                 <artifactId>httpclient</artifactId>
                 <version>${httpclient.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.httpcomponents</groupId>
+                <artifactId>httpcore</artifactId>
+                <version>${httpcore.version}</version>
             </dependency>
 
             <dependency>
@@ -1582,9 +1673,9 @@
             </dependency>
 
             <dependency>
-                <groupId>org.apache.httpcomponents</groupId>
-                <artifactId>httpcore</artifactId>
-                <version>${httpcore.version}</version>
+                <groupId>com.google.code.gson</groupId>
+                <artifactId>gson</artifactId>
+                <version>2.7</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -1592,7 +1683,7 @@
     <build>
         <pluginManagement>
             <plugins>
-	            <plugin>
+                <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-enforcer-plugin</artifactId>
                     <version>1.0</version>
@@ -1627,7 +1718,8 @@
                     <artifactId>maven-javadoc-plugin</artifactId>
                     <version>2.10.3</version>
                     <configuration>
-                            <additionalparam>${maven.javadoc.opts}</additionalparam>
+                        <additionalparam>${maven.javadoc.opts}</additionalparam>
+                        <failOnError>false</failOnError>
                     </configuration>
                 </plugin>
                 <plugin>
@@ -1687,24 +1779,34 @@
                     <artifactId>maven-bundle-plugin</artifactId>
                     <version>2.4.0</version>
                 </plugin>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>findbugs-maven-plugin</artifactId>
+                    <version>3.0.0</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>xml-maven-plugin</artifactId>
+                    <version>1.0</version>
+                </plugin>
             </plugins>
         </pluginManagement>
 
         <plugins>
             <plugin>
-            	<groupId>org.apache.maven.plugins</groupId>
-            	<artifactId>maven-source-plugin</artifactId>
-            	<executions>
-              	<execution>
-                	<id>attach-sources</id>
-                	<phase>verify</phase>
-                	<goals>
-                  		<goal>jar-no-fork</goal>
-                  		<goal>test-jar-no-fork</goal>
-                	</goals>
-              	</execution>
-            	</executions>
-            </plugin> 
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>jar-no-fork</goal>
+                            <goal>test-jar-no-fork</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>com.atlassian.maven.plugins</groupId>
                 <artifactId>maven-clover2-plugin</artifactId>
@@ -1718,17 +1820,70 @@
                     </excludes>
                 </configuration>
             </plugin>
+
+            <!-- findbugs plugin. Execute 'mvn verify' and look for target/findbugs/findbugsXml.html under each module -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>findbugs-maven-plugin</artifactId>
                 <configuration>
+                    <excludeSubProjects>false</excludeSubProjects>
                     <xmlOutput>true</xmlOutput>
                     <findbugsXmlOutput>true</findbugsXmlOutput>
                     <findbugsXmlWithMessages>true</findbugsXmlWithMessages>
+                    <effort>Max</effort>
+                    <failOnError>false</failOnError>
+                    <threshold>Low</threshold>
+                    <xmlOutput>true</xmlOutput>
+                    <findbugsXmlOutputDirectory>${project.build.directory}/findbugs</findbugsXmlOutputDirectory>
                 </configuration>
+                <executions>
+                    <execution>
+                        <id>findbug</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- xml plugin is used for transforming the findbugs xml output into a friendlier html page -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>xml-maven-plugin</artifactId>
+                <configuration>
+                    <excludeSubProjects>false</excludeSubProjects>
+                    <transformationSets>
+                        <transformationSet>
+                            <dir>${project.build.directory}/findbugs</dir>
+                            <outputDir>${project.build.directory}/findbugs</outputDir>
+                            <stylesheet>fancy-hist.xsl</stylesheet>
+                            <fileMappers>
+                                <fileMapper
+                                        implementation="org.codehaus.plexus.components.io.filemappers.FileExtensionMapper">
+                                    <targetExtension>.html</targetExtension>
+                                </fileMapper>
+                            </fileMappers>
+                        </transformationSet>
+                    </transformationSets>
+                </configuration>
+                <executions>
+                    <execution>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>transform</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <dependencies>
+                    <dependency>
+                        <groupId>com.google.code.findbugs</groupId>
+                        <artifactId>findbugs</artifactId>
+                        <version>2.0.3</version>
+                    </dependency>
+                </dependencies>
             </plugin>
 
-            <!-- checkstyle plugin. Execute 'mvn verify' and look for checkstyle-result.xml under target folder -->
+            <!-- checkstyle plugin. Execute 'mvn verify' and look for target/checkstyle-result.xml under each module -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
@@ -1758,7 +1913,7 @@
                             <version>[3.0.0,)</version>
                         </requireMavenVersion>
                         <requireJavaVersion>
-                            <version>1.6</version>
+                            <version>${minJavaVersion}</version>
                         </requireJavaVersion>
                     </rules>
                 </configuration>
@@ -1790,7 +1945,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <source>1.7</source>
+                    <source>${sourceJavaVersion}</source>
                     <target>${targetJavaVersion}</target>
                 </configuration>
             </plugin>
@@ -1843,7 +1998,7 @@
                         <exclude>docs/src/site/twiki/*.twiki</exclude>
                         <exclude>examples/src/main/data/*</exclude>
                         <exclude>core/src/test/resources/test-ioutils.txt</exclude>
-						<exclude>core/src/test/resources/oldWorkFlowApp.serialized</exclude>
+                        <exclude>core/src/test/resources/oldWorkFlowApp.serialized</exclude>
                         <exclude>sharelib/pig/src/test/resources/PigMain.txt</exclude>
                         <exclude>sharelib/hive/src/test/resources/HiveMain.txt</exclude>
                         <exclude>webapp/src/main/resources/.gitignore</exclude>
@@ -1912,32 +2067,6 @@
             </properties>
         </profile>
         <profile>
-            <id>wfgen</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
-            <modules>
-                <module>workflowgenerator</module>
-            </modules>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-compiler-plugin</artifactId>
-                        <configuration>
-                            <fork>true</fork>
-                            <source>1.6</source>
-                            <target>1.6</target>
-                            <compilerArguments>
-                                <Xlint />
-                                <Xmaxwarns>9999</Xmaxwarns>
-                            </compilerArguments>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
             <id>hadoop-1</id>
             <activation>
                 <activeByDefault>false</activeByDefault>
@@ -1950,21 +2079,9 @@
             </properties>
         </profile>
         <profile>
-            <id>hadoop-0.23</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
-            <properties>
-                <hadoop.version>3.0.0.3.0.0.0-SNAPSHOT</hadoop.version>
-                <hadoop.majorversion>0.23</hadoop.majorversion>
-                <pig.classifier>h2</pig.classifier>
-                <sqoop.classifier>hadoop23</sqoop.classifier>
-            </properties>
-        </profile>
-        <profile>
             <id>hadoop-2</id>
             <activation>
-                <activeByDefault>false</activeByDefault>
+                <activeByDefault>true</activeByDefault>
             </activation>
             <properties>
                 <hadoop.version>3.0.0.3.0.0.0-SNAPSHOT</hadoop.version>
@@ -2006,7 +2123,7 @@
                 <module>winpkg</module>
             </modules>
         </profile>
-		<profile>
+        <profile>
             <id>windowsTests</id>
             <activation>
                 <activeByDefault>false</activeByDefault>
@@ -2080,7 +2197,7 @@
                 </dependency>
                 <dependency>
                     <groupId>org.apache.hadoop</groupId>
-                   <artifactId>hadoop-azure</artifactId>
+                    <artifactId>hadoop-azure</artifactId>
                     <version>${hadoop.version}</version>
                     <scope>compile</scope>
                     <exclusions>
@@ -2106,7 +2223,31 @@
                     <artifactId>jackson-core</artifactId>
                     <version>${jackson.databind.version}</version>
                 </dependency>
-           </dependencies>
+            </dependencies>
+        </profile>
+
+        <profile>
+            <id>spark-1</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <spark.version>1.6.1</spark.version>
+                <spark.streaming.kafka.version>1.6.1</spark.streaming.kafka.version>
+                <spark.bagel.version>1.6.1</spark.bagel.version>
+            </properties>
+        </profile>
+        <profile>
+            <id>spark-2</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <properties>
+                <spark.version>2.1.0</spark.version>
+                <spark.streaming.kafka.version>1.6.2</spark.streaming.kafka.version>
+                <spark.bagel.version>1.6.2</spark.bagel.version>
+            </properties>
+
         </profile>
     </profiles>
 </project>
