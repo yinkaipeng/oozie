@@ -1174,6 +1174,11 @@ public class JavaActionExecutor extends ActionExecutor {
             jobClient = createJobClient(context, launcherJobConf);
             String launcherId = LauncherMapperHelper.getRecoveryId(launcherJobConf, context.getActionDir(), context
                     .getRecoveryId());
+
+            removeHBaseSettingFromOozieDefaultResource(launcherJobConf);
+            removeHBaseSettingFromOozieDefaultResource(actionConf);
+
+
             boolean alreadyRunning = launcherId != null;
             RunningJob runningJob;
 
