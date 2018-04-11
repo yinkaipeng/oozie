@@ -1,5 +1,6 @@
 -- Backport and Internal patches --
 
+BUG-100433 Turn off hive action in Oozie
 BUG-99803 Oozie should disable HBase dynamic class loading - amendum for BUG-96737
 BUG-93371 Update Oozie's Jetty version to supported Apache Version
 BUG-96737 OOZIE-3199 Let system property restriction configurable

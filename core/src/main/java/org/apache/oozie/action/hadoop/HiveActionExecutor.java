@@ -25,6 +25,7 @@ import org.apache.oozie.action.ActionExecutorException;
 import org.apache.oozie.client.XOozieClient;
 import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.HadoopAccessorService;
+import org.apache.oozie.util.XLog;
 import org.jdom.Element;
 import org.jdom.Namespace;
 
@@ -56,7 +57,7 @@ public class HiveActionExecutor extends ScriptLanguageActionExecutor {
         }
         catch (ClassNotFoundException e) {
             throw new RuntimeException("Class not found", e);
-	}
+        }
         return classes;
     }
 
@@ -74,6 +75,9 @@ public class HiveActionExecutor extends ScriptLanguageActionExecutor {
     @SuppressWarnings("unchecked")
     Configuration setupActionConf(Configuration actionConf, Context context, Element actionXml,
                                   Path appPath) throws ActionExecutorException {
+        XLog.getLog(HiveActionExecutor.class).warn(
+                "Oozie will not support hive action anymore. Please migrate your workflows to hive2 actions.");
+
         Configuration conf = super.setupActionConf(actionConf, context, actionXml, appPath);
 
         Namespace ns = actionXml.getNamespace();

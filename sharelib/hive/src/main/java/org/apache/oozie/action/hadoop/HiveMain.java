@@ -181,6 +181,11 @@ public class HiveMain extends LauncherMain {
     @Override
     protected void run(String[] args) throws Exception {
         System.out.println();
+        System.out.println("=================================================================");
+        System.out.println(
+                "Oozie will not support hive action anymore. Please migrate your workflows to hive2 actions.");
+        System.out.println("=================================================================");
+        System.out.println("=================================================================");
         System.out.println("Oozie Hive action configuration");
         System.out.println("=================================================================");
         System.out.println();
