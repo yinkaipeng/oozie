@@ -1151,6 +1151,10 @@
                         <artifactId>log4j-1.2-api</artifactId>
                     </exclusion>
                     <exclusion>
+                        <groupId>org.eclipse.jetty</groupId>
+                        <artifactId>jetty-runner</artifactId>
+                    </exclusion>
+                    <exclusion>
                         <artifactId>JavaEWAH</artifactId>
                         <groupId>com.googlecode.javaewah</groupId>
                     </exclusion>
