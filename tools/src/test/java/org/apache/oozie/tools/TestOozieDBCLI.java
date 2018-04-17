@@ -19,7 +19,6 @@
 
 package org.apache.oozie.tools;
 
-import org.apache.oozie.service.Services;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.oozie.test.XTestCase;
 import org.junit.AfterClass;
@@ -27,8 +26,6 @@ import org.junit.BeforeClass;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FilenameFilter;
-import java.io.IOException;
 import java.io.PrintStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -81,29 +78,6 @@ public class TestOozieDBCLI extends XTestCase {
 
         st.close();
         conn.close();
-    }
-
-    public void testServicesDestroy() throws Exception {
-        Services services = new Services();
-        File runtimeDir = new File(services.getRuntimeDir()).getParentFile();
-        final String systemId = services.getSystemId();
-
-        File[] dirsBefore = runtimeDir.listFiles(new FilenameFilter() {
-           public boolean accept(final File dir, final String name) {
-              return name.contains(systemId) && name.endsWith(".dir");
-           }
-        });
-
-        OozieDBCLI cli = new OozieDBCLI();
-        cli.getJdbcConf();
-
-        File[] dirsAfter = runtimeDir.listFiles(new FilenameFilter() {
-           public boolean accept(final File dir, final String name) {
-              return name.contains(systemId) && name.endsWith(".dir");
-           }
-        });
-
-        assertEquals(dirsBefore.length,dirsAfter.length);
     }
 
     public void testOozieDBCLI() throws Exception {
