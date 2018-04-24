@@ -1049,20 +1049,26 @@ public class JavaActionExecutor extends ActionExecutor {
     }
 
     private void removeDuplicatedDependencies(JobConf conf, String key) {
-        final Map<String, String> nameToPath = new HashMap<>();
-        StringBuilder uniqList = new StringBuilder();
-        for(String dependency: conf.get(key).split(",")) {
-            final String[] arr = dependency.split("/");
-            final String dependencyName = arr[arr.length - 1];
-            if(nameToPath.containsKey(dependencyName)) {
-                LOG.warn(dependencyName + " [" + dependency + "] is already defined in " + key + ". Skipping...");
-            } else {
-                nameToPath.put(dependencyName, dependency);
-                uniqList.append(dependency).append(",");
+        try {
+            final Map<String, String> nameToPath = new HashMap<>();
+            StringBuilder uniqList = new StringBuilder();
+            if (conf.get(key) == null) {
+                return;
             }
+            for (String dependency : conf.get(key).split(",")) {
+                final String[] arr = dependency.split("/");
+                final String dependencyName = arr[arr.length - 1];
+                if (nameToPath.containsKey(dependencyName)) {
+                    LOG.warn(dependencyName + " [" + dependency + "] is already defined in " + key + ". Skipping...");
+                } else {
+                    nameToPath.put(dependencyName, dependency);
+                    uniqList.append(dependency).append(",");
+                }
+            }
+            uniqList.setLength(uniqList.length() - 1);
+            conf.set(key, uniqList.toString());
+        } catch (Exception e) {
         }
-        uniqList.setLength(uniqList.length() - 1);
-        conf.set(key, uniqList.toString());
     }
 
     private boolean checkPropertiesToDisableUber(Configuration launcherConf) {
