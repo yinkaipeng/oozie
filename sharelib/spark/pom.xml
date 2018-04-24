@@ -531,6 +531,10 @@
                     <artifactId>hadoop-azure</artifactId>
                 </exclusion>
                 <exclusion>
+                    <groupId>com.google.cloud.bigdataoss</groupId>
+                    <artifactId>gcs-connector</artifactId>
+                </exclusion>
+                <exclusion>
                     <groupId>org.apache.hadoop</groupId>
                     <artifactId>hadoop-annotations</artifactId>
                 </exclusion>
@@ -800,6 +804,10 @@
                         <exclusion>
                             <groupId>org.apache.hadoop</groupId>
                             <artifactId>hadoop-aws</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>com.google.cloud.bigdataoss</groupId>
+                            <artifactId>gcs-connector</artifactId>
                         </exclusion>
                         <exclusion>
                             <groupId>org.apache.hadoop</groupId>
