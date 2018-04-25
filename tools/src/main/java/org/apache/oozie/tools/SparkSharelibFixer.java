@@ -28,7 +28,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.FileSystem;
 
 public class SparkSharelibFixer {
-    final protected String sparkVersion;
     final protected String oozieHome;
     final protected FileSystem fs;
     final protected Path srcPath;
@@ -44,11 +43,10 @@ public class SparkSharelibFixer {
         this.srcPath = srcPath;
         this.dstPath = dstPath;
         this.srcFile = srcFile;
-        this.sparkVersion = getSparkVersion();
     }
 
     void fixIt() throws IOException {
-        System.out.println("Fixing oozie " + sparkVersion + "'s sharelib");
+        System.out.println("Fixing oozie spark's sharelib");
 
         sparkHome = determineSparkHome();
         if (!sparkHome.exists()) {
@@ -91,18 +89,18 @@ public class SparkSharelibFixer {
 
     protected File determineSparkHome() throws IOException {
         final String canonicalOozieHome = new File(oozieHome).getCanonicalPath();
-        final File spark = new File(canonicalOozieHome, "../../current/" + sparkVersion);
+        final File spark = new File(canonicalOozieHome, "../../current/spark2");
 
         if(spark.exists()) {
             return spark;
         }
 
-        return new File(canonicalOozieHome, "../" + sparkVersion);
+        return new File(canonicalOozieHome, "../spark2");
     }
 
     protected void createSparkTargetDir() throws IOException {
-        System.out.println("Creating new " + sparkVersion + " directory in " + dstPath.toString());
-        sparkTarget = new Path(dstPath, sparkVersion);
+        System.out.println("Creating new spark directory in " + dstPath.toString());
+        sparkTarget = new Path(dstPath, "spark");
         fs.mkdirs(sparkTarget);
     }
 
@@ -121,12 +119,8 @@ public class SparkSharelibFixer {
         }
     }
 
-    protected String getSparkVersion() {
-        return "spark";
-    }
-
     protected String getSparkLibsDir() {
-        return "lib";
+        return "jars";
     }
 
     protected String getPySparkLibsDir() {
@@ -151,7 +145,7 @@ public class SparkSharelibFixer {
         return new Condition() {
             @Override
             public boolean matches(final File file) {
-                return file.getName().endsWith(".zip") || file.getName().endsWith(".jar");
+                return file.getName().startsWith("py");
             }
         };
     }

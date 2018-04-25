@@ -185,7 +185,6 @@ public class OozieSharelibCLI {
             // Special handling for spark/spark2 sharelib
             if (sharelibAction.equals(CREATE_CMD) || sharelibAction.equals(UPGRADE_CMD)) {
                 new SparkSharelibFixer(fs, oozieHome, srcPath, dstPath, srcFile).fixIt();
-                new Spark2SharelibFixer(fs, oozieHome, srcPath, dstPath, srcFile).fixIt();
             }
             services.destroy();
             FileUtils.deleteDirectory(temp);
