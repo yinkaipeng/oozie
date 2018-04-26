@@ -273,6 +273,11 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.oozie</groupId>
+                <artifactId>oozie-hadoop-utils</artifactId>
+                <version>${hadooplib.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.oozie</groupId>
                 <artifactId>oozie-webapp</artifactId>
                 <version>${project.version}</version>
                 <type>war</type>
@@ -845,12 +850,6 @@
                         <artifactId>junit</artifactId>
                     </exclusion>
                 </exclusions>
-            </dependency>
-
-            <dependency>
-                <groupId>commons-lang</groupId>
-                <artifactId>commons-lang</artifactId>
-                <version>2.4</version>
             </dependency>
 
             <dependency>

@@ -54,6 +54,7 @@ import org.apache.hive.hcatalog.data.schema.HCatFieldSchema;
 import org.apache.hive.hcatalog.data.schema.HCatFieldSchema.Type;
 import org.apache.oozie.util.HCatURI;
 import org.apache.oozie.util.XLog;
+import org.datanucleus.PropertyNames;
 import org.junit.Assert;
 
 public class MiniHCatServer {
@@ -126,10 +127,9 @@ public class MiniHCatServer {
 
     private void startMetastoreServer() throws Exception {
         final HiveConf serverConf = new HiveConf(hadoopConf, this.getClass());
-        serverConf.set("datanucleus.autoCreateTables", "true");
+        serverConf.set(PropertyNames.PROPERTY_SCHEMA_AUTOCREATE_ALL, "true");
+        serverConf.set(PropertyNames.PROPERTY_SCHEMA_VALIDATE_ALL, "false");
         serverConf.set("hive.metastore.schema.verification", "false");
-        serverConf.set("datanucleus.fixedDatastore", "false");
-        serverConf.set("datanucleus.autoCreateSchema", "true");
         serverConf.set("hive.metastore.local", "false");
         serverConf.set(HiveConf.ConfVars.METASTORECONNECTURLKEY.varname, "jdbc:derby:target/metastore_db;create=true");
         //serverConf.set(HiveConf.ConfVars.METASTORE_EVENT_LISTENERS.varname, NotificationListener.class.getName());
