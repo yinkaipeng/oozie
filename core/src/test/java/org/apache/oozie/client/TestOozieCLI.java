@@ -51,6 +51,8 @@ import org.apache.oozie.servlet.V2ValidateServlet;
 import org.apache.oozie.util.IOUtils;
 import org.apache.oozie.util.XConfiguration;
 
+import javax.validation.constraints.AssertTrue;
+
 //hardcoding options instead using constants on purpose, to detect changes to option names if any and correct docs.
 public class TestOozieCLI extends DagServletTestCase {
 
@@ -1251,7 +1253,7 @@ public class TestOozieCLI extends DagServletTestCase {
                 String[] args = new String[] {"sla", "-oozie", oozieUrl, "-len", "1" };
 
                 String out = runOozieCLIAndGetStderr(args);
-                assertTrue(out.contains("Error: IO_ERROR : java.io.IOException"));
+                assertTrue(out.contains("Error: HTTP error code: 404 : Not Found"));
 
                 return null;
             }
@@ -1409,7 +1411,7 @@ public class TestOozieCLI extends DagServletTestCase {
                 }
                 catch (Exception e) {
                     assertTrue(e.getMessage().contains(
-                            "Error while connecting Oozie server. No of retries = 4. Exception = Connection refused"));
+                            "Error while connecting Oozie server. No of retries = 4. Exception = Error while authenticating with endpoint"));
                 }
                 return null;
             }
@@ -1462,7 +1464,7 @@ public class TestOozieCLI extends DagServletTestCase {
                 }
                 catch (Exception e) {
                     assertTrue(e.getMessage().contains(
-                            "Error while connecting Oozie server. No of retries = 2. Exception = Connection refused"));
+                            "Error while connecting Oozie server. No of retries = 2. Exception = Error while authenticating with endpoint"));
                 }
                 return null;
             }

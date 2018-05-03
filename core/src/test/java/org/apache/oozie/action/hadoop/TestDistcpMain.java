@@ -36,6 +36,17 @@ import org.apache.oozie.action.hadoop.DistcpMain;
 public class TestDistcpMain extends MainTestCase {
 
     @Override
+    public void setUp() throws Exception {
+        new File(getTestCaseDir(),"distcp-log4j.properties").delete();
+        super.setUp();
+    }
+
+    @Override
+    public void tearDown() throws Exception {
+        super.tearDown();
+    }
+
+    @Override
     public Void call() throws Exception {
 
         XConfiguration jobConf = new XConfiguration();
