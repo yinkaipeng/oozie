@@ -34,7 +34,7 @@
     <start to="a"/>
     
     <action name="a">
-        <hive xmlns="uri:oozie:hive-action:0.2">
+        <hive2 xmlns="uri:oozie:hive2-action:0.2">
             <prepare>
                 <delete path="/tmp"/>
                 <mkdir path="/tmp"/>
@@ -48,7 +48,7 @@
             <script>script.q</script>
             <param>INPUT=/tmp/table</param>
             <param>OUTPUT=/tmp/hive</param>
-        </hive>
+        </hive2>
         <ok to="b"/>
         <error to="c1"/>
     </action>

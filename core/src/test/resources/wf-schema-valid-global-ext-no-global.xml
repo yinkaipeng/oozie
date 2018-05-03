@@ -19,7 +19,7 @@
     <start to="a"/>
     
     <action name="a">
-        <hive xmlns="uri:oozie:hive-action:0.2">
+       <hive2 xmlns="uri:oozie:hive2-action:0.2">
             <job-tracker>bar</job-tracker>
             <name-node>foo</name-node>
             <prepare>
@@ -35,7 +35,7 @@
             <script>script.q</script>
             <param>INPUT=/tmp/table</param>
             <param>OUTPUT=/tmp/hive</param>
-        </hive>
+        </hive2>
         <ok to="c"/>
         <error to="b"/>
     </action>

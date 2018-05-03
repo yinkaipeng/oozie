@@ -44,7 +44,7 @@ public class TestLiteWorkflowAppParser extends XTestCase {
     @Override
     protected void setUp() throws Exception {
         super.setUp();
-        setSystemProperty("oozie.service.SchemaService.wf.ext.schemas", "hive-action-0.2.xsd,email-action-0.2.xsd");
+        setSystemProperty("oozie.service.SchemaService.wf.ext.schemas", "hive2-action-0.2.xsd,email-action-0.2.xsd");
         new Services().init();
     }
 
@@ -193,7 +193,7 @@ public class TestLiteWorkflowAppParser extends XTestCase {
 
         String a = app.getNode("a").getConf();
         String expectedA =
-             "<hive xmlns=\"uri:oozie:hive-action:0.2\">\r\n" +
+             "<hive2 xmlns=\"uri:oozie:hive2-action:0.2\">\r\n" +
              "  <prepare>\r\n" +
              "    <delete path=\"/tmp\" />\r\n" +
              "    <mkdir path=\"/tmp\" />\r\n" +
@@ -217,7 +217,7 @@ public class TestLiteWorkflowAppParser extends XTestCase {
              "  <param>OUTPUT=/tmp/hive</param>\r\n" +
              "  <name-node>bar</name-node>\r\n" +
              "  <job-tracker>foo</job-tracker>\r\n" +
-             "</hive>";
+             "</hive2>";
         a = cleanupXml(a);
         assertEquals(expectedA.replaceAll(" ",""), a.replaceAll(" ", ""));
     }
@@ -313,7 +313,7 @@ public class TestLiteWorkflowAppParser extends XTestCase {
                 new Configuration());
         String a = app.getNode("a").getConf();
         String expectedA =
-                "<hive xmlns=\"uri:oozie:hive-action:0.2\">\r\n" +
+                "<hive2 xmlns=\"uri:oozie:hive2-action:0.2\">\r\n" +
                         "  <prepare>\r\n" +
                         "    <delete path=\"/tmp\" />\r\n" +
                         "    <mkdir path=\"/tmp\" />\r\n" +
@@ -329,7 +329,7 @@ public class TestLiteWorkflowAppParser extends XTestCase {
                         "  <param>INPUT=/tmp/table</param>\r\n" +
                         "  <param>OUTPUT=/tmp/hive</param>\r\n" +
                         "  <name-node>default-nn</name-node>\r\n" +
-                        "</hive>";
+                        "</hive2>";
         a = cleanupXml(a);
         assertEquals(expectedA.replaceAll(" ", ""), a.replaceAll(" ", ""));
     }
@@ -345,7 +345,7 @@ public class TestLiteWorkflowAppParser extends XTestCase {
                 new Configuration());
         String a = app.getNode("a").getConf();
         String expectedA =
-                "<hive xmlns=\"uri:oozie:hive-action:0.2\">\r\n" +
+                "<hive2 xmlns=\"uri:oozie:hive2-action:0.2\">\r\n" +
                         "  <prepare>\r\n" +
                         "    <delete path=\"/tmp\" />\r\n" +
                         "    <mkdir path=\"/tmp\" />\r\n" +
@@ -361,7 +361,7 @@ public class TestLiteWorkflowAppParser extends XTestCase {
                         "  <param>INPUT=/tmp/table</param>\r\n" +
                         "  <param>OUTPUT=/tmp/hive</param>\r\n" +
                         "  <name-node>global-nn</name-node>\r\n" +
-                        "</hive>";
+                        "</hive2>";
         a = cleanupXml(a);
         assertEquals(expectedA.replaceAll(" ", ""), a.replaceAll(" ", ""));
     }
@@ -415,7 +415,7 @@ public class TestLiteWorkflowAppParser extends XTestCase {
                 new Configuration());
         String a = app.getNode("a").getConf();
         String expectedA =
-                "<hive xmlns=\"uri:oozie:hive-action:0.2\">\r\n" +
+                "<hive2 xmlns=\"uri:oozie:hive2-action:0.2\">\r\n" +
                         "  <prepare>\r\n" +
                         "    <delete path=\"/tmp\" />\r\n" +
                         "    <mkdir path=\"/tmp\" />\r\n" +
@@ -431,7 +431,7 @@ public class TestLiteWorkflowAppParser extends XTestCase {
                         "  <param>INPUT=/tmp/table</param>\r\n" +
                         "  <param>OUTPUT=/tmp/hive</param>\r\n" +
                         "  <job-tracker>default-jt</job-tracker>\r\n" +
-                        "</hive>";
+                        "</hive2>";
         a = cleanupXml(a);
         assertEquals(expectedA.replaceAll(" ", ""), a.replaceAll(" ", ""));
     }
@@ -447,7 +447,7 @@ public class TestLiteWorkflowAppParser extends XTestCase {
                 new Configuration());
         String a = app.getNode("a").getConf();
         String expectedA =
-                "<hive xmlns=\"uri:oozie:hive-action:0.2\">\r\n" +
+                "<hive2 xmlns=\"uri:oozie:hive2-action:0.2\">\r\n" +
                         "  <prepare>\r\n" +
                         "    <delete path=\"/tmp\" />\r\n" +
                         "    <mkdir path=\"/tmp\" />\r\n" +
@@ -463,7 +463,7 @@ public class TestLiteWorkflowAppParser extends XTestCase {
                         "  <param>INPUT=/tmp/table</param>\r\n" +
                         "  <param>OUTPUT=/tmp/hive</param>\r\n" +
                         "  <job-tracker>global-jt</job-tracker>\r\n" +
-                        "</hive>";
+                        "</hive2>";
         a = cleanupXml(a);
         assertEquals(expectedA.replaceAll(" ", ""), a.replaceAll(" ", ""));
     }
