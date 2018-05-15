@@ -39,6 +39,11 @@
 
     <dependencies>
         <dependency>
+            <groupId>com.google.cloud.bigdataoss</groupId>
+            <artifactId>gcs-connector</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-streaming</artifactId>
             <scope>compile</scope>
