@@ -123,9 +123,8 @@
         <httpclient.version>4.4</httpclient.version>
         <httpcore.version>4.4</httpcore.version>
         <joda-time.version>2.9.6</joda-time.version>
-        <activemq.version>5.13.3</activemq.version>
+        <activemq.version>5.15.3</activemq.version>
         <kyro.version>3.0.3</kyro.version>
-
     </properties>
 
     <modules>
