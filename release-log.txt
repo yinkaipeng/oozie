@@ -2,6 +2,7 @@
 
 OOZIE-3227 Eliminate duplicate dependencies when using Hadoop 3 DistributedCache (dionusos via andras.piros)
 OOZIE-3172 Upgrade non-transitive Jackson dependencies from org.codehaus.jackson to com.fasterxml.jackson (andras.piros)
+OOZIE-3228 [Spark action] Can't load properties from spark-defaults.conf (andras.piros)
 OOZIE-3112 SparkConfigrationService overwrites properties provided via --properties-file option in SparkAction (gezapeti)
 OOZIE-3235 Upgrade ActiveMQ to 5.15.3 (matijhs via andras.piros)
 OOZIE-2427 [Kerberos] Authentication failure for the javascript resources under /ext-2.2 (lianggz via andras.piros)
