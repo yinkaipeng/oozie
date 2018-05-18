@@ -983,6 +983,8 @@ public class JavaActionExecutor extends ActionExecutor {
                     prepareXML = XmlUtils.prettyPrint(prepareElement).toString().trim();
                 }
             }
+            removeDuplicatedDependencies(actionConf, "mapreduce.job.cache.files");
+            removeDuplicatedDependencies(actionConf, "mapreduce.job.cache.archives");
             LauncherMapperHelper.setupLauncherInfo(launcherJobConf, jobId, actionId, actionDir, recoveryId, actionConf,
                     prepareXML);
 
@@ -1048,7 +1050,7 @@ public class JavaActionExecutor extends ActionExecutor {
         }
     }
 
-    private void removeDuplicatedDependencies(JobConf conf, String key) {
+    private void removeDuplicatedDependencies(Configuration conf, String key) {
         try {
             final Map<String, String> nameToPath = new HashMap<>();
             StringBuilder uniqList = new StringBuilder();
