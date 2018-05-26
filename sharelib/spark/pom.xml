@@ -39,6 +39,11 @@
 
     <dependencies>
         <dependency>
+            <groupId>com.google.cloud.bigdataoss</groupId>
+            <artifactId>gcs-connector</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
             <version>${spark.guava.version}</version>
