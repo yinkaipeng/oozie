@@ -2272,7 +2272,7 @@
         <profile>
             <id>spark-1</id>
             <activation>
-                <activeByDefault>true</activeByDefault>
+                <activeByDefault>false</activeByDefault>
             </activation>
             <properties>
                 <spark.version>1.6.1</spark.version>
@@ -2283,7 +2283,7 @@
         <profile>
             <id>spark-2</id>
             <activation>
-                <activeByDefault>false</activeByDefault>
+                <activeByDefault>true</activeByDefault>
             </activation>
             <properties>
                 <spark.version>2.1.0</spark.version>
