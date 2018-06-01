@@ -983,8 +983,6 @@ public class JavaActionExecutor extends ActionExecutor {
                     prepareXML = XmlUtils.prettyPrint(prepareElement).toString().trim();
                 }
             }
-            removeDuplicatedDependencies(actionConf, "mapreduce.job.cache.files");
-            removeDuplicatedDependencies(actionConf, "mapreduce.job.cache.archives");
             LauncherMapperHelper.setupLauncherInfo(launcherJobConf, jobId, actionId, actionDir, recoveryId, actionConf,
                     prepareXML);
 
@@ -1041,35 +1039,10 @@ public class JavaActionExecutor extends ActionExecutor {
             // maybe we should add queue to the WF schema, below job-tracker
             actionConfToLauncherConf(actionConf, launcherJobConf);
 
-            removeDuplicatedDependencies(launcherJobConf, "mapreduce.job.cache.files");
-            removeDuplicatedDependencies(launcherJobConf, "mapreduce.job.cache.archives");
             return launcherJobConf;
         }
         catch (Exception ex) {
             throw convertException(ex);
-        }
-    }
-
-    private void removeDuplicatedDependencies(Configuration conf, String key) {
-        try {
-            final Map<String, String> nameToPath = new HashMap<>();
-            StringBuilder uniqList = new StringBuilder();
-            if (conf.get(key) == null) {
-                return;
-            }
-            for (String dependency : conf.get(key).split(",")) {
-                final String[] arr = dependency.split("/");
-                final String dependencyName = arr[arr.length - 1];
-                if (nameToPath.containsKey(dependencyName)) {
-                    LOG.warn(dependencyName + " [" + dependency + "] is already defined in " + key + ". Skipping...");
-                } else {
-                    nameToPath.put(dependencyName, dependency);
-                    uniqList.append(dependency).append(",");
-                }
-            }
-            uniqList.setLength(uniqList.length() - 1);
-            conf.set(key, uniqList.toString());
-        } catch (Exception e) {
         }
     }
 
