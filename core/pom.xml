@@ -37,6 +37,7 @@
         <dependency>
             <groupId>com.google.cloud.bigdataoss</groupId>
             <artifactId>gcs-connector</artifactId>
+            <classifier>shaded</classifier>
         </dependency>
 
         <dependency>
@@ -405,7 +406,7 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>${jackson.databind.version}</version>
+            <version>${jackson.version}</version>
         </dependency>
 
         <dependency>
