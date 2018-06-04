@@ -39,6 +39,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.apache.hadoop.mapreduce.MRJobConfig;
 import org.apache.hadoop.security.AccessControlException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.filecache.DistributedCache;
@@ -124,7 +125,9 @@ public class JavaActionExecutor extends ActionExecutor {
     public static final String HADOOP_JOB_CLASSLOADER = "mapreduce.job.classloader";
     public static final String HADOOP_USER_CLASSPATH_FIRST = "mapreduce.user.classpath.first";
     public static final String OOZIE_CREDENTIALS_SKIP = "oozie.credentials.skip";
+    public static final String OOZIE_ACTION_DEPENDENCY_DEDUPLICATE = "oozie.action.dependency.deduplicate";
     public static final int maxGetJobRetries;
+    private static DependencyDeduplicator dependencyDeduplicator = new DependencyDeduplicator();
 
     public XConfiguration workflowConf = null;
 
@@ -924,6 +927,7 @@ public class JavaActionExecutor extends ActionExecutor {
             // cancel delegation token on a launcher job which stays alive till child job(s) finishes
             // otherwise (in mapred action), doesn't cancel not to disturb running child job
             launcherJobConf.setBoolean("mapreduce.job.complete.cancel.delegation.tokens", true);
+            checkAndDeduplicate(actionConf);
             setupLauncherConf(launcherJobConf, actionXml, appPathRoot, context);
 
             // Properties for when a launcher job's AM gets restarted
@@ -1038,11 +1042,18 @@ public class JavaActionExecutor extends ActionExecutor {
             // properties from action that are needed by the launcher (e.g. QUEUE NAME, ACLs)
             // maybe we should add queue to the WF schema, below job-tracker
             actionConfToLauncherConf(actionConf, launcherJobConf);
-
+            checkAndDeduplicate(actionConf);
             return launcherJobConf;
         }
         catch (Exception ex) {
             throw convertException(ex);
+        }
+    }
+
+    private void checkAndDeduplicate(final Configuration conf) {
+        if (ConfigurationService.getBoolean(OOZIE_ACTION_DEPENDENCY_DEDUPLICATE)) {
+            dependencyDeduplicator.deduplicate(conf, MRJobConfig.CACHE_FILES);
+            dependencyDeduplicator.deduplicate(conf, MRJobConfig.CACHE_ARCHIVES);
         }
     }
 
