@@ -1,5 +1,6 @@
 -- Backport and Internal patches --
 
+OOZIE-3156 Retry SSH action check when cannot connect to remote host
 OOZIE-2427 [Kerberos] Authentication failure for the javascript resources under /ext-2.2 (lianggz via andras.piros)
 BUG-107508 OOZIE-2488 Upgrade to latest OpenJPA version (abhishekbafna via jaydeepvishwakarma)
 BUG-99803 Oozie should disable HBase dynamic class loading - amendum for BUG-96737
