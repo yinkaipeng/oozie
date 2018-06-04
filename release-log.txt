@@ -1,5 +1,6 @@
 -- Oozie 4.3.1 release
 
+OOZIE-3156 Retry SSH action check when cannot connect to remote host (txsing via andras.piros)
 OOZIE-3183 Better logging for SshActionExecutor and extended HA capability when calling to remote host (andras.piros)
 OOZIE-2769 Extend FS action to allow setrep on a file (Artem Ervits via gezapeti)
 OOZIE-3085 Improve logging in ActionExecutors: add log entry for start(), end() and kill() (kmarton via andras.piros)

@@ -1,5 +1,6 @@
 -- Backport and Internal patches --
 
+BUG-106266 OOZIE-3156 OOZIE-3156 OOZIE-3085 OOZIE-2769 Retry SSH action check when cannot connect to remote host
 BUG-103964 Set spark-2 profile to active by default
 BUG-103353 Upgrade Jackson dependencies to 2.9.4
 BUG-102300 OOZIE-3235 Upgrade ActiveMQ to 5.15.3
