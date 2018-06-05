@@ -1042,7 +1042,7 @@ public class JavaActionExecutor extends ActionExecutor {
             // properties from action that are needed by the launcher (e.g. QUEUE NAME, ACLs)
             // maybe we should add queue to the WF schema, below job-tracker
             actionConfToLauncherConf(actionConf, launcherJobConf);
-            checkAndDeduplicate(actionConf);
+            checkAndDeduplicate(launcherJobConf);
             return launcherJobConf;
         }
         catch (Exception ex) {
