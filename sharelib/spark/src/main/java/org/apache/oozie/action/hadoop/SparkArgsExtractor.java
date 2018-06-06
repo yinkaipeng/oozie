@@ -19,22 +19,36 @@
 package org.apache.oozie.action.hadoop;
 
 import com.google.common.annotations.VisibleForTesting;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.Path;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.Reader;
+import java.io.StringReader;
+import java.io.Writer;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
+import java.util.Properties;
 import java.util.regex.Pattern;
 
+import static org.apache.oozie.action.hadoop.SparkActionExecutor.SPARK_DEFAULT_OPTS;
+
+@SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "Properties file should be specified by user")
 class SparkArgsExtractor {
     private static final Pattern SPARK_DEFAULTS_FILE_PATTERN = Pattern.compile("spark-defaults.conf");
     private static final String FILES_OPTION = "--files";
@@ -62,6 +76,8 @@ class SparkArgsExtractor {
     private static final String SPARK_YARN_JARS = "spark.yarn.jars";
     private static final String OPT_SEPARATOR = "=";
     private static final String OPT_VALUE_SEPARATOR = ",";
+    private static final String SPARK_OPT_SEPARATOR = ":";
+    private static final String JAVA_OPT_SEPARATOR = " ";
     private static final String CONF_OPTION = "--conf";
     private static final String MASTER_OPTION_YARN_CLUSTER = "yarn-cluster";
     private static final String MASTER_OPTION_YARN_CLIENT = "yarn-client";
@@ -70,6 +86,7 @@ class SparkArgsExtractor {
     private static final String DEPLOY_MODE_CLIENT = "client";
     private static final String SPARK_YARN_TAGS = "spark.yarn.tags";
     private static final String OPT_PROPERTIES_FILE = "--properties-file";
+    static final String SPARK_DEFAULTS_GENERATED_PROPERTIES = "spark-defaults-oozie-generated.properties";
 
     private boolean pySpark = false;
     private final Configuration actionConf;
@@ -134,6 +151,7 @@ class SparkArgsExtractor {
         final StringBuilder userFiles = new StringBuilder();
         final StringBuilder userArchives = new StringBuilder();
         final String sparkOpts = actionConf.get(SparkActionExecutor.SPARK_OPTS);
+        String propertiesFile = null;
         if (StringUtils.isNotEmpty(sparkOpts)) {
             final List<String> sparkOptions = SparkOptionsSplitter.splitSparkOpts(sparkOpts);
             for (int i = 0; i < sparkOptions.size(); i++) {
@@ -176,7 +194,11 @@ class SparkArgsExtractor {
                 if (opt.startsWith(SECURITY_CREDENTIALS_HBASE)) {
                     addedSecurityCredentialsHBase = true;
                 }
-
+                if (opt.startsWith(OPT_PROPERTIES_FILE)){
+                    i++;
+                    propertiesFile = sparkOptions.get(i);
+                    addToSparkArgs = false;
+                }
                 if (opt.startsWith(EXECUTOR_EXTRA_JAVA_OPTIONS) || opt.startsWith(DRIVER_EXTRA_JAVA_OPTIONS)) {
                     if (!opt.contains(LOG4J_CONFIGURATION_JAVA_OPTION)) {
                         opt += " " + LOG4J_CONFIGURATION_JAVA_OPTION + SparkMain.SPARK_LOG4J_PROPS;
@@ -282,11 +304,7 @@ class SparkArgsExtractor {
             sparkArgs.add(CONF_OPTION);
             sparkArgs.add(DRIVER_EXTRA_JAVA_OPTIONS + LOG4J_CONFIGURATION_JAVA_OPTION + SparkMain.SPARK_LOG4J_PROPS);
         }
-        final File defaultConfFile = SparkMain.getMatchingFile(SPARK_DEFAULTS_FILE_PATTERN);
-        if (defaultConfFile != null) {
-            sparkArgs.add(OPT_PROPERTIES_FILE);
-            sparkArgs.add(SPARK_DEFAULTS_FILE_PATTERN.toString());
-        }
+        mergeAndAddPropertiesFile(sparkArgs, propertiesFile);
 
         if ((yarnClusterMode || yarnClientMode)) {
             final Map<String, URI> fixedFileUrisMap =
@@ -323,6 +341,132 @@ class SparkArgsExtractor {
         sparkArgs.addAll(Arrays.asList(mainArgs));
 
         return sparkArgs;
+    }
+
+    private void mergeAndAddPropertiesFile(final List<String> sparkArgs, final String userDefinedPropertiesFile)
+            throws IOException {
+        final Properties properties = new Properties();
+        loadServerDefaultProperties(properties);
+        loadLocalizedDefaultPropertiesFile(properties);
+        loadUserDefinedPropertiesFile(userDefinedPropertiesFile, properties);
+        final boolean persisted = persistMergedProperties(properties);
+        if (persisted) {
+            sparkArgs.add(OPT_PROPERTIES_FILE);
+            sparkArgs.add(SPARK_DEFAULTS_GENERATED_PROPERTIES);
+
+            checkPropertiesAndPrependArgs(properties, sparkArgs);
+        }
+    }
+
+    private boolean persistMergedProperties(final Properties properties) throws IOException {
+        if (!properties.isEmpty()) {
+            try (final Writer writer = new OutputStreamWriter(
+                    new FileOutputStream(new File(SPARK_DEFAULTS_GENERATED_PROPERTIES)),
+                            StandardCharsets.UTF_8.name())) {
+                properties.store(writer, "Properties file generated by Oozie");
+                System.out.println(String.format("Persisted merged Spark configs in file %s. Merged properties are: %s",
+                        SPARK_DEFAULTS_GENERATED_PROPERTIES, Arrays.toString(properties.stringPropertyNames().toArray())));
+                return true;
+            } catch (IOException e) {
+                System.err.println(String.format("Could not persist derived Spark config file. Reason: %s", e.getMessage()));
+                throw e;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * In case some property values are present both in {@code spark-defaults.conf} and as property key/value pairs generated by
+     * Oozie, prepend the user configured values from {@code spark-defaults.conf} to the ones generated by Oozie, as part of the
+     * Spark arguments list. Users don't want to lose the configured values, and we don't want to lose the generated ones, either.
+     * <p>
+     * Following properties to prepend to Spark arguments:
+     * <ul>
+     *     <li>{@code spark.executor.extraClassPath}</li>
+     *     <li>{@code spark.driver.extraClassPath}</li>
+     *     <li>{@code spark.executor.extraJavaOptions}</li>
+     *     <li>{@code spark.driver.extraJavaOptions}</li>
+     * </ul>
+     * @param source {@link Properties} defined in {@code spark-defaults.conf} by the user
+     * @param target Spark options
+     */
+    private void checkPropertiesAndPrependArgs(final Properties source, final List<String> target) {
+        checkPropertiesAndPrependArg(EXECUTOR_CLASSPATH, SPARK_OPT_SEPARATOR, source, target);
+        checkPropertiesAndPrependArg(DRIVER_CLASSPATH, SPARK_OPT_SEPARATOR, source, target);
+        checkPropertiesAndPrependArg(EXECUTOR_EXTRA_JAVA_OPTIONS, JAVA_OPT_SEPARATOR, source, target);
+        checkPropertiesAndPrependArg(DRIVER_EXTRA_JAVA_OPTIONS, JAVA_OPT_SEPARATOR, source, target);
+    }
+
+    /**
+     * Prepend one  user defined property value from {@code spark-defaults.properties} to the Oozie generated value, and store to
+     * Spark options.
+     * @param key key of the user defined property key/value pair
+     * @param separator user defined and generated values must be separated, depending on the context
+     * @param source {@link Properties} defined in {@code spark-defaults.conf} by the user
+     * @param target Spark options
+     */
+    private void checkPropertiesAndPrependArg(final String key,
+                                              final String separator,
+                                              final Properties source,
+                                              final List<String> target) {
+        final String propertiesKey = key.replace(OPT_SEPARATOR, "");
+        if (source.containsKey(propertiesKey)) {
+            final ListIterator<String> targetIterator = target.listIterator();
+            while (targetIterator.hasNext()) {
+                final String arg = targetIterator.next();
+                if (arg.startsWith(key)) {
+                    final String valueToPrepend = source.getProperty(propertiesKey);
+                    final String oldValue = arg.substring(arg.indexOf(key) + key.length());
+                    String newValue = valueToPrepend + separator + oldValue;
+                    System.out.println(String.format("Spark argument to replace: [%s=%s]", propertiesKey, oldValue));
+                    targetIterator.set(key + newValue);
+                    System.out.println(String.format("Spark argument replaced with: [%s=%s]", propertiesKey, newValue));
+                }
+            }
+        }
+    }
+
+    private void loadUserDefinedPropertiesFile(final String userDefinedPropertiesFile, final Properties properties) {
+        if (userDefinedPropertiesFile != null) {
+            System.out.println(String.format("Reading Spark config from %s %s...", OPT_PROPERTIES_FILE, userDefinedPropertiesFile));
+            loadProperties(new File(userDefinedPropertiesFile), properties);
+        }
+    }
+
+    private void loadLocalizedDefaultPropertiesFile(final Properties properties) {
+        final File localizedDefaultConfFile = SparkMain.getMatchingFile(SPARK_DEFAULTS_FILE_PATTERN);
+        if (localizedDefaultConfFile != null) {
+            System.out.println(String.format("Reading Spark config from file %s...", localizedDefaultConfFile.getName()));
+            loadProperties(localizedDefaultConfFile, properties);
+        }
+    }
+
+    private void loadServerDefaultProperties(final Properties properties) {
+        final String sparkDefaultsFromServer = actionConf.get(SPARK_DEFAULT_OPTS, "");
+        if (!sparkDefaultsFromServer.isEmpty()) {
+            System.out.println("Reading Spark config propagated from Oozie server...");
+            try (final StringReader reader = new StringReader(sparkDefaultsFromServer)) {
+                properties.load(reader);
+            } catch (IOException e) {
+                System.err.println(String.format("Could not read propagated Spark config! Reason: %s", e.getMessage()));
+            }
+        }
+    }
+
+    private void loadProperties(final File file, final Properties target) {
+        try (final Reader reader = new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8.name())) {
+            final Properties properties = new Properties();
+            properties.load(reader);
+            for(String key :properties.stringPropertyNames()) {
+                Object prevProperty = target.setProperty(key, properties.getProperty(key));
+                if(prevProperty != null){
+                    System.out.println(String.format("Value of %s was overwritten from %s", key, file.getName()));
+                }
+            }
+        } catch (IOException e) {
+            System.err.println(String.format("Could not read Spark configs from file %s. Reason: %s", file.getName(),
+                    e.getMessage()));
+        }
     }
 
     private void appendWithPathSeparator(final String what, final StringBuilder to) {

@@ -39,6 +39,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.apache.hadoop.mapreduce.MRJobConfig;
 import org.apache.hadoop.security.AccessControlException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.filecache.DistributedCache;
@@ -124,7 +125,9 @@ public class JavaActionExecutor extends ActionExecutor {
     public static final String HADOOP_JOB_CLASSLOADER = "mapreduce.job.classloader";
     public static final String HADOOP_USER_CLASSPATH_FIRST = "mapreduce.user.classpath.first";
     public static final String OOZIE_CREDENTIALS_SKIP = "oozie.credentials.skip";
+    public static final String OOZIE_ACTION_DEPENDENCY_DEDUPLICATE = "oozie.action.dependency.deduplicate";
     public static final int maxGetJobRetries;
+    private static DependencyDeduplicator dependencyDeduplicator = new DependencyDeduplicator();
 
     public XConfiguration workflowConf = null;
 
@@ -924,6 +927,7 @@ public class JavaActionExecutor extends ActionExecutor {
             // cancel delegation token on a launcher job which stays alive till child job(s) finishes
             // otherwise (in mapred action), doesn't cancel not to disturb running child job
             launcherJobConf.setBoolean("mapreduce.job.complete.cancel.delegation.tokens", true);
+            checkAndDeduplicate(actionConf);
             setupLauncherConf(launcherJobConf, actionXml, appPathRoot, context);
 
             // Properties for when a launcher job's AM gets restarted
@@ -983,8 +987,6 @@ public class JavaActionExecutor extends ActionExecutor {
                     prepareXML = XmlUtils.prettyPrint(prepareElement).toString().trim();
                 }
             }
-            removeDuplicatedDependencies(actionConf, "mapreduce.job.cache.files");
-            removeDuplicatedDependencies(actionConf, "mapreduce.job.cache.archives");
             LauncherMapperHelper.setupLauncherInfo(launcherJobConf, jobId, actionId, actionDir, recoveryId, actionConf,
                     prepareXML);
 
@@ -1040,9 +1042,7 @@ public class JavaActionExecutor extends ActionExecutor {
             // properties from action that are needed by the launcher (e.g. QUEUE NAME, ACLs)
             // maybe we should add queue to the WF schema, below job-tracker
             actionConfToLauncherConf(actionConf, launcherJobConf);
-
-            removeDuplicatedDependencies(launcherJobConf, "mapreduce.job.cache.files");
-            removeDuplicatedDependencies(launcherJobConf, "mapreduce.job.cache.archives");
+            checkAndDeduplicate(launcherJobConf);
             return launcherJobConf;
         }
         catch (Exception ex) {
@@ -1050,26 +1050,10 @@ public class JavaActionExecutor extends ActionExecutor {
         }
     }
 
-    private void removeDuplicatedDependencies(Configuration conf, String key) {
-        try {
-            final Map<String, String> nameToPath = new HashMap<>();
-            StringBuilder uniqList = new StringBuilder();
-            if (conf.get(key) == null) {
-                return;
-            }
-            for (String dependency : conf.get(key).split(",")) {
-                final String[] arr = dependency.split("/");
-                final String dependencyName = arr[arr.length - 1];
-                if (nameToPath.containsKey(dependencyName)) {
-                    LOG.warn(dependencyName + " [" + dependency + "] is already defined in " + key + ". Skipping...");
-                } else {
-                    nameToPath.put(dependencyName, dependency);
-                    uniqList.append(dependency).append(",");
-                }
-            }
-            uniqList.setLength(uniqList.length() - 1);
-            conf.set(key, uniqList.toString());
-        } catch (Exception e) {
+    private void checkAndDeduplicate(final Configuration conf) {
+        if (ConfigurationService.getBoolean(OOZIE_ACTION_DEPENDENCY_DEDUPLICATE)) {
+            dependencyDeduplicator.deduplicate(conf, MRJobConfig.CACHE_FILES);
+            dependencyDeduplicator.deduplicate(conf, MRJobConfig.CACHE_ARCHIVES);
         }
     }
 
