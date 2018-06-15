@@ -34,11 +34,13 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Collection;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 import org.apache.hadoop.mapreduce.MRJobConfig;
 import org.apache.hadoop.security.AccessControlException;
 import org.apache.hadoop.conf.Configuration;
@@ -84,7 +86,6 @@ import org.jdom.Element;
 import org.jdom.JDOMException;
 import org.jdom.Namespace;
 
-
 public class JavaActionExecutor extends ActionExecutor {
 
     protected static final String HADOOP_USER = "user.name";
@@ -111,6 +112,10 @@ public class JavaActionExecutor extends ActionExecutor {
     public static final String YARN_AM_COMMAND_OPTS = "yarn.app.mapreduce.am.command-opts";
     public static final String YARN_AM_ENV = "yarn.app.mapreduce.am.env";
     private static final String JAVA_MAIN_CLASS_NAME = "org.apache.oozie.action.hadoop.JavaMain";
+    public static final String ACTION_SHARELIB_FOR = "oozie.action.sharelib.for.";
+    public static final String SHARELIB_EXCLUDE_SUFFIX = ".exclude";
+    public static final String OOZIE_ACTION_DEPENDENCY_DEDUPLICATE = "oozie.action.dependency.deduplicate";
+
     private static int maxActionOutputLen;
     private static int maxExternalStatsSize;
     private static int maxFSGlobMax;
@@ -125,9 +130,9 @@ public class JavaActionExecutor extends ActionExecutor {
     public static final String HADOOP_JOB_CLASSLOADER = "mapreduce.job.classloader";
     public static final String HADOOP_USER_CLASSPATH_FIRST = "mapreduce.user.classpath.first";
     public static final String OOZIE_CREDENTIALS_SKIP = "oozie.credentials.skip";
-    public static final String OOZIE_ACTION_DEPENDENCY_DEDUPLICATE = "oozie.action.dependency.deduplicate";
     public static final int maxGetJobRetries;
     private static DependencyDeduplicator dependencyDeduplicator = new DependencyDeduplicator();
+    private ShareLibExcluder shareLibExcluder = null;
 
     public XConfiguration workflowConf = null;
 
@@ -683,7 +688,6 @@ public class JavaActionExecutor extends ActionExecutor {
             throws ActionExecutorException {
         Set<String> confSet = new HashSet<String>(Arrays.asList(getShareLibFilesForActionConf() == null ? new String[0]
                 : getShareLibFilesForActionConf()));
-
         Set<Path> sharelibList = new HashSet<Path>();
 
         if (actionShareLibNames != null) {
@@ -742,9 +746,7 @@ public class JavaActionExecutor extends ActionExecutor {
                         }
                     }
                 }
-                for (Path libPath : sharelibList) {
-                    addToCache(conf, libPath, libPath.toUri().getPath(), false);
-                }
+                addLibPathsToCache(conf, sharelibList);
             }
             catch (URISyntaxException ex) {
                 throw new ActionExecutorException(ActionExecutorException.ErrorType.FAILED, "Error configuring sharelib",
@@ -767,22 +769,39 @@ public class JavaActionExecutor extends ActionExecutor {
                     throw new ActionExecutorException(ActionExecutorException.ErrorType.FAILED, "EJ001",
                             "Could not locate Oozie sharelib");
                 }
-                FileSystem fs = listOfPaths.get(0).getFileSystem(conf);
-                for (Path actionLibPath : listOfPaths) {
-                    JobUtils.addFileToClassPath(actionLibPath, conf, fs);
-                    DistributedCache.createSymlink(conf);
-                }
-                listOfPaths = shareLibService.getSystemLibJars(getType());
-                if (listOfPaths != null) {
-                    for (Path actionLibPath : listOfPaths) {
-                        JobUtils.addFileToClassPath(actionLibPath, conf, fs);
-                        DistributedCache.createSymlink(conf);
-                    }
-                }
+                addLibPathsToClassPath(conf, listOfPaths);
+                addLibPathsToClassPath(conf, shareLibService.getSystemLibJars(getType()));
             }
             catch (IOException ex) {
                 throw new ActionExecutorException(ActionExecutorException.ErrorType.FAILED, "It should never happen",
                         ex.getMessage());
+            }
+        }
+    }
+
+    private void addLibPathsToClassPath(Configuration conf, List<Path> listOfPaths)
+            throws IOException, ActionExecutorException {
+        addLibPathsToClassPathOrCache(conf, listOfPaths, false);
+    }
+
+    private void addLibPathsToCache(Configuration conf, Set<Path> sharelibList)
+            throws IOException, ActionExecutorException {
+        addLibPathsToClassPathOrCache(conf, sharelibList, true);
+    }
+
+    private void addLibPathsToClassPathOrCache(Configuration conf, Collection<Path> sharelibList, boolean isAddToCache)
+            throws IOException, ActionExecutorException {
+
+        for (Path libPath : sharelibList) {
+            if (!shareLibExcluder.checkExclude(libPath.toUri())) {
+                if (isAddToCache) {
+                    addToCache(conf, libPath, libPath.toUri().getPath(), false);
+                }
+                else {
+                    FileSystem fs = libPath.getFileSystem(conf);
+                    JobUtils.addFileToClassPath(libPath, conf, fs);
+                    DistributedCache.createSymlink(conf);
+                }
             }
         }
     }
@@ -801,7 +820,7 @@ public class JavaActionExecutor extends ActionExecutor {
                         if (fs.exists(actionLibsPath)) {
                             FileStatus[] files = fs.listStatus(actionLibsPath);
                             for (FileStatus file : files) {
-                                addToCache(conf, appPath, file.getPath().toUri().getPath(), false);
+                                addFileToCacheIfNotExcluded(appPath, conf, file);
                             }
                         }
                     }
@@ -818,12 +837,36 @@ public class JavaActionExecutor extends ActionExecutor {
         }
     }
 
+    private void addFileToCacheIfNotExcluded(Path appPath, Configuration conf, FileStatus file) throws ActionExecutorException {
+        if(!shareLibExcluder.checkExclude(file.getPath().toUri())){
+            addToCache(conf, appPath, file.getPath().toUri().getPath(), false);
+        }
+    }
+
+    private void initShareLibExcluder(Configuration conf, Context context) throws ActionExecutorException {
+        XConfiguration wfJobConf = null;
+        try {
+            wfJobConf = getWorkflowConf(context);
+        } catch (IOException e) {
+            throw new ActionExecutorException(ActionExecutorException.ErrorType.FAILED,
+                    "Failed acquire workflow configuration from context.", e.getMessage());
+        }
+
+        // load and build share lib exclude pattern if specified
+        LOG.info("Trying to load ShareLib exclude pattern for action.");
+        LOG.debug("Initializing sharelib excluder.");
+        shareLibExcluder = new ShareLibExcluder(conf, Services.get().getConf(), wfJobConf, getType(), getSharelibRoot());
+    }
+
     @SuppressWarnings("unchecked")
     public void setLibFilesArchives(Context context, Element actionXml, Path appPath, Configuration conf)
             throws ActionExecutorException {
-        Configuration proto = context.getProtoActionConf();
 
-        // Workflow lib/
+        // setup sharelib excluder
+        initShareLibExcluder(conf, context);
+
+        Configuration proto = context.getProtoActionConf();
+        // Workflow lib defined in oozie.wf.application.lib
         String[] paths = proto.getStrings(WorkflowAppService.APP_LIB_PATH_LIST);
         if (paths != null) {
             for (String path : paths) {
@@ -831,7 +874,7 @@ public class JavaActionExecutor extends ActionExecutor {
             }
         }
 
-        // Action libs
+        // Action libs defined in oozie.launcher.oozie.libpath
         addActionLibs(appPath, conf);
 
         // files and archives defined in the action
@@ -1109,6 +1152,7 @@ public class JavaActionExecutor extends ActionExecutor {
             Configuration actionConf = loadHadoopDefaultResources(context, actionXml);
             setupActionConf(actionConf, context, actionXml, appPathRoot);
             LOG.debug("Setting LibFilesArchives ");
+
             setLibFilesArchives(context, actionXml, appPathRoot, actionConf);
 
             String jobName = actionConf.get(HADOOP_JOB_NAME);
@@ -1241,6 +1285,16 @@ public class JavaActionExecutor extends ActionExecutor {
                 }
             }
         }
+    }
+
+    private URI getSharelibRoot() {
+        URI shareLibRoot = null;
+        try {
+            shareLibRoot = Services.get().get(ShareLibService.class).getShareLibRootPath().toUri();
+        } catch (Exception e) {
+            LOG.error("Sharelib root not found", e);
+        }
+        return shareLibRoot;
     }
 
     private void removeHBaseSettingFromOozieDefaultResource(final Configuration jobConf) {
@@ -1767,9 +1821,6 @@ public class JavaActionExecutor extends ActionExecutor {
         }
         return names;
     }
-
-    private final static String ACTION_SHARELIB_FOR = "oozie.action.sharelib.for.";
-
 
     /**
      * Returns the default sharelib name for the action if any.

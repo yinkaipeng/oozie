@@ -29,13 +29,16 @@ import java.io.Writer;
 import java.net.URI;
 import java.security.PrivilegedExceptionAction;
 import java.text.SimpleDateFormat;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.examples.SleepJob;
 import org.apache.hadoop.filecache.DistributedCache;
@@ -68,7 +71,6 @@ import org.apache.oozie.service.UserGroupInformationService;
 import org.apache.oozie.service.WorkflowAppService;
 import org.apache.oozie.service.WorkflowStoreService;
 import org.apache.oozie.test.XTestCase;
-import org.apache.oozie.service.UserGroupInformationService;
 import org.apache.oozie.util.IOUtils;
 import org.apache.oozie.util.XConfiguration;
 import org.apache.oozie.util.XmlUtils;
@@ -82,8 +84,27 @@ import org.jdom.Element;
 import org.junit.Assert;
 import org.junit.Test;
 
+import static org.apache.oozie.action.hadoop.JavaActionExecutor.ACTION_SHARELIB_FOR;
+import static org.apache.oozie.action.hadoop.JavaActionExecutor.SHARELIB_EXCLUDE_SUFFIX;
+
 
 public class TestJavaActionExecutor extends ActionExecutorTestCase {
+
+    private static final String OOZIE_JAR_1 = "jackson-core-2.3.jar";
+    private static final String OOZIE_JAR_2 = "jackson-databind-2.3.jar";
+    private static final String OOZIE_JAR_3 = "other-lib.jar";
+    private static final String OOZIE_JAR_4 = "oozie-library.jar";
+    private static final String JAVA_JAR_1 = "jackson-core-2.6.5.jar";
+    private static final String JAVA_JAR_2 = "jackson-databind-2.6.5.jar";
+    private static final String JAVA_JAR_3 = "some-lib.jar";
+    private static final String JAVA_JAR_4 = "another-lib.jar";
+    private static final String PIG_JAR_1 = "jackson-pig-0.3.3.jar";
+    private static final String PIG_JAR_2 = "jackson-datapig-0.3.5.jar";
+    private static final String PIG_JAR_3 = "pig_data.txt";
+    private static final String USER_JAR_1 = "jackson-user-3.3.jar";
+    private static final String USER_JAR_2 = "jackson-workflow-app.jar";
+    private static final String USER_JAR_3 = "user-job-utils.jar";
+    private static final String USER_ZIP_1 = "jackson-files.zip";
 
     @Override
     protected void beforeSetUp() throws Exception {
@@ -1544,6 +1565,130 @@ public class TestJavaActionExecutor extends ActionExecutorTestCase {
         assertTrue(cacheFilesStr.contains(jar1Path.toString()));
         assertTrue(cacheFilesStr.contains(jar2Path.toString()));
         assertTrue(cacheFilesStr.contains(jar3Path.toString()));
+    }
+
+    private void createFiles(Map<String, Path> paths) throws Exception{
+        for(Path p : paths.values()){
+            getFileSystem().create(p);
+        }
+    }
+
+    private Map<String, Path> setupTestShareLibJars(Path systemLibPath) throws Exception{
+        Path oozieShareLibPath = new Path(systemLibPath, "oozie");
+        Path javaShareLibPath = new Path(systemLibPath,"java");
+        Path pigShareLibPath = new Path(systemLibPath, new Path("pig", "lib"));
+        Path actionLibPath = new Path(getAppPath(), "lib");
+        getFileSystem().mkdirs(oozieShareLibPath);
+        getFileSystem().mkdirs(javaShareLibPath);
+        getFileSystem().mkdirs(pigShareLibPath);
+        getFileSystem().mkdirs(actionLibPath);
+        Map<String, Path> libs = new LinkedHashMap<>();
+        libs.put(OOZIE_JAR_1, new Path(oozieShareLibPath, OOZIE_JAR_1));
+        libs.put(OOZIE_JAR_2,new Path(oozieShareLibPath, OOZIE_JAR_2));
+        libs.put(OOZIE_JAR_3, new Path(oozieShareLibPath, OOZIE_JAR_3));
+        libs.put(OOZIE_JAR_4, new Path(oozieShareLibPath, OOZIE_JAR_4));
+        libs.put(JAVA_JAR_1,new Path(javaShareLibPath, JAVA_JAR_1));
+        libs.put(JAVA_JAR_2, new Path(javaShareLibPath, JAVA_JAR_2));
+        libs.put(JAVA_JAR_3, new Path(javaShareLibPath, JAVA_JAR_3));
+        libs.put(JAVA_JAR_4, new Path(javaShareLibPath, JAVA_JAR_4));
+        libs.put(PIG_JAR_1, new Path(pigShareLibPath, PIG_JAR_1));
+        libs.put(PIG_JAR_2, new Path(pigShareLibPath, PIG_JAR_2));
+        libs.put(PIG_JAR_3, new Path(pigShareLibPath, PIG_JAR_3));
+        libs.put(USER_JAR_1, new Path(actionLibPath, USER_JAR_1));
+        libs.put(USER_JAR_2, new Path(actionLibPath, USER_JAR_2));
+        libs.put(USER_JAR_3, new Path(actionLibPath, USER_JAR_3));
+        libs.put(USER_ZIP_1, new Path(actionLibPath, USER_ZIP_1));
+        createFiles(libs);
+
+        return libs;
+    }
+
+    private Path getNewSystemLibPath() {
+        WorkflowAppService wps = Services.get().get(WorkflowAppService.class);
+        return new Path(wps.getSystemLibPath(), ShareLibService.SHARE_LIB_PREFIX
+                + new SimpleDateFormat("yyyyMMddHHmmss").format(new Date()));
+    }
+
+    private void checkLibExclude(final String... libsToBeExcluded) throws Exception{
+        final int LIBS_ADDED_BY_TESTS = 6;
+        final Map<String, Path> libs = setupTestShareLibJars(getNewSystemLibPath());
+        final Path actionLibPath = new Path(getAppPath(), "lib");
+
+        final String actionXml = String.format("<java>" +
+                    "<job-tracker>%s</job-tracker>" +
+                    "<name-node>%s</name-node>" +
+                    "<configuration>" +
+                        "<property>" +
+                            "<name>oozie.launcher.oozie.libpath</name>" +
+                            "<value>%s</value>" +
+                        "</property>" +
+                    "</configuration>" +
+                    "<main-class>MAIN-CLASS</main-class>" +
+                "</java>", getJobTrackerUri(), getNameNodeUri(), actionLibPath);
+
+        System.out.println(actionXml);
+
+        final Element eActionXml = XmlUtils.parseXml(actionXml);
+        final Context context = createContext(actionXml, null);
+        Services.get().setService(ShareLibService.class);
+
+        // Test oozie server action sharelib setting
+        final WorkflowJobBean workflow = (WorkflowJobBean) context.getWorkflow();
+        final XConfiguration wfConf = new XConfiguration();
+        wfConf.set(WorkflowAppService.HADOOP_USER, getTestUser());
+        wfConf.set(OozieClient.APP_PATH, new Path(getAppPath(), "workflow.xml").toString());
+        wfConf.setBoolean(OozieClient.USE_SYSTEM_LIBPATH, true);
+        workflow.setConf(XmlUtils.prettyPrint(wfConf).toString());
+        ConfigurationService.set(ACTION_SHARELIB_FOR + "java", "java,pig");
+
+        final JavaActionExecutor ae = new JavaActionExecutor();
+        final Configuration jobConf = ae.createBaseHadoopConf(context, eActionXml);
+        ae.setupLauncherConf(jobConf, eActionXml, getAppPath(), context);
+
+        Services.get().get(ShareLibService.class).updateShareLib();
+        ae.setLibFilesArchives(context, eActionXml, getAppPath(), jobConf);
+
+        final URI[] cacheFiles = DistributedCache.getCacheFiles(jobConf);
+        final String cacheFilesStr = Arrays.toString(cacheFiles);
+
+        for(final String lib : libsToBeExcluded){
+            assertFalse(cacheFilesStr.contains(libs.get(lib).toString()));
+        }
+        assertEquals(libs.size()-libsToBeExcluded.length + LIBS_ADDED_BY_TESTS, cacheFiles.length);
+    }
+
+    @Test
+    public void testExcludeFilesFromAllSharelibLocation() throws Exception{
+        // exclude everything which is jackson*.jar, independent of location
+        ConfigurationService.set(ACTION_SHARELIB_FOR + "java" + SHARELIB_EXCLUDE_SUFFIX, ".*jackson.*");
+
+        checkLibExclude(OOZIE_JAR_1, OOZIE_JAR_2, JAVA_JAR_1, JAVA_JAR_2,
+        PIG_JAR_1, PIG_JAR_2, USER_JAR_1, USER_JAR_2, USER_ZIP_1);
+    }
+
+    @Test
+    public void testExcludeFilesFromAllOozieSharelibFolder() throws Exception{
+        // exclude oozie/jackson*.jars only
+        ConfigurationService.set(ACTION_SHARELIB_FOR + "java" + SHARELIB_EXCLUDE_SUFFIX, "oozie/jackson.*");
+
+        checkLibExclude(OOZIE_JAR_1, OOZIE_JAR_2);
+    }
+
+    @Test
+    public void testExcludeFilesFromMultipleLocations() throws Exception{
+        // exclude pig/lib/jackson*.jar, spark/jackson*.jar, and oozie/jackson*.jar
+        ConfigurationService.set(ACTION_SHARELIB_FOR + "java" + SHARELIB_EXCLUDE_SUFFIX,
+                "pig/lib/jackson.*|java/jackson.*|oozie/jackson.*");
+
+        checkLibExclude(OOZIE_JAR_1, OOZIE_JAR_2, JAVA_JAR_1, JAVA_JAR_2, PIG_JAR_1, PIG_JAR_2);
+    }
+
+    @Test
+    public void testExcludeUserProvidedFiles() throws Exception{
+        // exclude pig/lib/jackson*.jar, spark/jackson*.jar, and oozie/jackson*.jar
+        ConfigurationService.set(ACTION_SHARELIB_FOR + "java" + SHARELIB_EXCLUDE_SUFFIX, ".*/app/lib/jackson.*");
+
+        checkLibExclude(USER_JAR_1, USER_JAR_2, USER_ZIP_1);
     }
 
     @Test
