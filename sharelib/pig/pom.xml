@@ -66,6 +66,8 @@
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
             <scope>compile</scope>
+            <!-- Until BUG-105658 is fixed -->
+            <version>11.0</version>
         </dependency>
 
         <dependency>
