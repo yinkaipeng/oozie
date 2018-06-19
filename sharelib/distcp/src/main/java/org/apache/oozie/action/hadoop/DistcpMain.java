@@ -41,8 +41,7 @@ public class DistcpMain extends JavaMain {
     static final Pattern[] DISTCP_JOB_IDS_PATTERNS = {
             Pattern.compile("Job complete: (job_\\S*)"),
             Pattern.compile("Job (job_\\S*) completed successfully"),
-            Pattern.compile("Submitted application (application[0-9_]*)"),
-            Pattern.compile("DistCp job-id: (job_\\S*)")
+            Pattern.compile("Submitted application (application[0-9_]*)")
     };
     public static void main(String[] args) throws Exception {
         run(DistcpMain.class, args);
