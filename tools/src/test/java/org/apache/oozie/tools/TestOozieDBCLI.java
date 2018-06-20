@@ -19,27 +19,28 @@
 
 package org.apache.oozie.tools;
 
-import org.apache.oozie.service.Services;
-import org.apache.hadoop.fs.FileUtil;
-import org.apache.oozie.test.XTestCase;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FilenameFilter;
-import java.io.IOException;
 import java.io.PrintStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.sql.Statement;
+
+import org.apache.hadoop.fs.FileUtil;
+import org.apache.oozie.service.Services;
+import org.apache.oozie.test.XTestCase;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 
 /**
  * Test OozieDBCLI for data base derby
  */
 public class TestOozieDBCLI extends XTestCase {
     private SecurityManager SECURITY_MANAGER;
-    private static String url = "jdbc:derby:target/test-data/oozietests/org.apache.oozie.tools.TestOozieDBCLI/data.db;create=true";
+    private final static String baseUrl = "jdbc:derby:target/test-data/oozietests/org.apache.oozie.tools.TestOozieDBCLI/data.db";
+    private final static String url = baseUrl + ";create=true";
     private String oozieConfig;
 
     @BeforeClass
@@ -67,6 +68,11 @@ public class TestOozieDBCLI extends XTestCase {
             System.setProperty("oozie.test.config.file", oozieConfig);
         }else{
             System.getProperties().remove("oozie.test.config.file");
+        }
+        try {
+            DriverManager.getConnection(baseUrl + ";shutdown=true");
+        } catch (SQLException e) {
+            assertNotNull(e);
         }
         super.tearDown();
 
