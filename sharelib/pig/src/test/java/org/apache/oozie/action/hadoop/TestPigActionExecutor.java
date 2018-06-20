@@ -41,6 +41,8 @@ import org.jdom.Element;
 import org.json.simple.JSONValue;
 import org.json.simple.parser.JSONParser;
 
+import static org.junit.Assert.assertNotEquals;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -191,7 +193,7 @@ public class TestPigActionExecutor extends ActionExecutorTestCase {
         ae.end(context, context.getAction());
 
         if (checkForSuccess) {
-            assertFalse(context.getExternalChildIDs().equals(launcherId));
+            assertNotEquals("launcherId", context.getExternalChildIDs(),launcherId);
             assertNotNull(context.getAction().getStats());
         }
 

@@ -20,12 +20,9 @@ package org.apache.oozie.action.hadoop;
 
 import com.google.common.base.Preconditions;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.oozie.util.XConfiguration;
 import org.apache.oozie.util.XLog;
 
 import java.net.URI;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.regex.Pattern;
 
 import static org.apache.oozie.action.hadoop.JavaActionExecutor.ACTION_SHARELIB_FOR;

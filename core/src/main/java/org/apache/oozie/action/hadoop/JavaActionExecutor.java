@@ -1288,13 +1288,22 @@ public class JavaActionExecutor extends ActionExecutor {
     }
 
     private URI getSharelibRoot() {
-        URI shareLibRoot = null;
+        ShareLibService shareLibService = Services.get().get(ShareLibService.class);
+        if (shareLibService == null) {
+            LOG.error("ShareLibService is not configured, no root can be found");
+            return null;
+        }
         try {
-            shareLibRoot = Services.get().get(ShareLibService.class).getShareLibRootPath().toUri();
-        } catch (Exception e) {
+            Path shareLibRootPath = shareLibService.getShareLibRootPath();
+            if (shareLibRootPath != null) {
+                return shareLibRootPath.toUri();
+            } else {
+                LOG.error("Sharelib root not found");
+            }
+        } catch (IOException e) {
             LOG.error("Sharelib root not found", e);
         }
-        return shareLibRoot;
+        return null;
     }
 
     private void removeHBaseSettingFromOozieDefaultResource(final Configuration jobConf) {
