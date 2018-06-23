@@ -66,7 +66,7 @@ public class TestWorkflowNotificationXCommand extends XTestCase {
     @Override
     public void setUp() throws Exception {
         super.setUp();
-        setSystemProperty(NotificationXCommand.NOTIFICATION_URL_CONNECTION_TIMEOUT_KEY, "50");
+        setSystemProperty(NotificationXCommand.NOTIFICATION_URL_CONNECTION_TIMEOUT_KEY, "1000");
         Services services = new Services();
         services.init();
         container = new EmbeddedServletContainer("blah");

@@ -35,7 +35,9 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.oozie.test.MiniHCatServer;
 import org.apache.oozie.util.XConfiguration;
+import org.junit.Ignore;
 
+@Ignore
 public class TestHiveMain extends MainTestCase {
     private SecurityManager SECURITY_MANAGER;
 

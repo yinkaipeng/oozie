@@ -49,7 +49,9 @@ import org.apache.oozie.util.XConfiguration;
 import org.apache.oozie.util.XmlUtils;
 import org.jdom.Element;
 import org.jdom.Namespace;
+import org.junit.Ignore;
 
+@Ignore
 public class TestHiveActionExecutor extends ActionExecutorTestCase {
 
     private static final String NEW_LINE =

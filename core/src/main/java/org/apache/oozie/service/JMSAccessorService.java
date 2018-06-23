@@ -213,6 +213,11 @@ public class JMSAccessorService implements Service {
         return retryConnectionsMap.get(connInfo).getNumAttempt();
     }
 
+    @VisibleForTesting
+    boolean isConnectedTo(JMSConnectionInfo connInfo){
+        return connectionMap.containsKey(connInfo);
+    }
+
     private ConnectionRetryInfo queueConnectionForRetry(JMSConnectionInfo connInfo) {
         ConnectionRetryInfo connRetryInfo = retryConnectionsMap.get(connInfo);
         if (connRetryInfo == null) {
