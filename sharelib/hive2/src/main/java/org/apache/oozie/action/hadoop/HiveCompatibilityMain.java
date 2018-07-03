@@ -18,6 +18,7 @@
 
 package org.apache.oozie.action.hadoop;
 
+import com.google.common.annotations.VisibleForTesting;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -25,7 +26,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -37,10 +37,13 @@ import org.apache.commons.io.output.TeeOutputStream;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hive.beeline.BeeLine;
+import static org.apache.hive.beeline.hs2connection.UserHS2ConnectionFileParser.ETC_HIVE_CONF_LOCATION;
 
-import com.google.common.annotations.VisibleForTesting;
 
-public class Hive2Main extends LauncherMain {
+public class HiveCompatibilityMain extends LauncherMain {
+
+    private static final String HIVE_JDBC_URL = "hive.jdbc.url";
+
     @VisibleForTesting
     static final Pattern[] HIVE2_JOB_IDS_PATTERNS = {
             Pattern.compile("Ended Job = (job_\\S*)"),
@@ -58,10 +61,21 @@ public class Hive2Main extends LauncherMain {
         DISALLOWED_BEELINE_OPTIONS.add("-f");
         DISALLOWED_BEELINE_OPTIONS.add("-a");
         DISALLOWED_BEELINE_OPTIONS.add("--help");
+        DISALLOWED_BEELINE_OPTIONS.add("-d");
+        DISALLOWED_BEELINE_OPTIONS.add("--define");
+        DISALLOWED_BEELINE_OPTIONS.add("-e");
+        DISALLOWED_BEELINE_OPTIONS.add("-f");
+        DISALLOWED_BEELINE_OPTIONS.add("-H");
+        DISALLOWED_BEELINE_OPTIONS.add("--help");
+        DISALLOWED_BEELINE_OPTIONS.add("--hiveconf");
+        DISALLOWED_BEELINE_OPTIONS.add("--hivevar");
+        DISALLOWED_BEELINE_OPTIONS.add("-s");
+        DISALLOWED_BEELINE_OPTIONS.add("--silent");
+        DISALLOWED_BEELINE_OPTIONS.add("-D");
     }
 
     public static void main(String[] args) throws Exception {
-        run(Hive2Main.class, args);
+        run(HiveCompatibilityMain.class, args);
     }
 
     private static Configuration initActionConf() {
@@ -103,6 +117,11 @@ public class Hive2Main extends LauncherMain {
 
     @Override
     protected void run(String[] args) throws Exception {
+        System.out.println(String.format("HIVE_CONF_DIR: {%s}", System.getenv("HIVE_CONF_DIR")));
+        System.out.println(String.format("{%s}: {%s}", ETC_HIVE_CONF_LOCATION, new File(ETC_HIVE_CONF_LOCATION).exists()));
+        for( String s : new File(ETC_HIVE_CONF_LOCATION).list()) {
+            System.out.println(s);
+        }
         System.out.println();
         System.out.println("Oozie Hive 2 action configuration");
         System.out.println("=================================================================");
@@ -118,33 +137,29 @@ public class Hive2Main extends LauncherMain {
         String logFile = new File("hive2-oozie-" + hadoopJobId + ".log").getAbsolutePath();
 
         List<String> arguments = new ArrayList<String>();
-        String jdbcUrl = actionConf.get(Hive2ActionExecutor.HIVE2_JDBC_URL);
-        if (jdbcUrl == null) {
-            throw new RuntimeException("Action Configuration does not have [" +  Hive2ActionExecutor.HIVE2_JDBC_URL
-                    + "] property");
+
+        String jdbcUrl = actionConf.get(HIVE_JDBC_URL);
+        if(jdbcUrl == null || jdbcUrl.isEmpty()){
+
         }
+
         arguments.add("-u");
         arguments.add(jdbcUrl);
 
-        // Use the user who is running the map task
+        //Use the user who is running the map task
         String username = actionConf.get("user.name");
         arguments.add("-n");
         arguments.add(username);
 
-        String password = actionConf.get(Hive2ActionExecutor.HIVE2_PASSWORD);
-        if (password == null) {
-            // Have to pass something or Beeline might interactively prompt, which we don't want
-            password = "DUMMY";
-        }
         arguments.add("-p");
-        arguments.add(password);
+        arguments.add("DUMMY");
 
         // We always use the same driver
         arguments.add("-d");
         arguments.add("org.apache.hive.jdbc.HiveDriver");
 
-        String scriptPath = actionConf.get(Hive2ActionExecutor.HIVE2_SCRIPT);
-        String query = actionConf.get(Hive2ActionExecutor.HIVE2_QUERY);
+        String scriptPath = actionConf.get(HiveCompatibilityActionExecutor.HIVE_SCRIPT);
+        String query = actionConf.get(HiveCompatibilityActionExecutor.HIVE_QUERY);
         if (scriptPath != null) {
             if (!new File(scriptPath).exists()) {
                 throw new RuntimeException("Hive 2 script file [" + scriptPath + "] does not exist");
@@ -179,12 +194,12 @@ public class Hive2Main extends LauncherMain {
             arguments.add(filename);
         } else {
             throw new RuntimeException("Action Configuration does not have ["
-                +  Hive2ActionExecutor.HIVE2_SCRIPT + "], or ["
-                +  Hive2ActionExecutor.HIVE2_QUERY + "] property");
+                    +  HiveCompatibilityActionExecutor.HIVE_SCRIPT + "], or ["
+                    +  HiveCompatibilityActionExecutor.HIVE_QUERY + "] property");
         }
 
         // Pass any parameters to Beeline via arguments
-        String[] params = MapReduceMain.getStrings(actionConf, Hive2ActionExecutor.HIVE2_PARAMS);
+        String[] params = MapReduceMain.getStrings(actionConf, HiveCompatibilityActionExecutor.HIVE_PARAMS);
         if (params.length > 0) {
             System.out.println("Parameters:");
             System.out.println("------------------------");
@@ -209,13 +224,14 @@ public class Hive2Main extends LauncherMain {
         arguments.add("-a");
         arguments.add("delegationToken");
 
-        String[] beelineArgs = MapReduceMain.getStrings(actionConf, Hive2ActionExecutor.HIVE2_ARGS);
+        String[] beelineArgs = MapReduceMain.getStrings(actionConf, HiveCompatibilityActionExecutor.HIVE_ARGS);
         for (String beelineArg : beelineArgs) {
             if (DISALLOWED_BEELINE_OPTIONS.contains(beelineArg)) {
                 throw new RuntimeException("Error: Beeline argument " + beelineArg + " is not supported");
             }
             arguments.add(beelineArg);
         }
+        arguments.add("--verbose=true");
 
         // Propagate MR job tag if defined
         if (actionConf.get(LauncherMain.MAPREDUCE_JOB_TAGS) != null ) {
@@ -266,6 +282,7 @@ public class Hive2Main extends LauncherMain {
         // We do this instead of calling BeeLine.main so we can duplicate the error stream for harvesting Hadoop child job IDs
         BeeLine beeLine = new BeeLine();
         beeLine.setErrorStream(new PrintStream(new TeeOutputStream(System.err, new FileOutputStream(logFile))));
+
         int status = beeLine.begin(args, null);
         if (status != 0) {
             System.exit(status);
@@ -282,7 +299,7 @@ public class Hive2Main extends LauncherMain {
             while ((line = br.readLine()) != null) {
                 sb.append(line).append(sep);
             }
-	    // Always add a line separator
+            // Always add a line separator
             sb.append(sep);
             return sb.toString();
         }
@@ -291,5 +308,5 @@ public class Hive2Main extends LauncherMain {
                 br.close();
             }
         }
-     }
+    }
 }
