@@ -303,11 +303,13 @@ public abstract class ActionXCommand<T> extends WorkflowXCommand<T> {
             this.action = action;
             this.isRetry = isRetry;
             this.isUserRetry = isUserRetry;
-            try {
-                protoConf = new XConfiguration(new StringReader(workflow.getProtoActionConf()));
-            }
-            catch (IOException ex) {
-                throw new RuntimeException("It should not happen", ex);
+            if (null != workflow.getProtoActionConf()) {
+                try {
+                    protoConf = new XConfiguration(new StringReader(workflow.getProtoActionConf()));
+                }
+                catch (IOException ex) {
+                    throw new RuntimeException("Failed to construct the proto configuration", ex);
+                }
             }
         }
 

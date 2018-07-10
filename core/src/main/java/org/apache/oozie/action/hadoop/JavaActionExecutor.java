@@ -756,7 +756,7 @@ public class JavaActionExecutor extends ActionExecutor {
                         ex.getMessage());
             }
             catch (IOException ex) {
-                throw new ActionExecutorException(ActionExecutorException.ErrorType.FAILED, "It should never happen",
+                throw new ActionExecutorException(ActionExecutorException.ErrorType.FAILED, "Failed to add libpaths to cache",
                         ex.getMessage());
             }
         }
@@ -776,8 +776,8 @@ public class JavaActionExecutor extends ActionExecutor {
                 addLibPathsToClassPath(conf, shareLibService.getSystemLibJars(getType()));
             }
             catch (IOException ex) {
-                throw new ActionExecutorException(ActionExecutorException.ErrorType.FAILED, "It should never happen",
-                        ex.getMessage());
+                throw new ActionExecutorException(ActionExecutorException.ErrorType.FAILED,
+                        "Failed to add action specific sharelib", ex.getMessage());
             }
         }
     }
@@ -835,7 +835,7 @@ public class JavaActionExecutor extends ActionExecutor {
             }
             catch (IOException ex){
                 throw new ActionExecutorException(ActionExecutorException.ErrorType.FAILED,
-                        "It should never happen", ex.getMessage());
+                        "Failed to add action specific lib", ex.getMessage());
             }
         }
     }
@@ -920,7 +920,7 @@ public class JavaActionExecutor extends ActionExecutor {
             wfJobConf = getWorkflowConf(context);
         }
         catch (IOException ioe) {
-            throw new ActionExecutorException(ActionExecutorException.ErrorType.FAILED, "It should never happen",
+            throw new ActionExecutorException(ActionExecutorException.ErrorType.FAILED, "Failed to add action specific sharelib",
                     ioe.getMessage());
         }
         // Action sharelibs are only added if user has specified to use system libpath
