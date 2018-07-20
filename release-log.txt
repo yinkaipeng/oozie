@@ -1,5 +1,6 @@
 -- Oozie 4.3.0 release (trunk - unreleased)
 
+OOZIE-2488 Upgrade to latest OpenJPA version (abhishekbafna via jaydeepvishwakarma)
 OOZIE-1393 Allow sending emails via TLS (mbalakrishnan, dionusos via andras.piros)
 OOZIE-2885 Running Spark actions should not need Hive on the classpath (satishsaley)
 OOZIE-2858 HiveMain, ShellMain and SparkMain should not overwrite properties and config files locally (gezapeti)
