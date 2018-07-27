@@ -273,6 +273,16 @@ public class TestShareLibService extends XFsTestCase {
         }
     }
 
+    // retentionTime overflows to negative before OOZIE-3142
+    @Test
+    public void testRetentionOverflow() throws Exception {
+        Configuration conf = services.get(ConfigurationService.class).getConf();
+        conf.set(ShareLibService.LAUNCHERJAR_LIB_RETENTION, "25");
+        services.init();
+        ShareLibService shareLibService = services.get(ShareLibService.class);
+        assertTrue(shareLibService.retentionTime > 0);
+    }
+
     @Test
     public void testPurgeShareLib() throws Exception {
         services = new Services();

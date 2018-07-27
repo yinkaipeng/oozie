@@ -114,7 +114,7 @@ public class ShareLibService implements Service, Instrumentable {
 
     FileSystem fs;
 
-    final long retentionTime = 1000 * 60 * 60 * 24 * ConfigurationService.getInt(LAUNCHERJAR_LIB_RETENTION);
+    final long retentionTime = 1000L * 60 * 60 * 24 * ConfigurationService.getInt(LAUNCHERJAR_LIB_RETENTION);
 
     @Override
     public void init(Services services) throws ServiceException {
