@@ -1011,12 +1011,6 @@ public class JavaActionExecutor extends ActionExecutor {
             }
             setLibFilesArchives(context, actionXml, appPathRoot, launcherJobConf);
 
-            String jobName = launcherJobConf.get(HADOOP_JOB_NAME);
-            if (jobName == null || jobName.isEmpty()) {
-                jobName = getAppName(context);
-                launcherJobConf.setJobName(jobName);
-            }
-
             // Inject Oozie job information if enabled.
             injectJobInfo(launcherJobConf, actionConf, context, action);
 
