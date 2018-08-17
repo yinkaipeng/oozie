@@ -1,5 +1,48 @@
 -- Backport and Internal patches --
 
+BUG-101450: Exclude commons-lang-2.4 from OpenJPA and fix the assumption about java opts
+BUG-101450: temporary fix for unit test problems for Pig
+BUG-101450 Add netty test dependencies to minitest subproject
+BUG-101450 Remove setting of mapred job name from createLauncherConf to satisfy unit test requirements
+BUG-108874 Upgrade of Jackson Databind to 2.9.5 in Oozie
+BUG-106681 Reenable hive action in Oozie Add hybrid hive action that has interface as hive action and functioning as hive2 action
+BUG-107568 OOZIE-3304 Parsing sharelib timestamps is not threadsafe (dionusos, matijhs via andras.piros)
+BUG-108049 OOZIE-3135 Configure log4j2 in SqoopMain
+BUG-107892 OOZIE-3072 oozie.service.HadoopAccessorService.action.configurations should overwrite default values set in Hadoop's configuration files (gezapeti)
+BUG-107892 OOZIE-2916 Set a job name for the MR Action's child job (asasvari)
+BUG-107881 OOZIE-2494 Cron syntax not handling DST properly (kmarton via andras.piros)
+BUG-107881 OOZIE-2726 Flaky test due to daylight saving changes (sasishsaley, andras.piros via gezapeti)
+BUG-107881 OOZIE-3173 Coordinator job with frequency using cron syntax creates only one action in catchup mode (andras.piros)
+BUG-107896 OOZIE-2691 Show workflow action retry information in UI
+BUG-107893 OOZIE-3109 [log-streaming] Escape HTML-specific characters (dionusos via andras.piros)
+BUG-107893 OOZIE-2815 Oozie not always display job log
+BUG-107891 OOZIE-3075 Follow-up on OOZIE-3054: create the lib directory if it doesn't exist (pbacsko)
+BUG-107891 OOZIE-3054 Disable erasure coding for sharelib if Oozie runs on Hadoop 3 (pbacsko)
+BUG-107889 OOZIE-3048 Check El Functions for the coordinator action (satishsaley)
+BUG-107886 OOZIE-3004 Forked action retry info is not working
+BUG-107886 OOZIE-2691 Show workflow action retry information in UI
+BUG-107878 OOZIE-3009 Number of Oozie tests executed dropped after OOZIE-2854 (andras.piros via asasvari)
+BUG-107878 OOZIE-2854 Oozie should handle transient database problems (andras.piros via gezapeti)
+BUG-107888 OOZIE-3026 fix openjpa enhancer stage during build for logging (dbdist13, andras.piros via pbacsko)
+BUG-107883 OOZIE-2816 Strip out the first command word from Sqoop action if its "sqoop" (harsh)
+BUG-107894 OOZIE-3113 Retry for ZK lock release (satishsaley)
+BUG-107898 OOZIE-3208 "It should never happen" error messages should be more specific to root cause (kmarton via andras.piros)
+BUG-107884 OOZIE-2940 Possible NullPointerException in WorkflowActionBean (dionusos via gezapeti)
+BUG-107879 OOZIE-3297 Retry logic does not handle the exception from BulkJPAExecutor properly (andras.piros)
+BUG-107882 OOZIE-2733 change org.apache.hadoop.fs.permission.AccessControlException to org.apache.hadoop.security.AccessControlException (gezapeti)
+BUG-107887 OOZIE-3021 Error on job or SLA event listening: WARN logs instead of DEBUG (andras.piros via asasvari)
+BUG-107880 OOZIE-2387 Oozie is Unable to handle Spaces in file/archive tag. (asasvari via gezapeti)
+BUG-107880 OOZIE-2818 Can't overwrite oozie.action.max.output.data on a per-workflow basis (asasvari via pbacsko)
+BUG-87756 OOZIE-2041 Add an admin command to run the PurgeXCommand (abhishekbafna)
+BUG-106266 OOZIE-2875 Typo in ssh action twiki docs (Dongying Jiao via gezapeti)
+BUG-87756 OOZIE-1401 PurgeCommand should purge the workflow jobs w/o end_time (asasvari)
+BUG-106266 OOZIE-3156 Retry SSH action check when cannot connect to remote host (txsing via andras.piros)
+BUG-106266 OOZIE-3183 Better logging for SshActionExecutor and extended HA capability when calling to remote host (andras.piros)
+BUG-106266 OOZIE-2769 Extend FS action to allow setrep on a file (Artem Ervits via gezapeti)
+BUG-106266 OOZIE-3085 Improve logging in ActionExecutors: add log entry for start(), end() and kill() (kmarton via andras.piros)
+
+-- Until Oozie 4.3.1 --
+
 BUG-87756 OOZIE-1401 Oozie service is not purging old DB records properly
 BUG-106266 OOZIE-3156 OOZIE-3156 OOZIE-3085 OOZIE-2769 Retry SSH action check when cannot connect to remote host
 BUG-103964 Set spark-2 profile to active by default
