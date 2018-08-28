@@ -18,25 +18,23 @@
 
 package org.apache.oozie.action.hadoop;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.oozie.action.ActionExecutorException;
-
-import static org.apache.oozie.action.hadoop.Hive2ActionExecutor.HIVE2_JDBC_URL;
-import static org.apache.oozie.action.hadoop.Hive2ActionExecutor.HIVE2_PASSWORD;
-import static org.apache.oozie.action.hadoop.LauncherMapper.CONF_OOZIE_ACTION_MAIN_CLASS;
-import org.apache.oozie.client.XOozieClient;
 import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.HadoopAccessorService;
-import org.apache.oozie.service.Services;
-import org.apache.oozie.util.XConfiguration;
-import org.apache.oozie.util.XLog;
 import org.jdom.Element;
 import org.jdom.Namespace;
+
+import static org.apache.oozie.action.hadoop.LauncherMapper.CONF_OOZIE_ACTION_MAIN_CLASS;
 
 public class HiveCompatibilityActionExecutor extends ScriptLanguageActionExecutor {
 
@@ -45,9 +43,11 @@ public class HiveCompatibilityActionExecutor extends ScriptLanguageActionExecuto
     static final String HIVE_SCRIPT = "oozie.hive.script";
     static final String HIVE_PARAMS = "oozie.hive.params";
     static final String HIVE_ARGS = "oozie.hive.args";
-    private static final String BEELINE_SITE = "beeline-site.xml";
-    private static final String HIVE_CONF_LOCATION = "/etc/hive/conf/";
-    private static final String BEELINE_HIVE2_JDBC_URL = "beeline.hs2.jdbc.url.container";
+
+    public static final String BEELINE_SITE = "beeline-site.xml";
+    public static final String HIVE_CONF_LOCATION = "/etc/hive/conf/";
+    public static final String BEELINE_HIVE2_JDBC_URL_PREFIX = "beeline.hs2.jdbc.url.";
+
     private static final String HIVE_JDBC_URL = "hive.jdbc.url";
 
     private boolean addScriptToCache;
@@ -62,8 +62,7 @@ public class HiveCompatibilityActionExecutor extends ScriptLanguageActionExecuto
         List<Class> classes = new ArrayList<Class>();
         try {
             classes.add(Class.forName(HIVE_MAIN_2_CLASS_NAME));
-        }
-        catch (ClassNotFoundException e) {
+        } catch (ClassNotFoundException e) {
             throw new RuntimeException("Class not found", e);
         }
         return classes;
@@ -84,17 +83,30 @@ public class HiveCompatibilityActionExecutor extends ScriptLanguageActionExecuto
     Configuration setupActionConf(Configuration actionConf, Context context, Element actionXml,
                                   Path appPath) throws ActionExecutorException {
 
-        Configuration conf = super.setupActionConf(actionConf, context, actionXml, appPath);
+        final Configuration conf = super.setupActionConf(actionConf, context, actionXml, appPath);
 
+        final File beelineSiteXml = new File(HIVE_CONF_LOCATION + BEELINE_SITE);
 
-        String jdbcUrl = getConf(HIVE_CONF_LOCATION + BEELINE_SITE).get(BEELINE_HIVE2_JDBC_URL);
-        LOG.info("Configuration property set: " + HIVE_JDBC_URL + "=" + jdbcUrl);
-        conf.set(HIVE_JDBC_URL, jdbcUrl);
+        try (final FileInputStream fis = new FileInputStream(beelineSiteXml)) {
+            final Configuration beelineSiteConf = new Configuration();
+            beelineSiteConf.addResource(fis);
+
+            final String urlConfKey = beelineSiteConf.get(BEELINE_HIVE2_JDBC_URL_PREFIX + "default");
+            final String jdbcUrl = beelineSiteConf.get(BEELINE_HIVE2_JDBC_URL_PREFIX + urlConfKey);
+
+            LOG.debug("Configuration property set: " + HIVE_JDBC_URL + "=" + jdbcUrl);
+            conf.set(HIVE_JDBC_URL, jdbcUrl);
+
+        } catch (IOException e) {
+            LOG.error("beeline-site.xml is not found", e);
+            throw new ActionExecutorException(ActionExecutorException.ErrorType.ERROR, "CONFIGURATION_NOT_FOUND",
+                    "beeline-site.xml is not found, which is required for connecting to hive server.");
+        }
 
         Namespace ns = actionXml.getNamespace();
         Element scriptElement = actionXml.getChild("script", ns);
         Element queryElement = actionXml.getChild("query", ns);
-        if (scriptElement != null){
+        if (scriptElement != null) {
             String script = scriptElement.getTextTrim();
             String scriptName = new Path(script).getName();
             this.addScriptToCache = true;
@@ -105,7 +117,7 @@ public class HiveCompatibilityActionExecutor extends ScriptLanguageActionExecuto
             conf.set(HIVE_QUERY, query);
         } else {
             throw new ActionExecutorException(ActionExecutorException.ErrorType.ERROR, "INVALID_ARGUMENTS",
-                "Hive action requires one of <script> or <query> to be set. Neither were found.");
+                    "Hive action requires one of <script> or <query> to be set. Neither were found.");
         }
 
         List<Element> params = (List<Element>) actionXml.getChildren("param", ns);
@@ -125,12 +137,6 @@ public class HiveCompatibilityActionExecutor extends ScriptLanguageActionExecuto
         }
         MapReduceMain.setStrings(conf, HIVE_ARGS, strArgs);
         return conf;
-    }
-
-    private Configuration getConf(String configLocation) {
-        Configuration config = new Configuration();
-        config.addResource(configLocation);
-        return config;
     }
 
     /**
@@ -164,8 +170,8 @@ public class HiveCompatibilityActionExecutor extends ScriptLanguageActionExecuto
     @Override
     protected String[] getShareLibNames(Context context, Element actionXml, Configuration conf) {
         String[] names = super.getShareLibNames(context, actionXml, conf);
-        for(int i = 0; i < names.length; ++i) {
-            if("hive".equals(names[i])) {
+        for (int i = 0; i < names.length; ++i) {
+            if ("hive".equals(names[i])) {
                 names[i] = "hive2";
             }
         }

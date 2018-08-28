@@ -37,6 +37,7 @@ import org.apache.commons.io.output.TeeOutputStream;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hive.beeline.BeeLine;
+
 import static org.apache.hive.beeline.hs2connection.UserHS2ConnectionFileParser.ETC_HIVE_CONF_LOCATION;
 
 
@@ -137,10 +138,10 @@ public class HiveCompatibilityMain extends LauncherMain {
         String logFile = new File("hive2-oozie-" + hadoopJobId + ".log").getAbsolutePath();
 
         List<String> arguments = new ArrayList<String>();
-
         String jdbcUrl = actionConf.get(HIVE_JDBC_URL);
+        System.out.println(HIVE_JDBC_URL + ": " + jdbcUrl);
         if(jdbcUrl == null || jdbcUrl.isEmpty()){
-
+            throw new RuntimeException("Hive JDBC URL property not found");
         }
 
         arguments.add("-u");
