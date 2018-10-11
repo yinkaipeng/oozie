@@ -255,23 +255,6 @@
         </dependency>
         <dependency>
             <groupId>org.apache.spark</groupId>
-            <artifactId>spark-streaming-flume_${spark.scala.binary.version}</artifactId>
-            <version>${spark.version}</version>
-            <scope>compile</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.mortbay.jetty</groupId>
-                    <artifactId>jetty</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.mortbay.jetty</groupId>
-                    <artifactId>jetty-util</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.spark</groupId>
             <artifactId>spark-streaming-kafka_${spark.scala.binary.version}</artifactId>
             <version>${spark.streaming.kafka.version}</version>
             <scope>compile</scope>
