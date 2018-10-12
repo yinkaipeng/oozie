@@ -46,6 +46,7 @@ import org.apache.hive.service.cli.thrift.ThriftHttpCLIService;
 import org.apache.hive.service.server.HiveServer2;
 
 import com.google.common.io.Files;
+import org.datanucleus.PropertyNames;
 
 // TODO: This class and AbstractHiveService are copied from the org.apache.hive.jdbc package in Hive 13.1; we can remove them once
 // Hive publishes its "hive-it-unit" artifact to maven.
@@ -101,10 +102,9 @@ public class MiniHS2 extends AbstractHiveService {
       setConfProperty(entry.getKey(), entry.getValue());
     }
     HiveConf hiveConf = getHiveConf();
-    hiveConf.set("datanucleus.autoCreateTables", "true");
     hiveConf.set("hive.metastore.schema.verification", "false");
-    hiveConf.set("datanucleus.fixedDatastore", "false");
-    hiveConf.set("datanucleus.autoCreateSchema", "true");
+    hiveConf.set(PropertyNames.PROPERTY_SCHEMA_AUTOCREATE_ALL, "true");
+    hiveConf.set(PropertyNames.PROPERTY_SCHEMA_AUTOCREATE_TABLES, "true");
     hiveServer2.init(hiveConf);
     hiveServer2.start();
     waitForStartup();
