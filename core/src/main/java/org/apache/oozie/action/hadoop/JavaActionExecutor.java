@@ -1011,6 +1011,7 @@ public class JavaActionExecutor extends ActionExecutor {
             }
             setLibFilesArchives(context, actionXml, appPathRoot, launcherJobConf);
 
+            addAppNameContext(action, context);
             String jobName = launcherJobConf.get(HADOOP_JOB_NAME);
             if (jobName == null || jobName.isEmpty()) {
                 jobName = getAppName(context);
