@@ -1,5 +1,6 @@
 -- Oozie 4.3.0 release (trunk - unreleased)
 
+OOZIE-3370 Property filtering is not consistent across job submission (andras.piros)
 OOZIE-3156 Retry SSH action check when cannot connect to remote host (txsing via andras.piros)
 OOZIE-3183 Better logging for SshActionExecutor and extended HA capability when calling to remote host (andras.piros)
 OOZIE-3085 Improve logging in ActionExecutors: add log entry for start(), end() and kill() (kmarton via andras.piros)

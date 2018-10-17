@@ -18,6 +18,8 @@
 
 package org.apache.oozie.action.hadoop;
 
+import com.google.common.collect.ImmutableSet;
+
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.StringReader;
@@ -52,6 +54,7 @@ import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.JobID;
 import org.apache.hadoop.mapred.RunningJob;
+import org.apache.hadoop.mapreduce.MRJobConfig;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.security.token.TokenIdentifier;
@@ -94,7 +97,6 @@ public class JavaActionExecutor extends ActionExecutor {
     public static final String HADOOP_NAME_NODE = "fs.default.name";
     private static final String HADOOP_JOB_NAME = "mapred.job.name";
     public static final String OOZIE_COMMON_LIBDIR = "oozie";
-    private static final Set<String> DISALLOWED_PROPERTIES = new HashSet<String>();
     public final static String MAX_EXTERNAL_STATS_SIZE = "oozie.external.stats.max.size";
     public static final String ACL_VIEW_JOB = "mapreduce.job.acl-view-job";
     public static final String ACL_MODIFY_JOB = "mapreduce.job.acl-modify-job";
@@ -111,6 +113,15 @@ public class JavaActionExecutor extends ActionExecutor {
     public static final String YARN_AM_COMMAND_OPTS = "yarn.app.mapreduce.am.command-opts";
     public static final String YARN_AM_ENV = "yarn.app.mapreduce.am.env";
     private static final String JAVA_MAIN_CLASS_NAME = "org.apache.oozie.action.hadoop.JavaMain";
+    public static final String ACTION_SHARELIB_FOR = "oozie.action.sharelib.for.";
+    public static final String SHARELIB_EXCLUDE_SUFFIX = ".exclude";
+    static final Set<String> DISALLOWED_PROPERTIES = ImmutableSet.of(
+            HADOOP_JOB_TRACKER, HADOOP_JOB_TRACKER_2, OozieClient.USER_NAME,
+            MRJobConfig.USER_NAME, HADOOP_NAME_NODE, HADOOP_YARN_RM
+    );
+    private static final String OOZIE_ACTION_NAME = "oozie.action.name";
+    public static final String OOZIE_ACTION_DEPENDENCY_DEDUPLICATE = "oozie.action.dependency.deduplicate";
+
     private static int maxActionOutputLen;
     private static int maxExternalStatsSize;
     private static int maxFSGlobMax;
@@ -130,11 +141,6 @@ public class JavaActionExecutor extends ActionExecutor {
     public XConfiguration workflowConf = null;
 
     static {
-        DISALLOWED_PROPERTIES.add(HADOOP_USER);
-        DISALLOWED_PROPERTIES.add(HADOOP_JOB_TRACKER);
-        DISALLOWED_PROPERTIES.add(HADOOP_NAME_NODE);
-        DISALLOWED_PROPERTIES.add(HADOOP_JOB_TRACKER_2);
-        DISALLOWED_PROPERTIES.add(HADOOP_YARN_RM);
         int retries = 30;
         try {
             retries = Integer.parseInt(System.getProperty("oozie.jobclient.getjob.retries", "30"));
@@ -246,10 +252,17 @@ public class JavaActionExecutor extends ActionExecutor {
         return createBaseHadoopConf(context, actionXml);
     }
 
-    private static void injectLauncherProperties(Configuration srcConf, Configuration launcherConf) {
+    private static void injectLauncherProperties(Configuration srcConf, Configuration launcherConf)
+            throws ActionExecutorException {
         for (Map.Entry<String, String> entry : srcConf) {
             if (entry.getKey().startsWith("oozie.launcher.")) {
                 String name = entry.getKey().substring("oozie.launcher.".length());
+                if (JavaActionExecutor.DISALLOWED_PROPERTIES.contains(name)) {
+                    XLog.getLog(JavaActionExecutor.class).error(
+                            "Property [{0}] not allowed in launcher configuration", name);
+                    throw new ActionExecutorException(ActionExecutorException.ErrorType.FAILED, "JA010",
+                            "Property [{0}] not allowed in launcher configuration", name);
+                }
                 String value = entry.getValue();
                 // setting original KEY
                 launcherConf.set(entry.getKey(), value);
@@ -1800,7 +1813,6 @@ public class JavaActionExecutor extends ActionExecutor {
         return names;
     }
 
-    private final static String ACTION_SHARELIB_FOR = "oozie.action.sharelib.for.";
     private final static String ACTION_SHARELIB_EXCLUSION_SUFFIX = ".exclusion";
 
     /**
