@@ -52,6 +52,7 @@ import org.apache.oozie.service.CoordinatorEngineService;
 import org.apache.oozie.service.DagEngineService;
 import org.apache.oozie.service.BundleEngineService;
 import org.apache.oozie.service.Services;
+import org.apache.oozie.util.ConfigUtils;
 import org.apache.oozie.util.XLog;
 import org.apache.oozie.util.XmlUtils;
 import org.json.simple.JSONArray;
@@ -80,6 +81,16 @@ public class V1JobsServlet extends BaseJobsServlet {
         JSONObject json = null;
 
         String jobType = request.getParameter(RestConstants.JOBTYPE_PARAM);
+
+        if (!getUser(request).equals(UNDEF)) {
+            ConfigUtils.checkAndSetDisallowedProperties(conf,
+                    getUser(request),
+                    new XServletException(HttpServletResponse.SC_BAD_REQUEST,
+                            ErrorCode.E0303,
+                            "configuration",
+                            OozieClient.USER_NAME),
+                    false);
+        }
 
         if (jobType == null) {
             String wfPath = conf.get(OozieClient.APP_PATH);

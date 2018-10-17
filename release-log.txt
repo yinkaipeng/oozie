@@ -1,3 +1,8 @@
+-- Oozie later release
+
+OOZIE-3370 amend Property filtering is not consistent across job submission (andras.piros)
+OOZIE-3370 Property filtering is not consistent across job submission (andras.piros)
+
 -- Oozie 4.3.1 release
 
 OOZIE-2387 Oozie is Unable to handle Spaces in file/archive tag. (asasvari via gezapeti)
