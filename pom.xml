@@ -26,7 +26,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.apache.oozie</groupId>
     <artifactId>oozie-main</artifactId>
-    <version>4.2.0.2.6.0.2-SNAPSHOT</version>
+    <version>4.2.0.2.6.0.61-1</version>
     <description>Apache Oozie Main</description>
     <name>Apache Oozie Main</name>
     <packaging>pom</packaging>
@@ -75,28 +75,28 @@
         </oozie.test.default.config.file>
         <oozie.test.config.file>${oozie.test.default.config.file}</oozie.test.config.file>
 
-        <hadoop.version>2.7.3.2.6.0.2-SNAPSHOT</hadoop.version>
+        <hadoop.version>2.7.3.2.6.0.61-1</hadoop.version>
         <hadoop.majorversion>2</hadoop.majorversion>
         <hadooplib.version>hadoop-${hadoop.majorversion}-${project.version}</hadooplib.version>
         <oozie.hadoop-utils.version>hadoop-${hadoop.majorversion}-${project.version}</oozie.hadoop-utils.version>
-        <hbase.version>1.1.2.2.6.0.2-SNAPSHOT</hbase.version>
+        <hbase.version>1.1.2.2.6.0.61-1</hbase.version>
 
         <dropwizard.metrics.version>3.1.0</dropwizard.metrics.version>
 
         <clover.license>/home/jenkins/tools/clover/latest/lib/clover.license</clover.license>
 
          <!-- Sharelib component versions -->
-         <hive.version>1.2.1000.2.6.0.2-SNAPSHOT</hive.version>
-         <tez.version>0.7.0.2.6.0.2-SNAPSHOT</tez.version>
-         <pig.version>0.16.0.2.6.0.2-SNAPSHOT</pig.version>
+         <hive.version>1.2.1000.2.6.0.61-1</hive.version>
+         <tez.version>0.7.0.2.6.0.61-1</tez.version>
+         <pig.version>0.16.0.2.6.0.61-1</pig.version>
          <pig.classifier>h2</pig.classifier>
-         <sqoop.version>1.4.6.2.6.0.2-SNAPSHOT</sqoop.version>
-         <spark.version>1.6.3.2.6.0.2-SNAPSHOT</spark.version>
+         <sqoop.version>1.4.6.2.6.0.61-1</sqoop.version>
+         <spark.version>1.6.3.2.6.0.61-1</spark.version>
          <spark.guava.version>14.0.1</spark.guava.version>
          <sqoop.classifier>hadoop100</sqoop.classifier>
          <streaming.version>${hadoop.version}</streaming.version>
          <distcp.version>${hadoop.version}</distcp.version>
-         <hadoop.auth.version>2.7.3.2.6.0.2-SNAPSHOT</hadoop.auth.version>
+         <hadoop.auth.version>2.7.3.2.6.0.61-1</hadoop.auth.version>
 
          <!-- Tomcat version -->
          <tomcat.version>6.0.44</tomcat.version>
@@ -1906,7 +1906,7 @@
                 <activeByDefault>false</activeByDefault>
             </activation>
             <properties>
-                <hadoop.version>2.7.3.2.6.0.2-SNAPSHOT</hadoop.version>
+                <hadoop.version>2.7.3.2.6.0.61-1</hadoop.version>
                 <hadoop.majorversion>1</hadoop.majorversion>
                 <pig.classifier>h2</pig.classifier>
                 <sqoop.classifier>hadoop100</sqoop.classifier>
@@ -1918,7 +1918,7 @@
                 <activeByDefault>false</activeByDefault>
             </activation>
             <properties>
-                <hadoop.version>2.7.3.2.6.0.2-SNAPSHOT</hadoop.version>
+                <hadoop.version>2.7.3.2.6.0.61-1</hadoop.version>
                 <hadoop.majorversion>0.23</hadoop.majorversion>
                 <pig.classifier>h2</pig.classifier>
                 <sqoop.classifier>hadoop23</sqoop.classifier>
@@ -1930,7 +1930,7 @@
                 <activeByDefault>false</activeByDefault>
             </activation>
             <properties>
-                <hadoop.version>2.7.3.2.6.0.2-SNAPSHOT</hadoop.version>
+                <hadoop.version>2.7.3.2.6.0.61-1</hadoop.version>
                 <hadoop.majorversion>2</hadoop.majorversion>
                 <pig.classifier>h2</pig.classifier>
                 <sqoop.classifier>hadoop200</sqoop.classifier>
@@ -1943,7 +1943,7 @@
                 <activeByDefault>false</activeByDefault>
             </activation>
             <properties>
-                <hadoop.version>2.7.3.2.6.0.2-SNAPSHOT</hadoop.version>
+                <hadoop.version>2.7.3.2.6.0.61-1</hadoop.version>
                 <hadoop.majorversion>3</hadoop.majorversion>
                 <pig.classifier>h2</pig.classifier>
                 <sqoop.classifier>hadoop200</sqoop.classifier>
