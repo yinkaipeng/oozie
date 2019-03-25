@@ -16,8 +16,7 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <parent>
         <groupId>org.apache</groupId>
         <artifactId>apache</artifactId>
@@ -27,7 +26,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.apache.oozie</groupId>
     <artifactId>oozie-main</artifactId>
-    <version>4.3.1.3.0.0.0-SNAPSHOT</version>
+    <version>4.3.1.3.1.0.24-1</version>
     <description>Apache Oozie Main</description>
     <name>Apache Oozie Main</name>
     <packaging>pom</packaging>
@@ -69,7 +68,7 @@
 
         <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
         <maven.test.java.opts>-Xmx1024m -da -XX:MaxPermSize=512m</maven.test.java.opts>
-        <maven.javadoc.opts/>
+        <maven.javadoc.opts />
 
         <oozie.data.dir>${oozie.test.dir}</oozie.data.dir>
         <oozie.test.db.host>localhost</oozie.test.db.host>
@@ -78,24 +77,24 @@
         </oozie.test.default.config.file>
         <oozie.test.config.file>${oozie.test.default.config.file}</oozie.test.config.file>
 
-        <gcs.version>1.9.0.3.0.0.0-SNAPSHOT</gcs.version>
-        <hadoop.version>3.0.0.3.0.0.0-SNAPSHOT</hadoop.version>
+        <gcs.version>1.9.10.3.1.0.24-1</gcs.version>
+        <hadoop.version>3.1.1.3.1.0.24-1</hadoop.version>
         <hadoop.majorversion>2</hadoop.majorversion>
         <hadooplib.version>hadoop-${hadoop.majorversion}-${project.version}</hadooplib.version>
         <oozie.hadoop-utils.version>hadoop-${hadoop.majorversion}-${project.version}</oozie.hadoop-utils.version>
-        <hbase.version>2.0.0.3.0.0.0-SNAPSHOT</hbase.version>
+        <hbase.version>2.0.2.3.1.0.24-1</hbase.version>
 
         <dropwizard.metrics.version>3.1.2</dropwizard.metrics.version>
 
         <clover.license>/home/jenkins/tools/clover/latest/lib/clover.license</clover.license>
 
         <!-- Sharelib component versions -->
-        <hive.version>3.0.0.3.0.0.0-SNAPSHOT</hive.version>
-        <tez.version>0.9.0.3.0.0.0-SNAPSHOT</tez.version>
-        <pig.version>0.16.0.3.0.0.0-SNAPSHOT</pig.version>
+        <hive.version>3.1.0.3.1.0.24-1</hive.version>
+        <tez.version>0.9.1.3.1.0.24-1</tez.version>
+        <pig.version>0.16.0.3.1.0.24-1</pig.version>
         <pig.classifier>h2</pig.classifier>
-        <sqoop.version>1.4.7.3.0.0.0-SNAPSHOT</sqoop.version>
-        <spark.version>2.3.0.3.0.0.0-SNAPSHOT</spark.version>
+        <sqoop.version>1.4.7.3.1.0.24-1</sqoop.version>
+        <spark.version>2.3.2.3.1.0.24-1</spark.version>
 
         <hive.jline.version>2.12</hive.jline.version>
         <hive.classifier>core</hive.classifier>
@@ -107,7 +106,7 @@
         <sqoop.classifier>hadoop100</sqoop.classifier>
         <streaming.version>${hadoop.version}</streaming.version>
         <distcp.version>${hadoop.version}</distcp.version>
-        <hadoop.auth.version>3.0.0.3.0.0.0-SNAPSHOT</hadoop.auth.version>
+        <hadoop.auth.version>3.1.1.3.1.0.24-1</hadoop.auth.version>
 
         <!-- Tomcat version -->
         <tomcat.version>6.0.53</tomcat.version>
@@ -117,7 +116,7 @@
         <curator.version>2.5.0</curator.version>
 
         <!-- Native libraries path -->
-        <hadoop.library.path/>
+        <hadoop.library.path />
         <jackson.version>2.9.5</jackson.version>
         <log4j.version>1.2.17</log4j.version>
         <httpclient.version>4.4</httpclient.version>
@@ -1931,8 +1930,7 @@
                             <outputDir>${project.build.directory}/findbugs</outputDir>
                             <stylesheet>fancy-hist.xsl</stylesheet>
                             <fileMappers>
-                                <fileMapper
-                                        implementation="org.codehaus.plexus.components.io.filemappers.FileExtensionMapper">
+                                <fileMapper implementation="org.codehaus.plexus.components.io.filemappers.FileExtensionMapper">
                                     <targetExtension>.html</targetExtension>
                                 </fileMapper>
                             </fileMappers>
@@ -2145,7 +2143,7 @@
                 <activeByDefault>false</activeByDefault>
             </activation>
             <properties>
-                <hadoop.version>3.0.0.3.0.0.0-SNAPSHOT</hadoop.version>
+                <hadoop.version>3.1.1.3.1.0.24-1</hadoop.version>
                 <hadoop.majorversion>1</hadoop.majorversion>
                 <pig.classifier>h2</pig.classifier>
                 <sqoop.classifier>hadoop100</sqoop.classifier>
@@ -2154,10 +2152,10 @@
         <profile>
             <id>hadoop-2</id>
             <activation>
-                <activeByDefault>true</activeByDefault>
+                <activeByDefault>false</activeByDefault>
             </activation>
             <properties>
-                <hadoop.version>3.0.0.3.0.0.0-SNAPSHOT</hadoop.version>
+                <hadoop.version>3.1.1.3.1.0.24-1</hadoop.version>
                 <hadoop.majorversion>2</hadoop.majorversion>
                 <pig.classifier>h2</pig.classifier>
                 <sqoop.classifier>hadoop200</sqoop.classifier>
@@ -2169,7 +2167,7 @@
                 <activeByDefault>false</activeByDefault>
             </activation>
             <properties>
-                <hadoop.version>3.0.0.3.0.0.0-SNAPSHOT</hadoop.version>
+                <hadoop.version>3.1.1.3.1.0.24-1</hadoop.version>
                 <hadoop.majorversion>3</hadoop.majorversion>
                 <pig.classifier>h2</pig.classifier>
                 <sqoop.classifier>hadoop200</sqoop.classifier>
@@ -2301,7 +2299,7 @@
                 <activeByDefault>false</activeByDefault>
             </activation>
             <properties>
-                <spark.version>1.6.1</spark.version>
+                <spark.version>2.3.2.3.1.0.24-1</spark.version>
                 <spark.streaming.kafka.version>1.6.1</spark.streaming.kafka.version>
                 <spark.bagel.version>1.6.1</spark.bagel.version>
             </properties>
@@ -2309,10 +2307,10 @@
         <profile>
             <id>spark-2</id>
             <activation>
-                <activeByDefault>true</activeByDefault>
+                <activeByDefault>false</activeByDefault>
             </activation>
             <properties>
-                <spark.version>2.1.0</spark.version>
+                <spark.version>2.3.2.3.1.0.24-1</spark.version>
                 <spark.streaming.kafka.version>1.6.2</spark.streaming.kafka.version>
                 <spark.bagel.version>1.6.2</spark.bagel.version>
             </properties>
