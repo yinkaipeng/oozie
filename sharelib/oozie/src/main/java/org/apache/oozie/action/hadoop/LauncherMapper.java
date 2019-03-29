@@ -66,6 +66,7 @@ public class LauncherMapper<K1, V1, K2, V2> implements Mapper<K1, V1, K2, V2>, R
     static final String OOZIE_ACTION_DIR_PATH = ACTION_PREFIX + "dir.path";
     static final String ACTION_CONF_XML = "action.xml";
     static final String ACTION_PREPARE_XML = "oozie.action.prepare.xml";
+    static final String OOZIE_ACTION_CONF_XML = "oozie.action.conf.xml";
     static final String ACTION_DATA_SEQUENCE_FILE = "action-data.seq"; // COMBO FILE
     static final String ACTION_DATA_EXTERNAL_CHILD_IDS = "externalChildIDs";
     static final String ACTION_DATA_OUTPUT_PROPS = "output.properties";
@@ -154,8 +155,10 @@ public class LauncherMapper<K1, V1, K2, V2> implements Mapper<K1, V1, K2, V2>, R
             }
             else {
                 String mainClass = getJobConf().get(CONF_OOZIE_ACTION_MAIN_CLASS);
-                if (getJobConf().getBoolean("oozie.hadoop-2.0.2-alpha.workaround.for.distributed.cache", false)) {
-                  System.err.println("WARNING, workaround for Hadoop 2.0.2-alpha distributed cached issue (MAPREDUCE-4820) enabled");
+                if (getJobConf().getBoolean("oozie.hadoop-2.0.2-alpha.workaround.for.distributed.cache",
+                        false)) {
+                  System.err.println("WARNING, workaround for Hadoop 2.0.2-alpha " +
+                          "distributed cached issue (MAPREDUCE-4820) enabled");
                 }
                 String msgPrefix = "Main class [" + mainClass + "], ";
                 int errorCode = 0;

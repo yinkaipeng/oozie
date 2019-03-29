@@ -36,6 +36,7 @@ import com.google.common.annotations.VisibleForTesting;
 public class SqoopMain extends LauncherMain {
 
     public static final String SQOOP_SITE_CONF = "sqoop-site.xml";
+    public static final String TEZ_CREDENTIALS_PATH = "tez.credentials.path";
 
     @VisibleForTesting
     static final Pattern[] SQOOP_JOB_IDS_PATTERNS = {
@@ -54,7 +55,7 @@ public class SqoopMain extends LauncherMain {
         // loading action conf prepared by Oozie
         Configuration sqoopConf = new Configuration(false);
 
-        String actionXml = System.getProperty("oozie.action.conf.xml");
+        String actionXml = System.getProperty(LauncherMapper.OOZIE_ACTION_CONF_XML);
 
         if (actionXml == null) {
             throw new RuntimeException("Missing Java System Property [oozie.action.conf.xml]");
@@ -70,10 +71,15 @@ public class SqoopMain extends LauncherMain {
         if (delegationToken != null) {
             sqoopConf.setBoolean("sqoop.hbase.security.token.skip", true);
             sqoopConf.set("mapreduce.job.credentials.binary", delegationToken);
+            sqoopConf.set(TEZ_CREDENTIALS_PATH, delegationToken);
             System.out.println("------------------------");
             System.out.println("Setting env property for mapreduce.job.credentials.binary to: " + delegationToken);
             System.out.println("------------------------");
             System.setProperty("mapreduce.job.credentials.binary", delegationToken);
+            System.out.println("------------------------");
+            System.out.println("Setting env property for tez.credentials.path to: " + delegationToken);
+            System.out.println("------------------------");
+            System.setProperty(TEZ_CREDENTIALS_PATH, delegationToken);
         } else {
             System.out.println("Non-Kerberos execution");
         }
